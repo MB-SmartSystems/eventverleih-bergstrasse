@@ -9,11 +9,11 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <Image
-              src="/images/logo.png"
+              src="/images/logo-white.png"
               alt="Eventverleih Bergstraße"
               width={180}
               height={45}
-              className="h-10 w-auto brightness-0 invert mb-4"
+              className="h-10 w-auto mb-4"
             />
             <p className="text-gray-400 text-sm leading-relaxed mb-3">
               Zelte & Eventausstattung an der Bergstraße und Umgebung

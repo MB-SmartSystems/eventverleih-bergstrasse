@@ -6,10 +6,12 @@ import Ablauf from "@/components/Ablauf";
 import FAQ from "@/components/FAQ";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import CartBar from "@/components/CartBar";
+import { CartProvider } from "@/components/CartContext";
 
 export default function Home() {
   return (
-    <>
+    <CartProvider>
       <Header />
       <main>
         <Hero />
@@ -20,6 +22,7 @@ export default function Home() {
         <Contact />
       </main>
       <Footer />
-    </>
+      <CartBar />
+    </CartProvider>
   );
 }

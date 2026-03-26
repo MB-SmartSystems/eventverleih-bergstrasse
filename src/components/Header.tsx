@@ -20,11 +20,11 @@ export default function Header() {
       <div className="container-width flex items-center justify-between px-4 sm:px-6 lg:px-8 h-16 md:h-20">
         <Link href="/" className="flex items-center gap-3">
           <Image
-            src="/images/logo.png"
+            src="/images/logo-white.png"
             alt="Eventverleih Bergstraße"
             width={160}
             height={40}
-            className="h-8 md:h-10 w-auto brightness-0 invert"
+            className="h-8 md:h-10 w-auto"
           />
         </Link>
 

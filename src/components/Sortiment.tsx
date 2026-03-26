@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import { useCart } from "./CartContext";
 
 interface Product {
   name: string;
@@ -141,8 +144,17 @@ const categories: Category[] = [
 ];
 
 function ProductCard({ product }: { product: Product }) {
+  const { addItem, removeItem, getQuantity } = useCart();
+  const qty = getQuantity(product.name);
+
   return (
-    <div className="glass-card overflow-hidden group hover:border-gold-500/30 transition-all">
+    <div
+      className={`glass-card overflow-hidden group transition-all ${
+        qty > 0
+          ? "border-gold-500/50 ring-1 ring-gold-500/20"
+          : "hover:border-gold-500/30"
+      }`}
+    >
       <div className="relative aspect-square bg-navy-700">
         <Image
           src={product.image}
@@ -150,6 +162,11 @@ function ProductCard({ product }: { product: Product }) {
           fill
           className="object-cover group-hover:scale-105 transition-transform duration-500"
         />
+        {qty > 0 && (
+          <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-gold-500 text-navy-900 font-bold text-sm flex items-center justify-center">
+            {qty}
+          </div>
+        )}
       </div>
       <div className="p-4 md:p-5">
         <h4 className="font-semibold text-white text-lg mb-1">
@@ -158,12 +175,43 @@ function ProductCard({ product }: { product: Product }) {
         {product.description && (
           <p className="text-gray-400 text-sm mb-3">{product.description}</p>
         )}
-        <div className="flex items-baseline gap-2">
+        <div className="flex items-baseline gap-2 mb-3">
           <span className="text-gold-400 text-2xl font-bold">
             {product.price}
           </span>
           <span className="text-gray-500 text-xs">{product.priceUnit}</span>
         </div>
+
+        {/* Quantity Controls */}
+        {qty === 0 ? (
+          <button
+            onClick={() => addItem(product.name, product.price)}
+            className="w-full py-2 border border-gold-500/30 text-gold-400 text-sm font-medium rounded-lg hover:bg-gold-500/10 transition-all"
+          >
+            + Zur Anfrage hinzufügen
+          </button>
+        ) : (
+          <div className="flex items-center justify-between">
+            <button
+              onClick={() => removeItem(product.name)}
+              className="w-9 h-9 rounded-lg border border-white/10 text-white flex items-center justify-center hover:bg-white/10 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+              </svg>
+            </button>
+            <span className="text-white font-semibold text-lg">{qty}</span>
+            <button
+              onClick={() => addItem(product.name, product.price)}
+              className="w-9 h-9 rounded-lg bg-gold-500 text-navy-900 flex items-center justify-center hover:bg-gold-400 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         {product.youtubeLink && (
           <a
             href={product.youtubeLink}

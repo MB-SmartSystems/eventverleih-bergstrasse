@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useCart } from "./CartContext";
 
 export default function Contact() {
   const [agreed, setAgreed] = useState(false);
+  const { items, cartSummaryText, totalItems } = useCart();
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (totalItems > 0) {
+      setMessage(cartSummaryText());
+    }
+  }, [items, totalItems, cartSummaryText]);
 
   return (
     <section id="kontakt" className="section-padding bg-navy-800">
@@ -181,11 +190,18 @@ export default function Contact() {
               <div>
                 <label className="block text-sm text-gray-400 mb-1.5">
                   Gewünschte Artikel oder Personenanzahl
+                  {totalItems > 0 && (
+                    <span className="text-gold-400 ml-1">
+                      ({totalItems} Artikel ausgewählt)
+                    </span>
+                  )}
                 </label>
                 <textarea
                   name="nachricht"
                   rows={4}
-                  placeholder="z.B. 1x Faltzelt 3×6m, 4x Tische, 24x Stühle..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder="z.B. 1x Faltzelt 3×6m, 4x Tische, 24x Stühle... oder wählen Sie oben Artikel aus."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all resize-none"
                 />
               </div>
