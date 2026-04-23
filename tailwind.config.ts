@@ -20,10 +20,25 @@ const config: Config = {
           500: "#d4a853",
           600: "#c4943f",
         },
+        // Admin UI (aus unikat-m portiert) — dunkel an Storefront angelehnt
+        warm: {
+          bg: "#0a0e17",
+          surface: "#151d2e",
+          text: "#e8e8e8",
+          muted: "#9ca3af",
+          border: "#1c2740",
+        },
+        accent: {
+          DEFAULT: "#d4a853",
+          dark: "#c4943f",
+          light: "#3a2f1a",
+          50: "#2a2214",
+        },
       },
       fontFamily: {
         sans: ["Inter", "system-ui", "sans-serif"],
         display: ["Playfair Display", "Georgia", "serif"],
+        body: ["Inter", "system-ui", "sans-serif"],
       },
     },
   },
