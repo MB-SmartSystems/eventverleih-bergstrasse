@@ -24,6 +24,9 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [folderImages, setFolderImages] = useState<{ filename: string; url: string }[]>([]);
+  const [loadingFolder, setLoadingFolder] = useState(false);
 
   // Multi-image state
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -337,15 +340,96 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                 onChange={(e) => { if (e.target.files?.length) handleAddFiles(e.target.files); e.target.value = ''; }}
                 className="hidden"
               />
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={processing}
-                className="w-full py-3 rounded-lg border-2 border-dashed border-warm-border hover:border-accent/50 bg-warm-bg text-warm-muted text-sm transition-colors disabled:opacity-50"
-              >
-                {processing ? 'Bilder werden verarbeitet...' : 'Bild hinzufuegen'}
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={processing}
+                  className="py-3 rounded-lg border-2 border-dashed border-warm-border hover:border-accent/50 bg-warm-bg text-warm-muted text-sm transition-colors disabled:opacity-50"
+                >
+                  {processing ? 'Wird verarbeitet...' : '+ Neues Bild hochladen'}
+                </button>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setPickerOpen(true);
+                    setLoadingFolder(true);
+                    try {
+                      const res = await fetch('/api/admin/folder-images');
+                      const data = await res.json();
+                      setFolderImages(data.images || []);
+                    } finally {
+                      setLoadingFolder(false);
+                    }
+                  }}
+                  className="py-3 rounded-lg border-2 border-dashed border-warm-border hover:border-accent/50 bg-warm-bg text-warm-muted text-sm transition-colors"
+                >
+                  Aus Produkte-Ordner waehlen
+                </button>
+              </div>
             </div>
+
+            {/* Folder Image Picker */}
+            {pickerOpen && (
+              <div className="fixed inset-0 z-[60] flex items-center justify-center px-4" onClick={() => setPickerOpen(false)}>
+                <div className="absolute inset-0 bg-black/60" />
+                <div className="relative bg-warm-surface rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-warm-border" onClick={(e) => e.stopPropagation()}>
+                  <div className="p-5 border-b border-warm-border flex items-center justify-between">
+                    <h3 className="font-display text-lg font-semibold text-warm-text">Aus Produkte-Ordner waehlen</h3>
+                    <button type="button" onClick={() => setPickerOpen(false)} className="text-warm-muted hover:text-warm-text">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                  <div className="p-5">
+                    {loadingFolder && <p className="text-warm-muted text-sm">Lade Bilder...</p>}
+                    {!loadingFolder && folderImages.length === 0 && (
+                      <p className="text-warm-muted text-sm">Keine Bilder im Ordner gefunden.</p>
+                    )}
+                    {!loadingFolder && folderImages.length > 0 && (
+                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                        {folderImages.map((img) => {
+                          const alreadyAdded = existingImages.includes(img.url);
+                          return (
+                            <button
+                              key={img.filename}
+                              type="button"
+                              disabled={alreadyAdded}
+                              onClick={() => {
+                                setExistingImages((prev) => (prev.includes(img.url) ? prev : [...prev, img.url]));
+                                setRemoveImages((prev) => prev.filter((u) => u !== img.url));
+                              }}
+                              className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${alreadyAdded ? 'border-accent opacity-50 cursor-not-allowed' : 'border-warm-border hover:border-accent'}`}
+                              title={img.filename}
+                            >
+                              <Image src={img.url} alt={img.filename} fill className="object-cover" />
+                              {alreadyAdded && (
+                                <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white text-xs font-medium">
+                                  Zugeordnet
+                                </span>
+                              )}
+                              <span className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] px-1.5 py-0.5 truncate">
+                                {img.filename}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-4 border-t border-warm-border flex justify-end">
+                    <button
+                      type="button"
+                      onClick={() => setPickerOpen(false)}
+                      className="px-4 py-2 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
+                    >
+                      Fertig
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Name */}
             <div>
