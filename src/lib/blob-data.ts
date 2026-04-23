@@ -1,67 +1,57 @@
-import { put, del, list, head } from '@vercel/blob';
+import { put, del, list } from '@vercel/blob';
 import type { ProductsData } from './types';
 import { SEED_DATA } from './seed-data';
 
 const PRODUCTS_JSON = 'products.json';
-const EMPTY_DATA: ProductsData = {
-  categories: [],
-  products: [],
-  promotions: [],
-  settings: { phone: '', whatsapp: '', email: '', instagram: '' },
-};
 
-// Cache the blob URL to avoid list() eventual consistency issues
-let cachedBlobUrl: string | null = null;
-
-function invalidateCache() {
-  cachedBlobUrl = null;
-}
-
-async function getProductsBlobUrl(): Promise<string | null> {
-  if (cachedBlobUrl) {
-    try {
-      await head(cachedBlobUrl);
-      return cachedBlobUrl;
-    } catch {
-      cachedBlobUrl = null;
-    }
-  }
+/**
+ * Resolve the blob URL fresh on every call. Module-level caching of the URL
+ * was the root cause of multiple zero-data incidents: a function instance
+ * could hold a stale/dead URL across invocations, return the catch-block
+ * fallback (= EMPTY_DATA) to the admin UI, the admin would then save that
+ * empty state back and wipe the catalog.
+ *
+ * Trade-off: one extra list() call per load (~80-150ms). Worth it.
+ */
+async function resolveBlobUrl(): Promise<string | null> {
   const blobs = await list({ prefix: PRODUCTS_JSON });
-  const match = blobs.blobs.find(b => b.pathname === PRODUCTS_JSON);
-  if (match) {
-    cachedBlobUrl = match.url;
-    return match.url;
-  }
-  return null;
+  const match = blobs.blobs.find((b) => b.pathname === PRODUCTS_JSON);
+  return match ? match.url : null;
 }
 
 async function fetchAndParse(url: string): Promise<ProductsData> {
-  const res = await fetch(url, { cache: 'no-store' });
+  // Cache-bust via query param — `cache: 'no-store'` alone is insufficient
+  // when Vercel Edge aggressively caches the blob-storage response.
+  const bustedUrl = `${url}${url.includes('?') ? '&' : '?'}t=${Date.now()}`;
+  const res = await fetch(bustedUrl, { cache: 'no-store' });
   if (!res.ok) throw new Error(`Blob fetch failed: HTTP ${res.status}`);
-  return (await res.json()) as ProductsData;
+  const data = (await res.json()) as ProductsData;
+  if (!data || typeof data !== 'object' || !Array.isArray(data.products)) {
+    throw new Error('Blob content has unexpected shape');
+  }
+  return data;
+}
+
+function cloneEmpty(): ProductsData {
+  return {
+    categories: [],
+    products: [],
+    promotions: [],
+    settings: { phone: '', whatsapp: '', email: '', instagram: '' },
+  };
 }
 
 export async function loadProductsData(): Promise<ProductsData> {
-  let data: ProductsData | null = null;
+  let data: ProductsData;
   try {
-    const url = await getProductsBlobUrl();
-    if (!url) return EMPTY_DATA;
-    try {
-      data = await fetchAndParse(url);
-    } catch {
-      // Stale cache — invalidate and retry ONCE with a fresh list()
-      invalidateCache();
-      const retryUrl = await getProductsBlobUrl();
-      if (!retryUrl) return EMPTY_DATA;
-      data = await fetchAndParse(retryUrl);
-    }
+    const url = await resolveBlobUrl();
+    if (!url) return cloneEmpty();
+    data = await fetchAndParse(url);
   } catch {
-    // Both attempts failed — blob unreachable or corrupted
-    invalidateCache();
-    return EMPTY_DATA;
+    return cloneEmpty();
   }
 
-  // Normalize
+  // Normalize arrays
   if (!Array.isArray(data.products)) data.products = [];
   if (!Array.isArray(data.categories)) data.categories = [];
   if (!Array.isArray(data.promotions)) data.promotions = [];
@@ -75,10 +65,14 @@ export async function loadProductsData(): Promise<ProductsData> {
     if (p.visible === undefined) p.visible = true;
     if (p.pinned === undefined) p.pinned = false;
 
-    // Backward-Compat: Alt-Format (quantity + condition) → 3-Zähler-Modell
+    // Backward-compat: old format (quantity + condition) → three-counter model
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const legacy = p as any;
-    if (p.quantityOk === undefined && p.quantityRepair === undefined && p.quantityBroken === undefined) {
+    const hasNewFields =
+      p.quantityOk !== undefined ||
+      p.quantityRepair !== undefined ||
+      p.quantityBroken !== undefined;
+    if (!hasNewFields) {
       const legacyQty = typeof legacy.quantity === 'number' ? legacy.quantity : 1;
       const legacyCond: string = legacy.condition || 'ok';
       p.quantityOk = legacyCond === 'ok' ? legacyQty : 0;
@@ -105,38 +99,44 @@ export async function loadProductsData(): Promise<ProductsData> {
 }
 
 export async function saveProductsData(data: ProductsData): Promise<void> {
-  // Guardrail: never persist a completely empty state — indicates a caller bug
-  // (most likely loadProductsData returned EMPTY_DATA due to a transient error).
-  // Without this, a race condition during save can wipe the entire catalog.
+  // Guardrail: never persist a fully empty state — always indicates a load-
+  // before-save bug (stale cache / fetch failure bubbled up as EMPTY_DATA).
   if (data.products.length === 0 && data.categories.length === 0) {
     throw new Error('Refusing to save empty ProductsData — probable load-before-save bug');
   }
 
-  // 1) Write new blob first (deterministic URL — overwrites existing)
-  const blob = await put(PRODUCTS_JSON, JSON.stringify(data, null, 2), {
+  // Deterministic URL: same pathname overwrites previous content.
+  // addRandomSuffix: false + allowOverwrite: true is required since @vercel/blob v2.
+  await put(PRODUCTS_JSON, JSON.stringify(data, null, 2), {
     access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
   });
-  cachedBlobUrl = blob.url;
 
-  // 2) Clean up any stray duplicate blobs with the same pathname but different URL
-  // (shouldn't exist with addRandomSuffix:false, but safety net for legacy state)
+  // Cleanup: with deterministic URL there should be no duplicates, but legacy
+  // random-suffix copies may exist. Defensive sweep — keep the newest only.
   try {
     const blobs = await list({ prefix: PRODUCTS_JSON });
-    for (const b of blobs.blobs) {
-      if (b.pathname === PRODUCTS_JSON && b.url !== blob.url) {
-        await del(b.url);
+    if (blobs.blobs.length > 1) {
+      const sorted = [...blobs.blobs].sort(
+        (a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime(),
+      );
+      for (const extra of sorted.slice(1)) {
+        if (extra.pathname === PRODUCTS_JSON) {
+          await del(extra.url);
+        }
       }
     }
-  } catch { /* ignore cleanup errors */ }
+  } catch {
+    /* cleanup is best-effort */
+  }
 }
 
 export async function uploadImage(
   file: Buffer,
   filename: string,
-  categorySlug: string
+  categorySlug: string,
 ): Promise<string> {
   const pathname = `produkte/${categorySlug}/${filename}`;
   const blob = await put(pathname, file, {
@@ -147,15 +147,18 @@ export async function uploadImage(
 }
 
 export async function ensureSeeded(): Promise<void> {
-  const url = await getProductsBlobUrl();
-  if (url) {
-    // Blob exists — check content isn't empty (edge case from past bugs)
-    try {
-      const data = await fetchAndParse(url);
-      if (data.products && data.products.length > 0) return;
-    } catch {
-      invalidateCache();
+  try {
+    const url = await resolveBlobUrl();
+    if (url) {
+      try {
+        const data = await fetchAndParse(url);
+        if (data.products && data.products.length > 0) return;
+      } catch {
+        // Blob exists but unreadable — fall through to reseed
+      }
     }
+  } catch {
+    // list() failed — fall through to reseed
   }
   await saveProductsData(SEED_DATA);
 }
@@ -163,5 +166,7 @@ export async function ensureSeeded(): Promise<void> {
 export async function deleteImage(imageUrl: string): Promise<void> {
   try {
     await del(imageUrl);
-  } catch { /* image may already be deleted */ }
+  } catch {
+    /* image may already be deleted */
+  }
 }
