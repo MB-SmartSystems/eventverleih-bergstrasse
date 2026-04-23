@@ -112,6 +112,7 @@ export async function saveProductsData(data: ProductsData): Promise<void> {
     contentType: 'application/json',
     addRandomSuffix: false,
     allowOverwrite: true,
+    cacheControlMaxAge: 0,
   });
 
   // Cleanup: with deterministic URL there should be no duplicates, but legacy
