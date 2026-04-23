@@ -22,6 +22,12 @@ export async function POST(request: NextRequest) {
   const description = (formData.get('description') as string) || undefined;
   const youtubeLink = (formData.get('youtubeLink') as string) || undefined;
   const tags = (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean);
+  const quantity = parseInt((formData.get('quantity') as string) || '1', 10);
+  const conditionRaw = (formData.get('condition') as string) || 'ok';
+  const condition: 'ok' | 'repair' | 'broken' =
+    conditionRaw === 'repair' || conditionRaw === 'broken' ? conditionRaw : 'ok';
+  const location = (formData.get('location') as string) || undefined;
+  const internalNotes = (formData.get('internalNotes') as string) || undefined;
 
   if (!imageFiles.length || !name || !category) {
     return NextResponse.json({ error: 'Bild, Name und Kategorie sind Pflichtfelder' }, { status: 400 });
@@ -49,6 +55,10 @@ export async function POST(request: NextRequest) {
     tags,
     visible: true,
     pinned: false,
+    quantity: Number.isFinite(quantity) && quantity >= 0 ? quantity : 1,
+    condition,
+    location,
+    internalNotes,
   };
   data.products.push(product);
   await saveProductsData(data);

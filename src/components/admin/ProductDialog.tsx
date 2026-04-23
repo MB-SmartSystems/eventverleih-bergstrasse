@@ -21,6 +21,10 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   const [priceUnit, setPriceUnit] = useState('pro Miete (bis zu 5 Tage)');
   const [description, setDescription] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
+  const [quantity, setQuantity] = useState(1);
+  const [condition, setCondition] = useState<'ok' | 'repair' | 'broken'>('ok');
+  const [location, setLocation] = useState('');
+  const [internalNotes, setInternalNotes] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
@@ -47,6 +51,10 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
       setPriceUnit(product?.priceUnit ?? 'pro Miete (bis zu 5 Tage)');
       setDescription(product?.description ?? '');
       setYoutubeLink(product?.youtubeLink ?? '');
+      setQuantity(product?.quantity ?? 1);
+      setCondition(product?.condition ?? 'ok');
+      setLocation(product?.location ?? '');
+      setInternalNotes(product?.internalNotes ?? '');
       setExistingImages(product?.images ?? (product?.image ? [product.image] : []));
       setRemoveImages([]);
       setNewFiles([]);
@@ -205,6 +213,10 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
       formData.append('priceUnit', priceUnit.trim());
       formData.append('description', description.trim());
       formData.append('youtubeLink', youtubeLink.trim());
+      formData.append('quantity', String(quantity));
+      formData.append('condition', condition);
+      formData.append('location', location.trim());
+      formData.append('internalNotes', internalNotes.trim());
 
       if (isEdit) {
         // Edit mode: send existing/remove/new lists
@@ -559,6 +571,65 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                 >
                   Auto
                 </button>
+              </div>
+            </div>
+
+            <div className="border-t border-warm-border pt-4 mt-2">
+              <h3 className="text-sm font-semibold text-warm-text mb-3">Inventar (nur intern)</h3>
+
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                <div>
+                  <label htmlFor="prod-quantity" className="block text-sm font-medium text-warm-text mb-1">Anzahl</label>
+                  <input
+                    id="prod-quantity"
+                    type="number"
+                    min={0}
+                    value={quantity}
+                    onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="prod-condition" className="block text-sm font-medium text-warm-text mb-1">Zustand</label>
+                  <select
+                    id="prod-condition"
+                    value={condition}
+                    onChange={(e) => setCondition(e.target.value as 'ok' | 'repair' | 'broken')}
+                    className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  >
+                    <option value="ok">OK</option>
+                    <option value="repair">Reparaturbeduerftig</option>
+                    <option value="broken">Defekt</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="mb-3">
+                <label htmlFor="prod-location" className="block text-sm font-medium text-warm-text mb-1">
+                  Lagerort <span className="text-warm-muted font-normal">(optional)</span>
+                </label>
+                <input
+                  id="prod-location"
+                  type="text"
+                  value={location}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  placeholder="z.B. Keller Regal 3"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="prod-notes" className="block text-sm font-medium text-warm-text mb-1">
+                  Interne Notiz <span className="text-warm-muted font-normal">(optional)</span>
+                </label>
+                <textarea
+                  id="prod-notes"
+                  value={internalNotes}
+                  onChange={(e) => setInternalNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  placeholder="z.B. 2 Stueck seit Maerz im Winterquartier"
+                />
               </div>
             </div>
 

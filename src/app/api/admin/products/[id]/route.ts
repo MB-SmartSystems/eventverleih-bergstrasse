@@ -13,6 +13,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const priceUnit = formData.get('priceUnit') as string | null;
   const description = formData.get('description') as string | null;
   const youtubeLink = formData.get('youtubeLink') as string | null;
+  const quantityStr = formData.get('quantity') as string | null;
+  const conditionStr = formData.get('condition') as string | null;
+  const location = formData.get('location') as string | null;
+  const internalNotes = formData.get('internalNotes') as string | null;
 
   // Multi-image handling
   const existingImagesStr = formData.get('existingImages') as string | null;
@@ -30,6 +34,15 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (priceUnit !== null) product.priceUnit = priceUnit;
   if (description !== null) product.description = description || undefined;
   if (youtubeLink !== null) product.youtubeLink = youtubeLink || undefined;
+  if (quantityStr !== null) {
+    const n = parseInt(quantityStr, 10);
+    if (Number.isFinite(n) && n >= 0) product.quantity = n;
+  }
+  if (conditionStr !== null && (conditionStr === 'ok' || conditionStr === 'repair' || conditionStr === 'broken')) {
+    product.condition = conditionStr;
+  }
+  if (location !== null) product.location = location || undefined;
+  if (internalNotes !== null) product.internalNotes = internalNotes || undefined;
 
   const visibleStr = formData.get('visible') as string | null;
   const pinnedStr = formData.get('pinned') as string | null;

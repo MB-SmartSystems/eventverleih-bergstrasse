@@ -40,6 +40,8 @@ export async function loadProductsData(): Promise<ProductsData> {
       p.image = p.images[0] || '';
       if (p.visible === undefined) p.visible = true;
       if (p.pinned === undefined) p.pinned = false;
+      if (p.quantity === undefined || p.quantity === null) p.quantity = 1;
+      if (!p.condition) p.condition = 'ok';
     }
 
     // Normalize promotions and settings

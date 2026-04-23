@@ -11,6 +11,10 @@ export interface RentalProduct {
   tags: string[];
   visible: boolean;
   pinned: boolean;
+  quantity: number;
+  condition: 'ok' | 'repair' | 'broken';
+  location?: string;
+  internalNotes?: string;
 }
 
 export interface ProductCategory {

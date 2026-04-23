@@ -33,8 +33,23 @@ export async function GET() {
     return tsB - tsA;
   });
 
-  data.products = visible;
-  return NextResponse.json(data, {
+  // Strip internal inventory fields before exposing to public
+  const publicProducts = visible.map((p) => ({
+    id: p.id,
+    category: p.category,
+    images: p.images,
+    image: p.image,
+    name: p.name,
+    description: p.description,
+    price: p.price,
+    priceUnit: p.priceUnit,
+    youtubeLink: p.youtubeLink,
+    tags: p.tags,
+    visible: p.visible,
+    pinned: p.pinned,
+  }));
+
+  return NextResponse.json({ ...data, products: publicProducts }, {
     headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' },
   });
 }

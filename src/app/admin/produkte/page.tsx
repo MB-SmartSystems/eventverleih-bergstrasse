@@ -339,6 +339,18 @@ export default function ProduktePage() {
                 </div>
               )}
 
+              {/* Condition badge */}
+              {product.condition && product.condition !== 'ok' && (
+                <div
+                  className={`absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    product.condition === 'broken' ? 'bg-red-500/90 text-white' : 'bg-yellow-500/90 text-white'
+                  }`}
+                  title={product.condition === 'broken' ? 'Defekt' : 'Reparaturbeduerftig'}
+                >
+                  {product.condition === 'broken' ? 'Defekt' : 'Repair'}
+                </div>
+              )}
+
               {/* Image */}
               <div className="relative aspect-square">
                 <Image
@@ -404,6 +416,9 @@ export default function ProduktePage() {
               {/* Info */}
               <div className="p-3">
                 <p className="text-sm font-medium text-warm-text truncate">{product.name}</p>
+                <p className="text-xs text-warm-muted mt-0.5">
+                  Bestand: {product.quantity ?? 1}
+                </p>
                 <p className="text-xs text-warm-muted mt-0.5">
                   {getCategoryIcon(product.category)} {getCategoryName(product.category)}
                 </p>

@@ -21,6 +21,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'faltzelt-3x6',
@@ -34,6 +36,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'seitenwand-fenster',
@@ -46,6 +50,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'seitenwand-reissverschluss',
@@ -61,6 +67,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'gewicht-metallplatte',
@@ -73,6 +81,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'gewicht-wasser',
@@ -85,6 +95,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'bodenanker-ratsche',
@@ -100,6 +112,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'tisch',
@@ -113,6 +127,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'stuhl',
@@ -125,6 +141,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'tischdecke',
@@ -138,6 +156,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'lichterkette',
@@ -150,6 +170,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'heizstrahler',
@@ -163,6 +185,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'gasflasche',
@@ -175,6 +199,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'hochzeitsbogen',
@@ -191,6 +217,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
     {
       id: 'riesenjenga',
@@ -204,6 +232,8 @@ export const SEED_DATA: ProductsData = {
       tags: [],
       visible: true,
       pinned: false,
+      quantity: 1,
+      condition: 'ok',
     },
   ],
   promotions: [],
