@@ -4,7 +4,7 @@ import { loadProductsData, saveProductsData, uploadImage, deleteImage } from '@/
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   if (!isAuthenticated()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
+  try {
   const formData = await request.formData();
   const name = formData.get('name') as string | null;
   const category = formData.get('category') as string | null;
@@ -77,6 +77,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   await saveProductsData(data);
   return NextResponse.json({ ok: true, product });
+  } catch (err) {
+    return NextResponse.json({ error: String(err instanceof Error ? err.stack : err) }, { status: 500 });
+  }
 }
 
 export async function DELETE(_request: NextRequest, { params }: { params: { id: string } }) {
