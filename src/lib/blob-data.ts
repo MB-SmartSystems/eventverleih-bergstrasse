@@ -1,5 +1,6 @@
 import { put, del, list, head } from '@vercel/blob';
 import type { ProductsData } from './types';
+import { SEED_DATA } from './seed-data';
 
 const PRODUCTS_JSON = 'products.json';
 
@@ -43,7 +44,7 @@ export async function loadProductsData(): Promise<ProductsData> {
 
     // Normalize promotions and settings
     if (!data.promotions) data.promotions = [];
-    if (!data.settings) data.settings = { phone: '', whatsapp: '', email: 'mirjambuettner@web.de', instagram: '' };
+    if (!data.settings) data.settings = { phone: '', whatsapp: '', email: '', instagram: '' };
 
     // Auto-expire promotions (compare date-only to avoid timezone edge cases)
     const today = new Date().toISOString().split('T')[0];
@@ -84,12 +85,18 @@ export async function uploadImage(
   filename: string,
   categorySlug: string
 ): Promise<string> {
-  const pathname = `galerie/${categorySlug}/${filename}`;
+  const pathname = `produkte/${categorySlug}/${filename}`;
   const blob = await put(pathname, file, {
     access: 'public',
     contentType: 'image/webp',
   });
   return blob.url;
+}
+
+export async function ensureSeeded(): Promise<void> {
+  const url = await getProductsBlobUrl();
+  if (url) return;
+  await saveProductsData(SEED_DATA);
 }
 
 export async function deleteImage(imageUrl: string): Promise<void> {

@@ -17,6 +17,8 @@ export interface ProductCategory {
   slug: string;
   name: string;
   order: number;
+  icon?: string;
+  description?: string;
 }
 
 export interface Promotion {
@@ -43,3 +45,5 @@ export interface ProductsData {
   promotions: Promotion[];
   settings: SiteSettings;
 }
+
+export type GalleryProduct = RentalProduct;
