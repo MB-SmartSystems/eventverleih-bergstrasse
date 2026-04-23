@@ -48,7 +48,7 @@ const categories: Category[] = [
       },
       {
         name: "Seitenwand mit Reißverschluss",
-        image: "/images/products/seitenwand-reissverschluss-aussen.jpg",
+        image: "/images/products/seitenwand-reissverschluss-geschlossen.jpg",
         price: "2 €",
         priceUnit: "pro Miete (bis zu 5 Tage)",
       },
@@ -78,7 +78,7 @@ const categories: Category[] = [
     products: [
       {
         name: "Tisch",
-        description: "Platz für bis zu 8 Personen",
+        description: "Klappbar · 182 × 74 × 74 cm · Platz für bis zu 8 Personen",
         image: "/images/products/klapptisch.jpg",
         price: "12 €",
         priceUnit: "pro Miete (bis zu 5 Tage)",
@@ -157,7 +157,7 @@ function ProductCard({
 
   return (
     <div
-      className={`glass-card overflow-hidden group transition-all ${
+      className={`glass-card overflow-hidden group transition-all flex flex-col h-full ${
         qty > 0
           ? "border-gold-500/50 ring-1 ring-gold-500/20"
           : "hover:border-gold-500/30"
@@ -181,7 +181,7 @@ function ProductCard({
           </div>
         )}
       </button>
-      <div className="p-4 md:p-5">
+      <div className="p-4 md:p-5 flex flex-col flex-1">
         <h4 className="font-semibold text-white text-lg mb-1">
           {product.name}
         </h4>
@@ -195,49 +195,50 @@ function ProductCard({
           <span className="text-gray-500 text-xs">{product.priceUnit}</span>
         </div>
 
-        {/* Quantity Controls */}
-        {qty === 0 ? (
-          <button
-            onClick={() => addItem(product.name, product.price)}
-            className="w-full py-2 border border-gold-500/30 text-gold-400 text-sm font-medium rounded-lg hover:bg-gold-500/10 transition-all"
-          >
-            + Zur Anfrage hinzufügen
-          </button>
-        ) : (
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => removeItem(product.name)}
-              className="w-9 h-9 rounded-lg border border-white/10 text-white flex items-center justify-center hover:bg-white/10 transition-all"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
-              </svg>
-            </button>
-            <span className="text-white font-semibold text-lg">{qty}</span>
+        <div className="mt-auto pt-3">
+          {qty === 0 ? (
             <button
               onClick={() => addItem(product.name, product.price)}
-              className="w-9 h-9 rounded-lg bg-gold-500 text-navy-900 flex items-center justify-center hover:bg-gold-400 transition-all"
+              className="w-full py-2 border border-gold-500/30 text-gold-400 text-sm font-medium rounded-lg hover:bg-gold-500/10 transition-all"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
+              + Zur Anfrage hinzufügen
             </button>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => removeItem(product.name)}
+                className="w-9 h-9 rounded-lg border border-white/10 text-white flex items-center justify-center hover:bg-white/10 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4" />
+                </svg>
+              </button>
+              <span className="text-white font-semibold text-lg">{qty}</span>
+              <button
+                onClick={() => addItem(product.name, product.price)}
+                className="w-9 h-9 rounded-lg bg-gold-500 text-navy-900 flex items-center justify-center hover:bg-gold-400 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          )}
 
-        {product.youtubeLink && (
-          <a
-            href={product.youtubeLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-gold-400 text-sm mt-3 hover:text-gold-500 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M8 5v14l11-7z" />
-            </svg>
-            Aufbauanleitung
-          </a>
-        )}
+          {product.youtubeLink && (
+            <a
+              href={product.youtubeLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-gold-400 text-sm mt-3 hover:text-gold-500 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Aufbauanleitung
+            </a>
+          )}
+        </div>
       </div>
     </div>
   );
