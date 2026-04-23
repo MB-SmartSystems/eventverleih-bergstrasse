@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { useCart } from "./CartContext";
+import ProductLightbox from "./ProductLightbox";
 
 interface Product {
   name: string;
@@ -143,7 +145,13 @@ const categories: Category[] = [
   },
 ];
 
-function ProductCard({ product }: { product: Product }) {
+function ProductCard({
+  product,
+  onImageClick,
+}: {
+  product: Product;
+  onImageClick: (src: string, alt: string) => void;
+}) {
   const { addItem, removeItem, getQuantity } = useCart();
   const qty = getQuantity(product.name);
 
@@ -155,7 +163,12 @@ function ProductCard({ product }: { product: Product }) {
           : "hover:border-gold-500/30"
       }`}
     >
-      <div className="relative aspect-square bg-navy-700">
+      <button
+        type="button"
+        onClick={() => onImageClick(product.image, product.name)}
+        className="relative aspect-square bg-navy-700 w-full block cursor-zoom-in focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
+        aria-label={`${product.name} vergrößern`}
+      >
         <Image
           src={product.image}
           alt={product.name}
@@ -167,7 +180,7 @@ function ProductCard({ product }: { product: Product }) {
             {qty}
           </div>
         )}
-      </div>
+      </button>
       <div className="p-4 md:p-5">
         <h4 className="font-semibold text-white text-lg mb-1">
           {product.name}
@@ -231,6 +244,10 @@ function ProductCard({ product }: { product: Product }) {
 }
 
 export default function Sortiment() {
+  const [lightbox, setLightbox] = useState<{ src: string; alt: string } | null>(
+    null
+  );
+
   return (
     <section id="sortiment" className="section-padding">
       <div className="container-width">
@@ -258,12 +275,23 @@ export default function Sortiment() {
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
               {category.products.map((product) => (
-                <ProductCard key={product.name} product={product} />
+                <ProductCard
+                  key={product.name}
+                  product={product}
+                  onImageClick={(src, alt) => setLightbox({ src, alt })}
+                />
               ))}
             </div>
           </div>
         ))}
       </div>
+
+      <ProductLightbox
+        open={!!lightbox}
+        src={lightbox?.src ?? null}
+        alt={lightbox?.alt ?? ""}
+        onClose={() => setLightbox(null)}
+      />
     </section>
   );
 }
