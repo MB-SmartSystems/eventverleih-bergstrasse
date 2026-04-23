@@ -65,6 +65,20 @@ function ProductCard({
             <span className="text-gray-500 text-xs">{product.priceUnit}</span>
           </div>
 
+          {product.youtubeLink && (
+            <a
+              href={product.youtubeLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-gold-400 text-sm mb-3 hover:text-gold-500 transition-colors"
+            >
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z" />
+              </svg>
+              Aufbauanleitung
+            </a>
+          )}
+
           {qty === 0 ? (
             <button
               onClick={() => addItem(product.name, product.price)}
@@ -92,20 +106,6 @@ function ProductCard({
                 </svg>
               </button>
             </div>
-          )}
-
-          {product.youtubeLink && (
-            <a
-              href={product.youtubeLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-gold-400 text-sm mt-3 hover:text-gold-500 transition-colors"
-            >
-              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M8 5v14l11-7z" />
-              </svg>
-              Aufbauanleitung
-            </a>
           )}
         </div>
       </div>
