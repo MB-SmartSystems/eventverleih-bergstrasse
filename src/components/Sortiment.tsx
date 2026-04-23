@@ -186,16 +186,17 @@ function ProductCard({
           {product.name}
         </h4>
         {product.description && (
-          <p className="text-gray-400 text-sm mb-3">{product.description}</p>
+          <p className="text-gray-400 text-sm">{product.description}</p>
         )}
-        <div className="flex items-baseline gap-2 mb-3">
-          <span className="text-gold-400 text-2xl font-bold">
-            {product.price}
-          </span>
-          <span className="text-gray-500 text-xs">{product.priceUnit}</span>
-        </div>
 
         <div className="mt-auto pt-3">
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-gold-400 text-2xl font-bold">
+              {product.price}
+            </span>
+            <span className="text-gray-500 text-xs">{product.priceUnit}</span>
+          </div>
+
           {qty === 0 ? (
             <button
               onClick={() => addItem(product.name, product.price)}
