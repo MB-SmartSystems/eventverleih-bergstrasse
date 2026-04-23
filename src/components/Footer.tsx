@@ -13,7 +13,7 @@ export default function Footer() {
               alt="Eventverleih Bergstraße"
               width={180}
               height={45}
-              className="h-10 w-auto mb-4"
+              className="h-16 md:h-20 w-auto mb-4"
             />
             <p className="text-gray-400 text-sm leading-relaxed mb-3">
               Zelte & Eventausstattung an der Bergstraße und Umgebung
