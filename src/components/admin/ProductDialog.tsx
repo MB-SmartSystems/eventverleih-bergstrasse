@@ -8,7 +8,7 @@ import { resizeImage } from '@/lib/image-utils';
 interface ProductDialogProps {
   open: boolean;
   onClose: () => void;
-  onSaved: () => void;
+  onSaved: (product: GalleryProduct) => void;
   product?: GalleryProduct;
   categories: ProductCategory[];
 }
@@ -245,7 +245,8 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
         throw new Error(data.error || 'Fehler beim Speichern');
       }
 
-      onSaved();
+      const data = await res.json();
+      if (data.product) onSaved(data.product);
       onClose();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Fehler beim Speichern');

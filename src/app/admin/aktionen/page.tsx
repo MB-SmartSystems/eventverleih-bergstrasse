@@ -142,8 +142,17 @@ export default function AktionenPage() {
         body: JSON.stringify(form),
       });
       if (res.ok) {
+        const data = await res.json();
+        const saved = data.promotion || data;
+        if (saved && saved.id) {
+          setPromotions((prev) => {
+            const exists = prev.some((p) => p.id === saved.id);
+            return exists
+              ? prev.map((p) => (p.id === saved.id ? saved : p))
+              : [...prev, saved];
+          });
+        }
         closeForm();
-        fetchData();
       } else {
         const data = await res.json().catch(() => ({}));
         setError(data.error || 'Fehler beim Speichern.');
@@ -180,10 +189,11 @@ export default function AktionenPage() {
     if (!deleteConfirm) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/promotions/${deleteConfirm.id}`, { method: 'DELETE' });
+      const deletedId = deleteConfirm.id;
+      const res = await fetch(`/api/admin/promotions/${deletedId}`, { method: 'DELETE' });
       if (res.ok) {
+        setPromotions((prev) => prev.filter((p) => p.id !== deletedId));
         setDeleteConfirm(null);
-        fetchData();
       }
     } catch {
       // ignore

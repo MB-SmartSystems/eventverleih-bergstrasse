@@ -56,12 +56,13 @@ export default function ProduktePage() {
 
   async function handleDelete() {
     if (!deleteConfirm) return;
+    const deletedId = deleteConfirm.id;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/admin/products/${deleteConfirm.id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/products/${deletedId}`, { method: 'DELETE' });
       if (res.ok) {
+        setProducts((prev) => prev.filter((p) => p.id !== deletedId));
         setDeleteConfirm(null);
-        fetchProducts();
       }
     } catch {
       // ignore
@@ -71,17 +72,39 @@ export default function ProduktePage() {
   }
 
   async function toggleVisible(id: string, current: boolean) {
+    // Optimistic update: flip im State sofort, Server-Response merged danach
+    const nextValue = !current;
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, visible: nextValue } : p)));
     const formData = new FormData();
-    formData.append('visible', String(!current));
-    await fetch(`/api/admin/products/${id}`, { method: 'PUT', body: formData });
-    fetchProducts();
+    formData.append('visible', String(nextValue));
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: 'PUT', body: formData });
+      if (!res.ok) throw new Error('Save failed');
+      const data = await res.json();
+      if (data.product) {
+        setProducts((prev) => prev.map((p) => (p.id === id ? data.product : p)));
+      }
+    } catch {
+      // Rollback
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, visible: current } : p)));
+    }
   }
 
   async function togglePinned(id: string, current: boolean) {
+    const nextValue = !current;
+    setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, pinned: nextValue } : p)));
     const formData = new FormData();
-    formData.append('pinned', String(!current));
-    await fetch(`/api/admin/products/${id}`, { method: 'PUT', body: formData });
-    fetchProducts();
+    formData.append('pinned', String(nextValue));
+    try {
+      const res = await fetch(`/api/admin/products/${id}`, { method: 'PUT', body: formData });
+      if (!res.ok) throw new Error('Save failed');
+      const data = await res.json();
+      if (data.product) {
+        setProducts((prev) => prev.map((p) => (p.id === id ? data.product : p)));
+      }
+    } catch {
+      setProducts((prev) => prev.map((p) => (p.id === id ? { ...p, pinned: current } : p)));
+    }
   }
 
   // Bulk actions
@@ -129,9 +152,21 @@ export default function ProduktePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
+      // Bulk mutiert mehrere Produkte auf einmal — Response gibt kein detail zurück.
+      // Optimistic: lokal anwenden.
+      const ids = Array.from(selectedIds);
+      setProducts((prev) => {
+        if (action === 'delete') return prev.filter((p) => !ids.includes(p.id));
+        return prev.map((p) => {
+          if (!ids.includes(p.id)) return p;
+          if (action === 'hide') return { ...p, visible: false };
+          if (action === 'show') return { ...p, visible: true };
+          if (action === 'category' && bulkCategory) return { ...p, category: bulkCategory };
+          return p;
+        });
+      });
       setSelectedIds(new Set());
       setBulkCategory('');
-      fetchProducts();
     } catch {
       // ignore
     } finally {
@@ -151,10 +186,12 @@ export default function ProduktePage() {
         body: JSON.stringify({ mainProductId: mergeMainId, mergeProductIds: mergeIds }),
       });
       if (res.ok) {
+        // Merge löscht mergeIds, mainProduct bleibt (evtl. mit aktualisierten images)
+        const mergeIdSet = new Set(mergeIds);
+        setProducts((prev) => prev.filter((p) => !mergeIdSet.has(p.id)));
         setMergeOpen(false);
         setMergeMainId('');
         setSelectedIds(new Set());
-        fetchProducts();
       }
     } catch {
       // ignore
@@ -565,7 +602,14 @@ export default function ProduktePage() {
       <ProductDialog
         open={dialogOpen}
         onClose={() => setDialogOpen(false)}
-        onSaved={fetchProducts}
+        onSaved={(updated) => {
+          setProducts((prev) => {
+            const exists = prev.some((p) => p.id === updated.id);
+            return exists
+              ? prev.map((p) => (p.id === updated.id ? updated : p))
+              : [updated, ...prev];
+          });
+        }}
         product={editProduct}
         categories={categories}
       />

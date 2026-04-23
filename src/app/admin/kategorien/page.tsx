@@ -100,11 +100,14 @@ export default function KategorienPage() {
         throw new Error(data.error || 'Fehler beim Erstellen');
       }
 
+      const data = await res.json();
+      if (data.category) {
+        setCategories((prev) => [...prev, data.category]);
+      }
       setNewName('');
       setNewSlug('');
       setNewIcon('');
       setNewDescription('');
-      fetchData();
     } catch (err: unknown) {
       setAddError(err instanceof Error ? err.message : 'Fehler beim Erstellen');
     } finally {
@@ -151,8 +154,11 @@ export default function KategorienPage() {
         throw new Error(data.error || 'Fehler beim Speichern');
       }
 
+      const data = await res.json();
+      if (data.category) {
+        setCategories((prev) => prev.map((c) => (c.slug === editSlug ? data.category : c)));
+      }
       setEditSlug(null);
-      fetchData();
     } catch (err: unknown) {
       setEditError(err instanceof Error ? err.message : 'Fehler beim Speichern');
     } finally {
@@ -169,8 +175,8 @@ export default function KategorienPage() {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Kategorie kann nicht geloescht werden');
       }
+      setCategories((prev) => prev.filter((c) => c.slug !== slug));
       setDeleteConfirm(null);
-      fetchData();
     } catch (err: unknown) {
       setDeleteError(err instanceof Error ? err.message : 'Fehler beim Loeschen');
     } finally {
@@ -197,7 +203,12 @@ export default function KategorienPage() {
         body: JSON.stringify({ slugs: newOrder }),
       });
       if (res.ok) {
-        fetchData();
+        // Optimistic reorder: order-Felder lokal neu setzen
+        setCategories((prev) => {
+          const byOrder = [...prev].sort((a, b) => a.order - b.order);
+          const reordered = newOrder.map((s) => byOrder.find((c) => c.slug === s)).filter(Boolean) as ProductCategory[];
+          return reordered.map((c, i) => ({ ...c, order: i }));
+        });
       }
     } catch {
       // ignore
