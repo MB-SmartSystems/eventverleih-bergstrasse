@@ -22,10 +22,13 @@ export async function POST(request: NextRequest) {
   const description = (formData.get('description') as string) || undefined;
   const youtubeLink = (formData.get('youtubeLink') as string) || undefined;
   const tags = (formData.get('tags') as string || '').split(',').map(t => t.trim()).filter(Boolean);
-  const quantity = parseInt((formData.get('quantity') as string) || '1', 10);
-  const conditionRaw = (formData.get('condition') as string) || 'ok';
-  const condition: 'ok' | 'repair' | 'broken' =
-    conditionRaw === 'repair' || conditionRaw === 'broken' ? conditionRaw : 'ok';
+  const parseNonNegInt = (v: unknown, fallback: number) => {
+    const n = parseInt(String(v ?? ''), 10);
+    return Number.isFinite(n) && n >= 0 ? n : fallback;
+  };
+  const quantityOk = parseNonNegInt(formData.get('quantityOk'), 1);
+  const quantityRepair = parseNonNegInt(formData.get('quantityRepair'), 0);
+  const quantityBroken = parseNonNegInt(formData.get('quantityBroken'), 0);
   const location = (formData.get('location') as string) || undefined;
   const internalNotes = (formData.get('internalNotes') as string) || undefined;
 
@@ -55,8 +58,9 @@ export async function POST(request: NextRequest) {
     tags,
     visible: true,
     pinned: false,
-    quantity: Number.isFinite(quantity) && quantity >= 0 ? quantity : 1,
-    condition,
+    quantityOk,
+    quantityRepair,
+    quantityBroken,
     location,
     internalNotes,
   };

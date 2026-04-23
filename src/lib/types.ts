@@ -11,8 +11,9 @@ export interface RentalProduct {
   tags: string[];
   visible: boolean;
   pinned: boolean;
-  quantity: number;
-  condition: 'ok' | 'repair' | 'broken';
+  quantityOk: number;
+  quantityRepair: number;
+  quantityBroken: number;
   location?: string;
   internalNotes?: string;
 }

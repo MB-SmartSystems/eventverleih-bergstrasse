@@ -13,8 +13,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   const priceUnit = formData.get('priceUnit') as string | null;
   const description = formData.get('description') as string | null;
   const youtubeLink = formData.get('youtubeLink') as string | null;
-  const quantityStr = formData.get('quantity') as string | null;
-  const conditionStr = formData.get('condition') as string | null;
+  const quantityOkStr = formData.get('quantityOk') as string | null;
+  const quantityRepairStr = formData.get('quantityRepair') as string | null;
+  const quantityBrokenStr = formData.get('quantityBroken') as string | null;
   const location = formData.get('location') as string | null;
   const internalNotes = formData.get('internalNotes') as string | null;
 
@@ -34,13 +35,14 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   if (priceUnit !== null) product.priceUnit = priceUnit;
   if (description !== null) product.description = description || undefined;
   if (youtubeLink !== null) product.youtubeLink = youtubeLink || undefined;
-  if (quantityStr !== null) {
-    const n = parseInt(quantityStr, 10);
-    if (Number.isFinite(n) && n >= 0) product.quantity = n;
-  }
-  if (conditionStr !== null && (conditionStr === 'ok' || conditionStr === 'repair' || conditionStr === 'broken')) {
-    product.condition = conditionStr;
-  }
+  const setIfNonNegInt = (str: string | null, setter: (n: number) => void) => {
+    if (str === null) return;
+    const n = parseInt(str, 10);
+    if (Number.isFinite(n) && n >= 0) setter(n);
+  };
+  setIfNonNegInt(quantityOkStr, (n) => { product.quantityOk = n; });
+  setIfNonNegInt(quantityRepairStr, (n) => { product.quantityRepair = n; });
+  setIfNonNegInt(quantityBrokenStr, (n) => { product.quantityBroken = n; });
   if (location !== null) product.location = location || undefined;
   if (internalNotes !== null) product.internalNotes = internalNotes || undefined;
 

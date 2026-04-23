@@ -339,15 +339,23 @@ export default function ProduktePage() {
                 </div>
               )}
 
-              {/* Condition badge */}
-              {product.condition && product.condition !== 'ok' && (
+              {/* Condition badges — beide koennen gleichzeitig sichtbar sein */}
+              {(product.quantityBroken ?? 0) > 0 && (
                 <div
-                  className={`absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    product.condition === 'broken' ? 'bg-red-500/90 text-white' : 'bg-yellow-500/90 text-white'
-                  }`}
-                  title={product.condition === 'broken' ? 'Defekt' : 'Reparaturbeduerftig'}
+                  className="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/90 text-white"
+                  title={`${product.quantityBroken} defekt`}
                 >
-                  {product.condition === 'broken' ? 'Defekt' : 'Repair'}
+                  {product.quantityBroken} Defekt
+                </div>
+              )}
+              {(product.quantityRepair ?? 0) > 0 && (
+                <div
+                  className={`absolute z-10 px-2 py-0.5 rounded-full text-[10px] font-medium bg-yellow-500/90 text-white ${
+                    (product.quantityBroken ?? 0) > 0 ? 'bottom-9 right-2' : 'bottom-2 right-2'
+                  }`}
+                  title={`${product.quantityRepair} reparaturbeduerftig`}
+                >
+                  {product.quantityRepair} Repair
                 </div>
               )}
 
@@ -417,7 +425,7 @@ export default function ProduktePage() {
               <div className="p-3">
                 <p className="text-sm font-medium text-warm-text truncate">{product.name}</p>
                 <p className="text-xs text-warm-muted mt-0.5">
-                  Bestand: {product.quantity ?? 1}
+                  Bestand: {(product.quantityOk ?? 0) + (product.quantityRepair ?? 0) + (product.quantityBroken ?? 0)} · vermietbar {product.quantityOk ?? 0}
                 </p>
                 <p className="text-xs text-warm-muted mt-0.5">
                   {getCategoryIcon(product.category)} {getCategoryName(product.category)}

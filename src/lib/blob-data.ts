@@ -74,8 +74,23 @@ export async function loadProductsData(): Promise<ProductsData> {
     p.image = p.images[0] || '';
     if (p.visible === undefined) p.visible = true;
     if (p.pinned === undefined) p.pinned = false;
-    if (p.quantity === undefined || p.quantity === null) p.quantity = 1;
-    if (!p.condition) p.condition = 'ok';
+
+    // Backward-Compat: Alt-Format (quantity + condition) → 3-Zähler-Modell
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const legacy = p as any;
+    if (p.quantityOk === undefined && p.quantityRepair === undefined && p.quantityBroken === undefined) {
+      const legacyQty = typeof legacy.quantity === 'number' ? legacy.quantity : 1;
+      const legacyCond: string = legacy.condition || 'ok';
+      p.quantityOk = legacyCond === 'ok' ? legacyQty : 0;
+      p.quantityRepair = legacyCond === 'repair' ? legacyQty : 0;
+      p.quantityBroken = legacyCond === 'broken' ? legacyQty : 0;
+    } else {
+      if (typeof p.quantityOk !== 'number' || p.quantityOk < 0) p.quantityOk = 0;
+      if (typeof p.quantityRepair !== 'number' || p.quantityRepair < 0) p.quantityRepair = 0;
+      if (typeof p.quantityBroken !== 'number' || p.quantityBroken < 0) p.quantityBroken = 0;
+    }
+    delete legacy.quantity;
+    delete legacy.condition;
   }
 
   // Auto-expire promotions

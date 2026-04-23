@@ -21,8 +21,9 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   const [priceUnit, setPriceUnit] = useState('pro Miete (bis zu 5 Tage)');
   const [description, setDescription] = useState('');
   const [youtubeLink, setYoutubeLink] = useState('');
-  const [quantity, setQuantity] = useState(1);
-  const [condition, setCondition] = useState<'ok' | 'repair' | 'broken'>('ok');
+  const [quantityOk, setQuantityOk] = useState(1);
+  const [quantityRepair, setQuantityRepair] = useState(0);
+  const [quantityBroken, setQuantityBroken] = useState(0);
   const [location, setLocation] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,8 +52,9 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
       setPriceUnit(product?.priceUnit ?? 'pro Miete (bis zu 5 Tage)');
       setDescription(product?.description ?? '');
       setYoutubeLink(product?.youtubeLink ?? '');
-      setQuantity(product?.quantity ?? 1);
-      setCondition(product?.condition ?? 'ok');
+      setQuantityOk(product?.quantityOk ?? 1);
+      setQuantityRepair(product?.quantityRepair ?? 0);
+      setQuantityBroken(product?.quantityBroken ?? 0);
       setLocation(product?.location ?? '');
       setInternalNotes(product?.internalNotes ?? '');
       setExistingImages(product?.images ?? (product?.image ? [product.image] : []));
@@ -213,8 +215,9 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
       formData.append('priceUnit', priceUnit.trim());
       formData.append('description', description.trim());
       formData.append('youtubeLink', youtubeLink.trim());
-      formData.append('quantity', String(quantity));
-      formData.append('condition', condition);
+      formData.append('quantityOk', String(quantityOk));
+      formData.append('quantityRepair', String(quantityRepair));
+      formData.append('quantityBroken', String(quantityBroken));
       formData.append('location', location.trim());
       formData.append('internalNotes', internalNotes.trim());
 
@@ -577,30 +580,41 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
             <div className="border-t border-warm-border pt-4 mt-2">
               <h3 className="text-sm font-semibold text-warm-text mb-3">Inventar (nur intern)</h3>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
+              <p className="text-xs text-warm-muted mb-3">Anzahl Einheiten pro Zustand. Gesamt: {quantityOk + quantityRepair + quantityBroken}, vermietbar: {quantityOk}.</p>
+
+              <div className="grid grid-cols-3 gap-2 mb-3">
                 <div>
-                  <label htmlFor="prod-quantity" className="block text-sm font-medium text-warm-text mb-1">Anzahl</label>
+                  <label htmlFor="prod-qty-ok" className="block text-xs font-medium text-green-600 mb-1">OK</label>
                   <input
-                    id="prod-quantity"
+                    id="prod-qty-ok"
                     type="number"
                     min={0}
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(0, parseInt(e.target.value) || 0))}
+                    value={quantityOk}
+                    onChange={(e) => setQuantityOk(Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
                   />
                 </div>
                 <div>
-                  <label htmlFor="prod-condition" className="block text-sm font-medium text-warm-text mb-1">Zustand</label>
-                  <select
-                    id="prod-condition"
-                    value={condition}
-                    onChange={(e) => setCondition(e.target.value as 'ok' | 'repair' | 'broken')}
+                  <label htmlFor="prod-qty-repair" className="block text-xs font-medium text-yellow-600 mb-1">Reparatur</label>
+                  <input
+                    id="prod-qty-repair"
+                    type="number"
+                    min={0}
+                    value={quantityRepair}
+                    onChange={(e) => setQuantityRepair(Math.max(0, parseInt(e.target.value) || 0))}
                     className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
-                  >
-                    <option value="ok">OK</option>
-                    <option value="repair">Reparaturbeduerftig</option>
-                    <option value="broken">Defekt</option>
-                  </select>
+                  />
+                </div>
+                <div>
+                  <label htmlFor="prod-qty-broken" className="block text-xs font-medium text-red-600 mb-1">Defekt</label>
+                  <input
+                    id="prod-qty-broken"
+                    type="number"
+                    min={0}
+                    value={quantityBroken}
+                    onChange={(e) => setQuantityBroken(Math.max(0, parseInt(e.target.value) || 0))}
+                    className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  />
                 </div>
               </div>
 
