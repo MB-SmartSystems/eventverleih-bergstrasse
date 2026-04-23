@@ -42,7 +42,7 @@ export default function AktionenPage() {
   const pickerFiltered = pickerSearch
     ? products.filter(p => {
         const q = pickerSearch.toLowerCase();
-        return p.alt.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q));
+        return p.name.toLowerCase().includes(q) || p.tags.some(t => t.toLowerCase().includes(q));
       })
     : products;
 
@@ -426,12 +426,12 @@ export default function AktionenPage() {
                               ? 'border-accent ring-2 ring-accent'
                               : 'border-warm-border hover:border-accent/50'
                           }`}
-                          title={product.alt}
+                          title={product.name}
                         >
                           <div className="relative aspect-square">
                             <Image
                               src={product.image}
-                              alt={product.alt}
+                              alt={product.name}
                               fill
                               sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
                               className="object-cover"
@@ -445,7 +445,7 @@ export default function AktionenPage() {
                             )}
                           </div>
                           <div className="p-1.5">
-                            <p className="text-[11px] text-warm-text truncate">{product.alt}</p>
+                            <p className="text-[11px] text-warm-text truncate">{product.name}</p>
                             {product.tags.length > 0 && (
                               <p className="text-[10px] text-warm-muted truncate mt-0.5">{product.tags.slice(0, 3).join(', ')}</p>
                             )}

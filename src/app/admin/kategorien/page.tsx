@@ -115,8 +115,8 @@ export default function KategorienPage() {
   function startEdit(cat: ProductCategory) {
     setEditSlug(cat.slug);
     setEditName(cat.name);
-    setEditIcon(cat.icon);
-    setEditDescription(cat.description);
+    setEditIcon(cat.icon ?? "");
+    setEditDescription(cat.description ?? "");
     setEditError('');
   }
 

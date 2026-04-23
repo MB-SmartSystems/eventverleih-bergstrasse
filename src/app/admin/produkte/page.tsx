@@ -179,7 +179,7 @@ export default function ProduktePage() {
     if (search) {
       const q = search.toLowerCase();
       return (
-        p.alt.toLowerCase().includes(q) ||
+        p.name.toLowerCase().includes(q) ||
         p.tags.some((t) => t.toLowerCase().includes(q)) ||
         getCategoryName(p.category).toLowerCase().includes(q)
       );
@@ -343,7 +343,7 @@ export default function ProduktePage() {
               <div className="relative aspect-square">
                 <Image
                   src={product.image}
-                  alt={product.alt}
+                  alt={product.name}
                   fill
                   sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                   className="object-cover"
@@ -403,7 +403,7 @@ export default function ProduktePage() {
 
               {/* Info */}
               <div className="p-3">
-                <p className="text-sm font-medium text-warm-text truncate">{product.alt}</p>
+                <p className="text-sm font-medium text-warm-text truncate">{product.name}</p>
                 <p className="text-xs text-warm-muted mt-0.5">
                   {getCategoryIcon(product.category)} {getCategoryName(product.category)}
                 </p>
@@ -556,7 +556,7 @@ export default function ProduktePage() {
               Produkt loeschen?
             </h3>
             <p className="text-warm-muted text-sm mb-6">
-              &quot;{deleteConfirm.alt}&quot; wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden.
+              &quot;{deleteConfirm.name}&quot; wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -604,7 +604,7 @@ export default function ProduktePage() {
                     <div className="relative aspect-square">
                       <Image
                         src={p.image}
-                        alt={p.alt}
+                        alt={p.name}
                         fill
                         sizes="200px"
                         className="object-cover"
@@ -616,7 +616,7 @@ export default function ProduktePage() {
                       )}
                     </div>
                     <div className="p-2">
-                      <p className="text-xs text-warm-text truncate">{p.alt}</p>
+                      <p className="text-xs text-warm-text truncate">{p.name}</p>
                     </div>
                   </button>
                 ))}

@@ -17,10 +17,13 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   const [alt, setAlt] = useState('');
   const [category, setCategory] = useState('');
   const [tags, setTags] = useState('');
+  const [price, setPrice] = useState('');
+  const [priceUnit, setPriceUnit] = useState('pro Miete (bis zu 5 Tage)');
+  const [description, setDescription] = useState('');
+  const [youtubeLink, setYoutubeLink] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [processing, setProcessing] = useState(false);
-  const [analyzing, setAnalyzing] = useState(false);
 
   // Multi-image state
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -34,9 +37,13 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
 
   useEffect(() => {
     if (open) {
-      setAlt(product?.alt ?? '');
+      setAlt(product?.name ?? '');
       setCategory(product?.category ?? (categories[0]?.slug ?? ''));
       setTags(product?.tags?.join(', ') ?? '');
+      setPrice(product?.price ?? '');
+      setPriceUnit(product?.priceUnit ?? 'pro Miete (bis zu 5 Tage)');
+      setDescription(product?.description ?? '');
+      setYoutubeLink(product?.youtubeLink ?? '');
       setExistingImages(product?.images ?? (product?.image ? [product.image] : []));
       setRemoveImages([]);
       setNewFiles([]);
@@ -164,53 +171,6 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
     setNewPreviews(rebuiltPreviews);
   }
 
-  async function analyzeImage() {
-    // Get the first image to analyze
-    let imageToAnalyze: File | null = null;
-
-    if (newFiles.length > 0) {
-      imageToAnalyze = newFiles[0];
-    } else if (existingImages.length > 0) {
-      // Fetch the existing image as a file
-      try {
-        const res = await fetch(existingImages[0]);
-        const blob = await res.blob();
-        imageToAnalyze = new File([blob], 'analyze.webp', { type: blob.type });
-      } catch {
-        setError('Bild konnte nicht geladen werden');
-        return;
-      }
-    }
-
-    if (!imageToAnalyze) {
-      setError('Kein Bild zum Analysieren vorhanden');
-      return;
-    }
-
-    setAnalyzing(true);
-    setError('');
-    try {
-      const formData = new FormData();
-      formData.append('image', imageToAnalyze);
-      const res = await fetch('/api/admin/analyze-image', { method: 'POST', body: formData });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || 'KI-Analyse fehlgeschlagen');
-        return;
-      }
-
-      // Fill in the form fields
-      if (data.title) setAlt(data.title);
-      if (data.tags && Array.isArray(data.tags)) setTags(data.tags.join(', '));
-      if (data.category) setCategory(data.category);
-    } catch {
-      setError('Verbindungsfehler bei KI-Analyse');
-    } finally {
-      setAnalyzing(false);
-    }
-  }
-
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     setError('');
@@ -235,9 +195,13 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('alt', alt.trim());
+      formData.append('name', alt.trim());
       formData.append('category', category);
       formData.append('tags', tags.trim());
+      formData.append('price', price.trim());
+      formData.append('priceUnit', priceUnit.trim());
+      formData.append('description', description.trim());
+      formData.append('youtubeLink', youtubeLink.trim());
 
       if (isEdit) {
         // Edit mode: send existing/remove/new lists
@@ -383,33 +347,6 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
               </button>
             </div>
 
-            {/* AI Analyze button */}
-            {(existingImages.length > 0 || newFiles.length > 0) && (
-              <button
-                type="button"
-                onClick={analyzeImage}
-                disabled={analyzing}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-accent-50 text-accent-dark text-sm hover:bg-accent-light transition-colors disabled:opacity-50 font-medium"
-              >
-                {analyzing ? (
-                  <>
-                    <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    KI analysiert...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-                    </svg>
-                    KI analysieren
-                  </>
-                )}
-              </button>
-            )}
-
             {/* Name */}
             <div>
               <label htmlFor="prod-alt" className="block text-sm font-medium text-warm-text mb-1">
@@ -423,6 +360,66 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                 className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
                 placeholder="z.B. Namensschild Eiche"
                 required
+              />
+            </div>
+
+            {/* Description */}
+            <div>
+              <label htmlFor="prod-description" className="block text-sm font-medium text-warm-text mb-1">
+                Beschreibung <span className="text-warm-muted font-normal">(optional)</span>
+              </label>
+              <input
+                id="prod-description"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                placeholder="z.B. Platz für bis zu 12 Personen"
+              />
+            </div>
+
+            {/* Price */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="prod-price" className="block text-sm font-medium text-warm-text mb-1">
+                  Preis
+                </label>
+                <input
+                  id="prod-price"
+                  type="text"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  placeholder="25 €"
+                />
+              </div>
+              <div>
+                <label htmlFor="prod-price-unit" className="block text-sm font-medium text-warm-text mb-1">
+                  Preiseinheit
+                </label>
+                <input
+                  id="prod-price-unit"
+                  type="text"
+                  value={priceUnit}
+                  onChange={(e) => setPriceUnit(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                  placeholder="pro Miete (bis zu 5 Tage)"
+                />
+              </div>
+            </div>
+
+            {/* YouTube */}
+            <div>
+              <label htmlFor="prod-youtube" className="block text-sm font-medium text-warm-text mb-1">
+                YouTube-Aufbauanleitung <span className="text-warm-muted font-normal">(optional)</span>
+              </label>
+              <input
+                id="prod-youtube"
+                type="url"
+                value={youtubeLink}
+                onChange={(e) => setYoutubeLink(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                placeholder="https://youtu.be/..."
               />
             </div>
 
