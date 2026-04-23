@@ -17,6 +17,7 @@ export async function PUT(request: NextRequest) {
   const data = await loadProductsData();
 
   data.settings = {
+    ...data.settings,
     phone: body.phone ?? data.settings?.phone ?? '',
     whatsapp: body.whatsapp ?? data.settings?.whatsapp ?? '',
     email: body.email ?? data.settings?.email ?? '',
