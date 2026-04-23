@@ -117,6 +117,7 @@ export async function saveProductsData(data: ProductsData): Promise<void> {
     access: 'public',
     contentType: 'application/json',
     addRandomSuffix: false,
+    allowOverwrite: true,
   });
   cachedBlobUrl = blob.url;
 
