@@ -82,15 +82,6 @@ export default function Footer() {
                   AGB
                 </Link>
               </li>
-              <li>
-                <a
-                  href="/mietvertrag-eventverleih-bergstrasse.pdf"
-                  target="_blank"
-                  className="text-gray-400 hover:text-gold-400 transition-colors"
-                >
-                  Mietvertrag (PDF)
-                </a>
-              </li>
             </ul>
           </div>
         </div>

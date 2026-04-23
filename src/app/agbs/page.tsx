@@ -12,209 +12,160 @@ export default function AGB() {
       <main className="pt-24 pb-16">
         <div className="container-width px-4 sm:px-6 lg:px-8">
           <h1 className="font-display text-3xl md:text-4xl font-bold mb-8">
-            Allgemeine Geschäftsbedingungen (AGBs)
+            Allgemeine Geschäftsbedingungen
           </h1>
           <div className="prose prose-invert max-w-3xl space-y-6 text-gray-300 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-white [&_h2]:mt-8 [&_h3]:text-lg [&_h3]:font-medium [&_h3]:text-white [&_h3]:mt-6 [&_ul]:list-disc [&_ul]:pl-6 [&_ul]:space-y-2">
-            <h2>Anzahlung</h2>
+
+            <h2>Geltung</h2>
             <p>
-              Durch die Anzahlung der Kaution stimmen Sie unserem Mietvertrag zu.
-              Die Kaution wird Ihnen nach Rückgabe der Mietgegenstände
-              zurückgezahlt. Die Zahlung der Kaution führt zur Reservierung der
-              Buchung.
+              Diese AGB gelten für alle Verträge zwischen Eventverleih Bergstraße
+              (Manuel Büttner, Schlesierstraße 19a, 64665 Alsbach-Hähnlein) und dem
+              Mieter. Mit Ihrer Buchung und der Anzahlung der Kaution erkennen Sie
+              diese AGB sowie die Mietbedingungen als Vertragsbestandteil an.
+            </p>
+            <p>
+              Die vollständigen Mietbedingungen erhalten Sie mit unserem Angebot
+              per E-Mail.
+            </p>
+
+            <h2>Anzahlung und Kaution</h2>
+            <p>
+              Die Kaution beträgt 30 % der Mietsumme, mindestens 50 €. Durch die
+              Anzahlung der Kaution erkennen Sie diese AGB und die Mietbedingungen
+              an; die Zahlung führt zur Reservierung der Buchung.
+            </p>
+            <p>
+              Die Kaution wird nach Rückgabe der Mietgegenstände erstattet,
+              abzüglich berechtigter Ansprüche (z. B. Reinigung, Schäden gemäß
+              Mietbedingungen).
             </p>
 
             <h2>Restzahlung</h2>
-            <p>
-              Die Restzahlung ist spätestens am Tag des Startes der Buchung
-              fällig.
-            </p>
+            <p>Die Restzahlung ist spätestens am Tag des Mietbeginns fällig.</p>
 
-            <h2>Abholung/Lieferung</h2>
+            <h2>Widerrufsrecht</h2>
             <p>
-              Der Mieter kann nach Absprache von Datum und Uhrzeit die Mietartikel
-              abholen oder liefern und aufbauen lassen. Beim Transport im
-              Anhänger/auf Ladeflächen, verwenden Sie bitte Planen/Decken. Die
-              geliehenen Artikel müssen gut gesichert werden. Ggfs. leihen wir
-              Ihnen gegen Gebühr Planen und Spanngurte. Kontaktieren Sie uns
-              jederzeit bei Fragen zur Abholung/Lieferung. Bei Lieferung oder
-              Abholung stimmt der Mieter zu, dass alle Mietgegenstände in
-              zufriedenstellendem Zustand sind. Falls der Kunde Schäden bei den
-              Mietartikeln bemerken möchte, muss dies erfolgen, bevor die Artikel
-              zur Abholung verladen werden oder wenn unser Personal bei
-              Lieferung/Aufbau anwesend ist. Sollten bei eigenem Aufbau Mängel
-              sichtbar werden, sind diese sofort dem Verleiher zu melden.
+              Bei der Vermietung von Eventausstattung für einen konkreten Termin
+              handelt es sich um eine Dienstleistung im Zusammenhang mit
+              Freizeitbetätigungen im Sinne von § 312g Abs. 2 Nr. 9 BGB. Ein
+              gesetzliches Widerrufsrecht besteht daher nicht.
+            </p>
+            <p>
+              Für Stornierungen gilt die nachstehende Regelung.
             </p>
 
             <h2>Stornierungen</h2>
             <ul>
               <li>
                 Bei Stornierung innerhalb von 7 Tagen vor der Veranstaltung werden
-                50% der gebuchten Artikel berechnet und 50% der Kaution
+                50 % der gebuchten Artikel berechnet und 50 % der Kaution
                 einbehalten.
               </li>
               <li>
                 Bei Stornierung innerhalb von 4 Tagen vor der Veranstaltung werden
-                75% der gebuchten Artikel berechnet und 75% der Kaution
+                75 % der gebuchten Artikel berechnet und 75 % der Kaution
                 einbehalten.
               </li>
               <li>
                 Bei Stornierung innerhalb von 2 Tagen vor der Veranstaltung werden
-                100% der gebuchten Artikel berechnet und 100% der Kaution
+                100 % der gebuchten Artikel berechnet und 100 % der Kaution
                 einbehalten.
               </li>
             </ul>
 
+            <h2>Abholung und Lieferung</h2>
+            <p>
+              Der Mieter kann nach Absprache von Datum und Uhrzeit die Mietartikel
+              abholen oder gegen Gebühr liefern und aufbauen lassen. Beim Transport
+              im Anhänger oder auf Ladeflächen sind Planen und Gurte zu verwenden
+              (auf Wunsch gegen Gebühr von uns erhältlich). Bei Übergabe hat der
+              Mieter die Möglichkeit, die Artikel auf Mängel zu prüfen;
+              offensichtliche Mängel sind sofort dem Vermieter zu melden.
+            </p>
+
             <h2>Zelte</h2>
             <p>
-              Sollten Sie Zelte selbst auf- und abbauen, beachten Sie bitte den
-              sachgemäßen und vorsichtigen Umgang. Der Untergrund muss eben und
-              gerade sein. Bauen Sie ein Zelt nie alleine auf oder ab, sondern
-              immer mindestens zu zweit oder zu viert. Handeln Sie nach den
-              Gebrauchsanweisungen. Zelte sind mit Gewichten oder Bodenankern und
-              Spanngurten zu sichern. Sollten Sie diese nicht besitzen, können Sie
-              das passende Equipment bei uns mieten. Nasse Zeltplanen sind beim
-              Abbau so gut es geht trocknen zu lassen, bevor sie verpackt werden.
-              Grillen und Kochen ist unter Zelten strengstens verboten! Nehmen Sie
-              dafür bitte einen angemessenen Abstand zum Zelt ein.
+              Sollten Sie Zelte selbst auf- oder abbauen, handeln Sie bitte
+              sachgemäß und gemäß Gebrauchsanweisung. Der Untergrund muss eben
+              sein. Bauen Sie ein Zelt niemals alleine, sondern stets mindestens zu
+              zweit auf oder ab. Zelte sind mit Gewichten oder Bodenankern und
+              Spanngurten zu sichern. Nasse Zeltplanen vor dem Verpacken trocknen
+              lassen. Grillen und offenes Feuer unter Zelten sind untersagt.
             </p>
 
-            <h2>Tische und Stühle</h2>
+            <h2>Tische, Stühle, Tischdecken</h2>
             <p>
-              Tische und Stühle müssen bei Abholung durch den Verleiher oder
-              Rückgabe durch den Mieter sauber, trocken und zusammengeklappt sein.
+              Tische und Stühle sind bei Rückgabe sauber, trocken und
+              zusammengeklappt abzugeben. Tischdecken sind in Plastiksäcken zu
+              sammeln; die Reinigung übernehmen wir (im Preis enthalten).
             </p>
 
-            <h2>Tischdecken</h2>
+            <h2>Befestigungen und Klebeband</h2>
             <p>
-              Tischdecken sollten bei Rückgabe in Plastiksäcken gesammelt werden.
-              Wenn nicht anders vereinbart, übernehmen wir die Reinigung.
-            </p>
-
-            <h2>Befestigungen</h2>
-            <p>
-              Es dürfen keine Klammern, Reißnägel, Stecknadeln etc. verwendet
-              werden, um eigene Dinge an die Ausrüstung zu befestigen. Schäden
-              führen zu Kosten für die Reparatur oder den Austausch der
-              Ausrüstung.
-            </p>
-
-            <h2>Klebeband</h2>
-            <p>
-              Es darf kein Klebeband an etwas anderem als der Unterseite der
-              Tische verwendet werden. Zu keinem Zeitpunkt darf Klebeband auf das
-              Vinyl des Zeltes geklebt werden. Schäden führen zu Kosten für die
-              Reparatur oder den Austausch der Ausrüstung.
+              Klammern, Reißnägel oder Stecknadeln dürfen nicht verwendet werden.
+              Klebeband darf ausschließlich an der Unterseite von Tischen
+              verwendet werden; nicht auf Zeltplanen. Schäden durch
+              Nicht-Einhaltung werden in Rechnung gestellt.
             </p>
 
             <h2>Heizstrahler</h2>
             <p>
               Heizstrahler dürfen nur nach Einweisung und Lesen der
-              Gebrauchsanleitung bedient werden. Mit der Inbetriebnahme bestätigen
-              Sie, dass Sie alle relevanten Sicherheitshinweise gelesen und
-              verstanden haben.
+              Gebrauchsanleitung bedient werden. Mit der Inbetriebnahme bestätigt
+              der Mieter, die Sicherheitshinweise gelesen und verstanden zu haben.
             </p>
 
-            <h2 className="!mt-12">Mietvertrag</h2>
-            <ol className="list-decimal pl-6 space-y-3">
+            <h2>Reinigungskosten</h2>
+            <p>
+              Mietartikel sind bei Rückgabe sauber und trocken abzugeben.
+              Ausnahme: Tischdecken (Reinigung im Preis enthalten). Wird ein
+              Artikel verschmutzt zurückgegeben, berechnen wir pauschal:
+            </p>
+            <ul>
+              <li>Tische / Stühle / vergleichbare Kleinteile: 5 € pro Stück</li>
+              <li>Zelte / Planen: 40 € pro Stück</li>
               <li>
-                Gebuchte Artikel können vom Kunden kostenlos abgeholt oder gegen
-                Gebühr geliefert und aufgebaut werden. Zusatzgebühren wie
-                Parkscheine, etc. sind vom Kunden zu tragen.
+                sonstige Artikel: nach tatsächlichem Aufwand, maximal 10 % des
+                Wiederbeschaffungspreises
               </li>
-              <li>
-                Das gemietete Equipment bleibt das alleinige Eigentum des
-                Verleihers. Der Mieter hat nur das Recht zur Nutzung des
-                Equipments gemäß den Bedingungen dieses Vertrages.
-              </li>
-              <li>
-                Bei Lieferung und Aufbau bestätigt der Mieter, dass er die
-                Möglichkeit hatte, das Equipment persönlich zu inspizieren und es
-                in gutem Zustand ist. Der Mieter versteht die ordnungsgemäße
-                Nutzung des Equipments. Bei Abholung und Aufbau durch den Kunden
-                müssen Mängel sofort dem Vermieter gemeldet werden.
-              </li>
-              <li>
-                Falls das Equipment aus irgendeinem Grund unsicher oder beschädigt
-                wird, verpflichtet sich der Mieter, die Nutzung sofort
-                einzustellen und den Verleiher zu benachrichtigen. Wenn der Mangel
-                durch normale Nutzung verursacht wurde, wird der Verleiher das
-                Equipment reparieren oder durch ähnliches Equipment in gutem
-                Zustand ersetzen, falls verfügbar.
-              </li>
-              <li>
-                Der Vermieter ist nicht Hersteller oder Vertreter des Herstellers
-                der vermieteten Artikel und übernimmt keine Garantie für etwaige
-                Mängel durch verbogenes Material, Verarbeitung, etc. Obwohl alle
-                Zelte bis zu einem gewissen Grad mit wasserdichtem Material
-                behandelt wurden, kann nicht garantiert werden, dass alle Zelte
-                absolut wasserdicht sind.
-              </li>
-              <li>
-                Der Mieter verpflichtet sich, den Verleiher von allen Ansprüchen,
-                Haftungen, Verlusten, Schadensersatzansprüchen aufgrund von
-                Personenschäden, Sachschäden oder sonstigen Ausgaben, die durch die
-                Handlungen, Fahrlässigkeit oder andere Handlungen des Mieters oder
-                seiner Vertreter entstehen, schadlos zu halten.
-              </li>
-              <li>
-                Das Recht des Mieters auf Besitz endet mit Ablauf des
-                Mietzeitraums. Jede Verlängerung muss schriftlich vereinbart
-                werden.
-              </li>
-              <li>
-                Der Mieter darf das Equipment ohne schriftliche Genehmigung des
-                Verleihers nicht untervermieten oder verleihen. Jegliche angebliche
-                Abtretung durch den Mieter ist ungültig.
-              </li>
-              <li>
-                Wenn das Equipment in beschädigtem oder stark abgenutztem Zustand
-                zurückgegeben wird, kann der Verleiher den Betrag der
-                Kautionsrückzahlung anhand angemessener Reparaturkosten anpassen.
-              </li>
-              <li>
-                Der Mieter übernimmt alle wetterbedingten Risiken, die mit der
-                Durchführung einer Zeltveranstaltung im Freien verbunden sind.
-                Durch Wetter beschädigtes oder unbrauchbares Equipment wird dem
-                Mieter in Rechnung gestellt.
-              </li>
-              <li>
-                Sämtliche Mietartikel außer Zelte sind vor Regen zu schützen. Dies
-                ist keine normale Abnutzung und die Artikel werden mit 10% der
-                Wiederbeschaffungskosten berechnet.
-              </li>
-              <li>
-                Reinigungskosten für schmutzig zurückgegebene Geräte werden vom
-                Mieter übernommen, nach Ermessen des Verleihers (ausgenommen
-                Artikel, die inklusive Reinigung angeboten werden).
-              </li>
-              <li>
-                Der Mieter verpflichtet sich, für Equipment (zum
-                Wiederbeschaffungspreis bei Mietbeginn) bei allen Arten von
-                Diebstahl oder Verlust aufzukommen.
-              </li>
-              <li>
-                Der Verleiher behält sich das Recht vor, das Equipment als
-                verloren, gestohlen oder umgewandelt zu betrachten, wenn es nicht
-                innerhalb von zwei Tagen nach vereinbartem Datum und der Uhrzeit
-                zurückgegeben wird.
-              </li>
-              <li>
-                Dieser Vertrag stellt die gesamte Vereinbarung zwischen dem
-                Verleiher und dem Mieter dar und ersetzt alle vorherigen
-                Vereinbarungen, Absprachen oder Verständigungen. Änderungen dieses
-                Vertrages müssen schriftlich erfolgen und von beiden Parteien
-                schriftlich akzeptiert werden.
-              </li>
-              <li>
-                Sollte eine Bestimmung dieses Vertrages als ungültig oder nicht
-                durchsetzbar erklärt werden, bleiben die übrigen Bestimmungen in
-                vollem Umfang in Kraft und wirksam.
-              </li>
-              <li>
-                Die Zahlung der Kaution/des Gesamtbetrages bedeutet, dass der
-                Mieter die Bedingungen gelesen, verstanden und akzeptiert hat.
-              </li>
-            </ol>
+            </ul>
+            <p>
+              Dem Mieter bleibt der Nachweis unbenommen, dass kein oder ein
+              geringerer Schaden entstanden ist.
+            </p>
+
+            <h2>Haftung des Vermieters</h2>
+            <p>
+              Der Vermieter haftet unbeschränkt bei Vorsatz und grober
+              Fahrlässigkeit sowie bei Schäden aus der Verletzung des Lebens, des
+              Körpers oder der Gesundheit. Bei leichter Fahrlässigkeit haftet der
+              Vermieter nur bei Verletzung wesentlicher Vertragspflichten
+              (Kardinalpflichten) und begrenzt auf den typischerweise
+              vorhersehbaren Schaden.
+            </p>
+
+            <h2>Mietbedingungen</h2>
+            <p>
+              Ergänzend zu diesen AGB gelten die Mietbedingungen. Diese erhalten
+              Sie mit unserem Angebot per E-Mail vor Vertragsschluss und sind
+              Bestandteil des Mietvertrages.
+            </p>
+
+            <h2>Anwendbares Recht und Gerichtsstand</h2>
+            <p>
+              Es gilt deutsches Recht. Gerichtsstand ist Darmstadt, soweit der
+              Mieter Unternehmer ist. Bei Verbrauchern gelten die gesetzlichen
+              Regelungen.
+            </p>
+
+            <h2>Salvatorische Klausel</h2>
+            <p>
+              Sollte eine Bestimmung dieser AGB oder der Mietbedingungen
+              unwirksam oder nicht durchsetzbar sein, bleiben die übrigen
+              Bestimmungen in vollem Umfang wirksam.
+            </p>
+
+            <p className="text-sm text-gray-500 mt-12">Stand: April 2026</p>
           </div>
         </div>
       </main>

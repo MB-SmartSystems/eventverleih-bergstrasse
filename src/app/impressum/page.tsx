@@ -22,13 +22,36 @@ export default function Impressum() {
               64665 Alsbach-Hähnlein
             </p>
             <p>Vertreten durch: Manuel Büttner</p>
+            <p>Rechtsform: Einzelunternehmen</p>
 
             <h2>Kontakt</h2>
             <p>
               Telefon: +49 156 79521124<br />
               E-Mail: info@eventverleih-bergstrasse.de
             </p>
-            <p>Nicht umsatzsteuerpflichtig nach §19 1 UStG.</p>
+            <p>Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG (Kleinunternehmer).</p>
+
+            <h2>Aufsichtsbehörde (Datenschutz)</h2>
+            <p>
+              Der Hessische Beauftragte für Datenschutz und Informationsfreiheit (HBDI)<br />
+              Postfach 3163, 65021 Wiesbaden<br />
+              <a href="https://datenschutz.hessen.de" target="_blank" rel="noopener noreferrer" className="text-gold-400 hover:text-gold-500">datenschutz.hessen.de</a>
+            </p>
+
+            <h2>Verbraucherstreitbeilegung (§ 36 VSBG)</h2>
+            <p>
+              Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor
+              einer Verbraucherschlichtungsstelle teilzunehmen.
+            </p>
+
+            <h2>Online-Streitbeilegung (Art. 14 ODR-VO)</h2>
+            <p>
+              Die Europäische Kommission stellt eine Plattform zur Online-Streitbeilegung (OS) bereit:{" "}
+              <a href="https://ec.europa.eu/consumers/odr/" target="_blank" rel="noopener noreferrer" className="text-gold-400 hover:text-gold-500">
+                https://ec.europa.eu/consumers/odr/
+              </a>
+              . Unsere E-Mail-Adresse finden Sie oben.
+            </p>
 
             <h2>Haftungsausschluss</h2>
 

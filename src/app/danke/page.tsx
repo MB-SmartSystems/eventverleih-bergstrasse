@@ -32,7 +32,7 @@ export default function Danke() {
           </h1>
           <p className="text-gray-400 text-lg max-w-xl mx-auto mb-8">
             Wir haben Ihre Anfrage erhalten und melden uns schnellstmöglich mit
-            einem Angebot bei Ihnen.
+            einem Angebot inklusive Mietbedingungen (PDF) bei Ihnen.
           </p>
           <Link
             href="/"
