@@ -43,7 +43,7 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
       <div className="w-full max-w-sm">
         <div className="bg-warm-surface rounded-2xl shadow-lg p-8 border border-warm-border">
           <h1 className="font-display text-2xl font-semibold text-warm-text text-center mb-2">
-            UNIKAT M
+            Eventverleih Bergstraße
           </h1>
           <p className="text-warm-muted text-center text-sm mb-8">Admin-Bereich</p>
 
@@ -141,7 +141,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </svg>
             </button>
             <Link href="/admin" className="font-display text-lg font-semibold text-warm-text">
-              UNIKAT M <span className="text-accent font-body text-sm font-normal ml-1">Admin</span>
+              Eventverleih Bergstraße <span className="text-accent font-body text-sm font-normal ml-1">Admin</span>
             </Link>
           </div>
 

@@ -194,7 +194,7 @@ export default function EinstellungenPage() {
               value={settings.email}
               onChange={(e) => setSettings({ ...settings, email: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-              placeholder="info@unikat-m.de"
+              placeholder="info@eventverleih-bergstrasse.de"
             />
           </div>
 
@@ -209,7 +209,7 @@ export default function EinstellungenPage() {
               value={settings.instagram}
               onChange={(e) => setSettings({ ...settings, instagram: e.target.value })}
               className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-              placeholder="https://instagram.com/unikat.m"
+              placeholder="https://instagram.com/"
             />
           </div>
 
