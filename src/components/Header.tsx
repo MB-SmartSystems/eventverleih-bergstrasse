@@ -5,11 +5,11 @@ import Image from "next/image";
 import Link from "next/link";
 
 const navItems = [
-  { label: "Start", href: "#start" },
-  { label: "Sortiment", href: "#sortiment" },
-  { label: "Ablauf", href: "#ablauf" },
-  { label: "FAQ", href: "#faq" },
-  { label: "Kontakt", href: "#kontakt" },
+  { label: "Start", href: "/#start" },
+  { label: "Sortiment", href: "/#sortiment" },
+  { label: "Ablauf", href: "/#ablauf" },
+  { label: "FAQ", href: "/#faq" },
+  { label: "Kontakt", href: "/#kontakt" },
 ];
 
 export default function Header() {
@@ -40,7 +40,7 @@ export default function Header() {
             </a>
           ))}
           <a
-            href="#kontakt"
+            href="/#kontakt"
             className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all"
           >
             Anfrage senden
@@ -92,7 +92,7 @@ export default function Header() {
             </a>
           ))}
           <a
-            href="#kontakt"
+            href="/#kontakt"
             className="block text-center px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm rounded-lg mt-3"
             onClick={() => setMobileOpen(false)}
           >
