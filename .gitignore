@@ -36,3 +36,9 @@ next-env.d.ts
 
 # superpowers
 .superpowers/
+
+# Vercel env pull output (never commit)
+.env.vercel
+.env.development.local
+.env.production.local
+.env.preview.local
