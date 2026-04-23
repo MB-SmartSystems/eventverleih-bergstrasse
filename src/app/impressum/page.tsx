@@ -23,6 +23,7 @@ export default function Impressum() {
             </p>
             <p>Vertreten durch: Manuel Büttner</p>
             <p>Rechtsform: Einzelunternehmen</p>
+            <p>Nicht im Handelsregister eingetragen.</p>
 
             <h2>Kontakt</h2>
             <p>

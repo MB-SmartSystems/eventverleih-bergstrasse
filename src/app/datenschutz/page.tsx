@@ -49,9 +49,12 @@ export default function Datenschutz() {
             </p>
             <p>
               <strong>Datenübermittlung in die USA:</strong> Vercel Inc. ist nach dem
-              EU-US Data Privacy Framework (DPF) zertifiziert. Zusätzlich haben wir mit
-              Vercel Standardvertragsklauseln (SCC) gemäß Art. 46 Abs. 2 lit. c DSGVO
-              abgeschlossen.
+              EU-US Data Privacy Framework (DPF) zertifiziert. Dieses Framework ist
+              Gegenstand des Angemessenheitsbeschlusses der EU-Kommission vom
+              10. Juli 2023 (Durchführungsbeschluss (EU) 2023/1795) und bildet damit
+              eine zulässige Grundlage für Datenübermittlungen in die USA nach Art. 45
+              DSGVO. Zusätzlich haben wir mit Vercel Standardvertragsklauseln (SCC)
+              gemäß Art. 46 Abs. 2 lit. c DSGVO abgeschlossen.
             </p>
             <p>Speicherdauer Server-Logs: 14 Tage.</p>
 
