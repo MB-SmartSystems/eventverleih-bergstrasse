@@ -1,4 +1,5 @@
 import Header from "@/components/Header";
+import PromoBanner from "@/components/PromoBanner";
 import Hero from "@/components/Hero";
 import Gallery from "@/components/Gallery";
 import Sortiment from "@/components/Sortiment";
@@ -12,6 +13,7 @@ import { CartProvider } from "@/components/CartContext";
 export default function Home() {
   return (
     <CartProvider>
+      <PromoBanner />
       <Header />
       <main>
         <Hero />
