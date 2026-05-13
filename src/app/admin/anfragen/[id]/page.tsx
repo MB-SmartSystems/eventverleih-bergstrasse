@@ -8,6 +8,7 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import ActionPanel from "./ActionPanel";
+import PositionsEditor, { type PositionItem, type ArtikelOption } from "./PositionsEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -62,6 +63,14 @@ type PositionRow = {
   Artikel_Link: Array<{ id: number; value: string }>;
 };
 
+type ArtikelRow = {
+  id: number;
+  Bezeichnung: string;
+  Mietpreis_WE_Eur: string | null;
+  Kategorie: { value: string } | null;
+  Sichtbar_Public: boolean;
+};
+
 function fmtEur(v: string | null | undefined): string {
   if (!v) return "—";
   return `${parseFloat(v).toFixed(2).replace(".", ",")} €`;
@@ -97,11 +106,35 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
     getRow<KundeRow>(TABLES.Kunden, kundeId),
   ]);
 
-  // Positionen
-  const allPositionen = await listRows<PositionRow & { Buchung_Link: Array<{ id: number }> }>(TABLES.Buchungs_Position, {
-    size: 200,
-  });
+  // Positionen + Artikel-Stamm (für Bezeichnung-Lookup + Editor-Picker)
+  const [allPositionen, artikelAll] = await Promise.all([
+    listRows<PositionRow & { Buchung_Link: Array<{ id: number }> }>(TABLES.Buchungs_Position, { size: 200 }),
+    listRows<ArtikelRow>(TABLES.Artikel, { size: 200 }),
+  ]);
   const positionen = allPositionen.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
+  const artikelById = new Map(artikelAll.results.map((a) => [a.id, a]));
+
+  const positionItems: PositionItem[] = positionen.map((p) => {
+    const artikelId = p.Artikel_Link?.[0]?.id ?? 0;
+    const art = artikelById.get(artikelId);
+    return {
+      id: p.id,
+      artikelId,
+      bezeichnung: art?.Bezeichnung ?? `Artikel ${artikelId}`,
+      anzahl: parseInt(p.Anzahl, 10) || 1,
+      einzelpreis: parseFloat(p.Einzelpreis_Eur) || 0,
+    };
+  });
+
+  const artikelOptions: ArtikelOption[] = artikelAll.results
+    .filter((a) => a.Sichtbar_Public !== false)
+    .map((a) => ({
+      id: a.id,
+      bezeichnung: a.Bezeichnung,
+      preis: parseFloat(a.Mietpreis_WE_Eur ?? "0") || 0,
+      kategorie: a.Kategorie?.value ?? "—",
+    }))
+    .sort((a, b) => a.kategorie.localeCompare(b.kategorie) || a.bezeichnung.localeCompare(b.bezeichnung));
 
   const status = angebot.Status?.value || "Offen";
   const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
@@ -183,34 +216,8 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             </section>
           )}
 
-          {/* Buchungs_Position */}
-          <section className="p-5 rounded-xl bg-white/5 border border-white/10">
-            <h2 className="text-lg font-semibold text-white mb-3">Artikel ({positionen.length})</h2>
-            {positionen.length === 0 ? (
-              <p className="text-sm text-gray-400">Keine automatisch zugeordnete Artikel (Anfrage war Freitext).</p>
-            ) : (
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-gray-500 border-b border-white/10">
-                    <th className="py-2">Artikel</th>
-                    <th className="text-right">Anzahl</th>
-                    <th className="text-right">Einzel</th>
-                    <th className="text-right">Gesamt</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {positionen.map((p) => (
-                    <tr key={p.id} className="border-b border-white/5">
-                      <td className="py-2 text-gray-300">{p.Artikel_Link?.[0]?.value || "—"}</td>
-                      <td className="text-right text-gray-300">{p.Anzahl}</td>
-                      <td className="text-right text-gray-400">{fmtEur(p.Einzelpreis_Eur)}</td>
-                      <td className="text-right text-white font-medium">{fmtEur(p.Position_Gesamt_Eur)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </section>
+          {/* Positionen — editierbar */}
+          <PositionsEditor buchungId={buchungId} initialPositionen={positionItems} artikelOptions={artikelOptions} />
 
           {/* Notizen */}
           {buchung.Notizen && (

@@ -114,12 +114,14 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const kundeId = buchung.Kunde_Link?.[0]?.id;
   const kunde = kundeId ? await getRow<KundeRow>(TABLES.Kunden, kundeId).catch(() => null) : null;
 
-  const [positionenAll, rechnungenAll] = await Promise.all([
+  const [positionenAll, rechnungenAll, artikelAll] = await Promise.all([
     listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
     listRows<RechnungRow>(TABLES.Rechnungen, { size: 200 }),
+    listRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel, { size: 200 }),
   ]);
   const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const rechnungen = rechnungenAll.results.filter((r) => r.Buchung_Link?.[0]?.id === buchungId);
+  const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
 
   const status = buchung.Status_Erweitert?.value ?? "Anfrage";
 
@@ -209,14 +211,18 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
                   </tr>
                 </thead>
                 <tbody>
-                  {positionen.map((p) => (
+                  {positionen.map((p) => {
+                    const aid = p.Artikel_Link?.[0]?.id;
+                    const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—";
+                    return (
                     <tr key={p.id} className="border-b border-warm-border/50 last:border-0">
-                      <td className="py-2 text-warm-text">{p.Artikel_Link?.[0]?.value || "—"}</td>
+                      <td className="py-2 text-warm-text">{name}</td>
                       <td className="text-right text-warm-text">{p.Anzahl}</td>
                       <td className="text-right text-warm-muted">{fmtEur(p.Einzelpreis_Eur)}</td>
                       <td className="text-right text-warm-text font-medium">{fmtEur(p.Position_Gesamt_Eur)}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}
