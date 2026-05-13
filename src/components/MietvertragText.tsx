@@ -9,9 +9,9 @@
  */
 export default function MietvertragText() {
   return (
-    <article className="prose prose-sm max-w-none text-warm-text space-y-4">
-      <h2 className="text-xl font-bold text-warm-text">Mietvertrag — Bedingungen</h2>
-      <p className="text-xs text-warm-muted">Stand: 13.05.2026 · Version 1.0</p>
+    <article className="prose prose-sm prose-gray max-w-none text-gray-800 space-y-4 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-800 [&_strong]:text-gray-900 [&_table]:text-gray-800 [&_th]:text-gray-700 [&_a]:text-gray-900 [&_a]:underline">
+      <h2 className="text-xl font-bold text-gray-900">Mietvertrag — Bedingungen</h2>
+      <p className="text-xs text-gray-500">Stand: 13.05.2026 · Version 1.0</p>
 
       <h3>§ 1 Vertragsgegenstand</h3>
       <p>
@@ -93,21 +93,21 @@ export default function MietvertragText() {
       </p>
       <table className="w-full text-sm border-collapse my-3">
         <thead>
-          <tr className="border-b-2 border-warm-border">
+          <tr className="border-b-2 border-gray-300">
             <th className="text-left py-2">Artikel-Kategorie</th>
             <th className="text-right py-2 w-32">Pauschale</th>
           </tr>
         </thead>
         <tbody>
-          <tr className="border-b border-warm-border">
+          <tr className="border-b border-gray-300">
             <td className="py-2">Zelte, Planen</td>
             <td className="py-2 text-right font-mono">40,00 €</td>
           </tr>
-          <tr className="border-b border-warm-border">
+          <tr className="border-b border-gray-300">
             <td className="py-2">Tische, Stühle, Kleinteile</td>
             <td className="py-2 text-right font-mono">5,00 € / Stück</td>
           </tr>
-          <tr className="border-b border-warm-border">
+          <tr className="border-b border-gray-300">
             <td className="py-2">Sonstige Artikel</td>
             <td className="py-2 text-right font-mono">max. 10 % des Wiederbeschaffungspreises</td>
           </tr>

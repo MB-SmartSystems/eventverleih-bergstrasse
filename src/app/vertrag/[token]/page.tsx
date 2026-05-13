@@ -115,14 +115,14 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
   const isAccepted = angebot.Status?.value === "Akzeptiert";
 
   return (
-    <div className="min-h-screen bg-warm-bg py-8 px-4 sm:py-12 print:bg-white print:p-0">
+    <div className="min-h-screen bg-gray-50 py-8 px-4 sm:py-12 print:bg-white print:p-0">
       <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-warm-border print:shadow-none print:border-0 print:rounded-none">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-gray-300 print:shadow-none print:border-0 print:rounded-none">
           {/* Print-Hinweis (nur Bildschirm) */}
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4 print:hidden">
             <div>
-              <div className="text-xs text-warm-muted uppercase tracking-wide">Mietvertrag</div>
-              <h1 className="text-2xl font-bold text-warm-text">Vertrag {angebot.Angebotsnummer}</h1>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Mietvertrag</div>
+              <h1 className="text-2xl font-bold text-gray-900">Vertrag {angebot.Angebotsnummer}</h1>
             </div>
             <PrintButton />
           </div>
@@ -130,8 +130,8 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
           {/* Header (Firma + Kunde) */}
           <div className="flex flex-wrap justify-between gap-6 mb-8">
             <div className="text-sm">
-              <div className="font-bold text-warm-text">{firmenname}</div>
-              <div className="text-warm-muted">
+              <div className="font-bold text-gray-900">{firmenname}</div>
+              <div className="text-gray-500">
                 {inhaber}
                 <br />
                 {anschrift}
@@ -146,8 +146,8 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
               </div>
             </div>
             <div className="text-sm text-right">
-              <div className="text-xs text-warm-muted uppercase tracking-wide mb-1">Mieter</div>
-              <div className="text-warm-text">
+              <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mieter</div>
+              <div className="text-gray-900">
                 {kunde.Firma && (
                   <>
                     <strong>{kunde.Firma}</strong>
@@ -187,31 +187,31 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
           {/* Buchungsdaten */}
           <table className="w-full text-sm border-collapse mb-6">
             <tbody>
-              <tr className="border-b border-warm-border">
-                <td className="py-2 text-warm-muted w-40">Vertragsnummer</td>
-                <td className="py-2 font-mono text-warm-text">{angebot.Angebotsnummer}</td>
+              <tr className="border-b border-gray-300">
+                <td className="py-2 text-gray-500 w-40">Vertragsnummer</td>
+                <td className="py-2 font-mono text-gray-900">{angebot.Angebotsnummer}</td>
               </tr>
-              <tr className="border-b border-warm-border">
-                <td className="py-2 text-warm-muted">Buchungs-ID</td>
-                <td className="py-2 font-mono text-warm-text">#{buchung.Buchung_ID}</td>
+              <tr className="border-b border-gray-300">
+                <td className="py-2 text-gray-500">Buchungs-ID</td>
+                <td className="py-2 font-mono text-gray-900">#{buchung.Buchung_ID}</td>
               </tr>
-              <tr className="border-b border-warm-border">
-                <td className="py-2 text-warm-muted">Event-Datum</td>
-                <td className="py-2 text-warm-text">
+              <tr className="border-b border-gray-300">
+                <td className="py-2 text-gray-500">Event-Datum</td>
+                <td className="py-2 text-gray-900">
                   {fmtDate(buchung.Event_datum_von)}
                   {buchung.Event_datum_bis && buchung.Event_datum_bis !== buchung.Event_datum_von &&
                     ` – ${fmtDate(buchung.Event_datum_bis)}`}
                 </td>
               </tr>
               {buchung.Lieferadresse && (
-                <tr className="border-b border-warm-border">
-                  <td className="py-2 text-warm-muted">Veranstaltungsort</td>
-                  <td className="py-2 text-warm-text">{buchung.Lieferadresse}</td>
+                <tr className="border-b border-gray-300">
+                  <td className="py-2 text-gray-500">Veranstaltungsort</td>
+                  <td className="py-2 text-gray-900">{buchung.Lieferadresse}</td>
                 </tr>
               )}
               {isAccepted && angebot.Akzeptiert_am && (
-                <tr className="border-b border-warm-border bg-green-50">
-                  <td className="py-2 text-warm-muted">Akzeptiert am</td>
+                <tr className="border-b border-gray-300 bg-green-50">
+                  <td className="py-2 text-gray-500">Akzeptiert am</td>
                   <td className="py-2 text-green-800 font-medium">{fmtDate(angebot.Akzeptiert_am)}</td>
                 </tr>
               )}
@@ -219,13 +219,13 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
           </table>
 
           {/* Positionen */}
-          <h2 className="text-lg font-semibold text-warm-text mb-3">Mietgegenstände</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Mietgegenstände</h2>
           {positionen.length === 0 ? (
-            <p className="text-sm text-warm-muted mb-6">— Noch keine Artikel zugeordnet —</p>
+            <p className="text-sm text-gray-500 mb-6">— Noch keine Artikel zugeordnet —</p>
           ) : (
             <table className="w-full text-sm border-collapse mb-6">
               <thead>
-                <tr className="border-b-2 border-warm-border text-left text-xs uppercase tracking-wide text-warm-muted">
+                <tr className="border-b-2 border-gray-300 text-left text-xs uppercase tracking-wide text-gray-500">
                   <th className="py-2">Position</th>
                   <th className="py-2 text-right w-20">Anzahl</th>
                   <th className="py-2 text-right w-28">Einzelpreis</th>
@@ -234,11 +234,11 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
               </thead>
               <tbody>
                 {positionen.map((p) => (
-                  <tr key={p.id} className="border-b border-warm-border/60">
-                    <td className="py-2 text-warm-text">{p.bezeichnung}</td>
-                    <td className="py-2 text-right text-warm-text">{p.anzahl}</td>
-                    <td className="py-2 text-right font-mono text-warm-text">{fmtEur(String(p.einzelpreis))}</td>
-                    <td className="py-2 text-right font-mono text-warm-text">{fmtEur(String(p.gesamt))}</td>
+                  <tr key={p.id} className="border-b border-gray-300/60">
+                    <td className="py-2 text-gray-900">{p.bezeichnung}</td>
+                    <td className="py-2 text-right text-gray-900">{p.anzahl}</td>
+                    <td className="py-2 text-right font-mono text-gray-900">{fmtEur(String(p.einzelpreis))}</td>
+                    <td className="py-2 text-right font-mono text-gray-900">{fmtEur(String(p.gesamt))}</td>
                   </tr>
                 ))}
               </tbody>
@@ -246,30 +246,30 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
           )}
 
           {/* Zahlungen-Übersicht */}
-          <h2 className="text-lg font-semibold text-warm-text mb-3">Zahlungs-Übersicht</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-3">Zahlungs-Übersicht</h2>
           <table className="w-full text-sm border-collapse mb-6">
             <tbody>
-              <tr className="border-b border-warm-border">
+              <tr className="border-b border-gray-300">
                 <td className="py-2">Mietsumme</td>
                 <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Artikel)}</td>
               </tr>
               {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
-                <tr className="border-b border-warm-border">
+                <tr className="border-b border-gray-300">
                   <td className="py-2">Lieferung</td>
                   <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Lieferung)}</td>
                 </tr>
               )}
               {buchung.Preis_Aufbau && parseFloat(buchung.Preis_Aufbau) > 0 && (
-                <tr className="border-b border-warm-border">
+                <tr className="border-b border-gray-300">
                   <td className="py-2">Aufbau-Service</td>
                   <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Aufbau)}</td>
                 </tr>
               )}
-              <tr className="border-b-2 border-warm-text font-semibold">
+              <tr className="border-b-2 border-gray-900 font-semibold">
                 <td className="py-2">Anzahlung bei Bestätigung (30 %)</td>
                 <td className="py-2 text-right font-mono">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
               </tr>
-              <tr className="border-b border-warm-border">
+              <tr className="border-b border-gray-300">
                 <td className="py-2">Restzahlung bei Übergabe (70 %)</td>
                 <td className="py-2 text-right font-mono">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
               </tr>
@@ -297,7 +297,7 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
               </p>
             </div>
           ) : (
-            <div className="mt-8 p-4 rounded-lg bg-warm-bg border border-warm-border text-sm text-warm-muted print:hidden">
+            <div className="mt-8 p-4 rounded-lg bg-gray-50 border border-gray-300 text-sm text-gray-500 print:hidden">
               <p>
                 Dieser Vertrag wird wirksam, sobald Sie auf der{" "}
                 <a href={`/angebot/${token}`} className="underline text-accent">
@@ -309,7 +309,7 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
           )}
 
           {/* Footer */}
-          <div className="mt-10 pt-4 border-t border-warm-border text-xs text-warm-muted text-center">
+          <div className="mt-10 pt-4 border-t border-gray-300 text-xs text-gray-500 text-center">
             {firmenname} · {anschrift} · {telefon}
             {steuernummer && <> · Steuernummer {steuernummer}</>}
             <br />
