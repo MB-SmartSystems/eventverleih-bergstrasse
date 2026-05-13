@@ -21,7 +21,9 @@ export default function Contact() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (submitting) return;
-    const fd = new FormData(e.currentTarget);
+    // Form-Reference VOR await speichern — e.currentTarget ist nach await null (React-Event-Pooling)
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     setSubmitting(true);
     setSubmitResult("idle");
     setErrorText("");
@@ -44,7 +46,7 @@ export default function Contact() {
         setSubmitResult("error");
       } else {
         setSubmitResult("success");
-        (e.currentTarget as HTMLFormElement).reset();
+        form.reset();
         setAgreed(false);
         setMessage("");
       }

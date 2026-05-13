@@ -97,6 +97,9 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
   const anrede = `${kunde.Vorname} ${kunde.Nachname}`;
   const statusVal = angebot.Status?.value || "Offen";
 
+  // Wenn keine Preise gesetzt sind, ist das ein Anfrage-Stadium — Preisuebersicht ausblenden
+  const hasPrices = !!buchung.Preis_Artikel && parseFloat(buchung.Preis_Artikel) > 0;
+
   return (
     <>
       <Header />
@@ -129,43 +132,56 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
             )}
 
             <h2 className="text-xl font-semibold text-white">Preisübersicht</h2>
-            <table className="w-full text-sm border-collapse">
-              <tbody>
-                <tr className="border-b border-white/10">
-                  <td className="py-2">Mietsumme der Artikel</td>
-                  <td className="py-2 text-right">{fmtEur(buchung.Preis_Artikel)}</td>
-                </tr>
-                {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
-                  <tr className="border-b border-white/10">
-                    <td className="py-2">Lieferung</td>
-                    <td className="py-2 text-right">{fmtEur(buchung.Preis_Lieferung)}</td>
-                  </tr>
-                )}
-                {buchung.Preis_Aufbau && parseFloat(buchung.Preis_Aufbau) > 0 && (
-                  <tr className="border-b border-white/10">
-                    <td className="py-2">Aufbau-Service</td>
-                    <td className="py-2 text-right">{fmtEur(buchung.Preis_Aufbau)}</td>
-                  </tr>
-                )}
-                <tr className="border-b-2 border-gold-500/30 font-semibold">
-                  <td className="py-3">Anzahlung bei Bestätigung (30 %)</td>
-                  <td className="py-3 text-right">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
-                </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-2">Restzahlung bei Übergabe (70 %)</td>
-                  <td className="py-2 text-right">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
-                </tr>
-                <tr className="border-b border-white/10">
-                  <td className="py-2">Kaution (wird nach Rückgabe vollständig erstattet)</td>
-                  <td className="py-2 text-right">{fmtEur(buchung.Kaution_Soll_Eur || buchung.Kaution)}</td>
-                </tr>
-              </tbody>
-            </table>
-
-            <p className="text-xs text-gray-500 mt-4">
-              Alle Preise inkl. gesetzlicher Steuern. Eventverleih Bergstraße ist Kleinunternehmer nach § 19 Abs. 1 UStG —
-              kein USt-Ausweis.
-            </p>
+            {!hasPrices ? (
+              <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm">
+                <p>
+                  Manuel meldet sich in Kürze mit dem konkreten Angebot, sobald die Verfügbarkeit für Ihre Wunsch-Artikel
+                  geprüft ist. Die Preisübersicht erscheint dann automatisch hier auf dieser Seite.
+                </p>
+                <p className="text-xs text-gray-500 mt-3">
+                  Eventverleih Bergstraße ist Kleinunternehmer nach § 19 Abs. 1 UStG — kein USt-Ausweis.
+                </p>
+              </div>
+            ) : (
+              <>
+                <table className="w-full text-sm border-collapse">
+                  <tbody>
+                    <tr className="border-b border-white/10">
+                      <td className="py-2">Mietsumme der Artikel</td>
+                      <td className="py-2 text-right">{fmtEur(buchung.Preis_Artikel)}</td>
+                    </tr>
+                    {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
+                      <tr className="border-b border-white/10">
+                        <td className="py-2">Lieferung</td>
+                        <td className="py-2 text-right">{fmtEur(buchung.Preis_Lieferung)}</td>
+                      </tr>
+                    )}
+                    {buchung.Preis_Aufbau && parseFloat(buchung.Preis_Aufbau) > 0 && (
+                      <tr className="border-b border-white/10">
+                        <td className="py-2">Aufbau-Service</td>
+                        <td className="py-2 text-right">{fmtEur(buchung.Preis_Aufbau)}</td>
+                      </tr>
+                    )}
+                    <tr className="border-b-2 border-gold-500/30 font-semibold">
+                      <td className="py-3">Anzahlung bei Bestätigung (30 %)</td>
+                      <td className="py-3 text-right">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
+                    </tr>
+                    <tr className="border-b border-white/10">
+                      <td className="py-2">Restzahlung bei Übergabe (70 %)</td>
+                      <td className="py-2 text-right">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
+                    </tr>
+                    <tr className="border-b border-white/10">
+                      <td className="py-2">Kaution (wird nach Rückgabe vollständig erstattet)</td>
+                      <td className="py-2 text-right">{fmtEur(buchung.Kaution_Soll_Eur || buchung.Kaution)}</td>
+                    </tr>
+                  </tbody>
+                </table>
+                <p className="text-xs text-gray-500 mt-4">
+                  Alle Preise inkl. gesetzlicher Steuern. Eventverleih Bergstraße ist Kleinunternehmer nach § 19 Abs. 1
+                  UStG — kein USt-Ausweis.
+                </p>
+              </>
+            )}
 
             <h2 className="text-xl font-semibold text-white mt-8">Mietbedingungen</h2>
             <p>
@@ -189,6 +205,14 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                 </p>
                 <p className="text-sm text-gray-400 mt-2">
                   Manuel meldet sich in Kürze mit der Anzahlungsaufforderung und den nächsten Schritten.
+                </p>
+              </div>
+            ) : !hasPrices ? (
+              <div className="mt-10 p-6 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                <p className="text-blue-300 font-semibold">Ihre Anfrage wird gerade bearbeitet</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Manuel sendet Ihnen das konkrete Angebot mit allen Preisen per E-Mail zu. Diese Seite aktualisiert sich
+                  dann automatisch, und Sie können die Reservierung mit einem Klick sichern.
                 </p>
               </div>
             ) : (
