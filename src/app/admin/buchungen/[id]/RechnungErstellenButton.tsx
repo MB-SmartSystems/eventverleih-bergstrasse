@@ -32,7 +32,8 @@ export default function RechnungErstellenButton({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || `HTTP ${res.status}`);
+        const msg = [data.error, data.detail].filter(Boolean).join(" — ");
+        setError(msg || `HTTP ${res.status}`);
       } else {
         setCreated({ rechnungsnummer: data.rechnungsnummer, url: data.url });
         // Reload nach 2.5s damit n8n den PDF-Render starten kann

@@ -129,6 +129,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";
-    return NextResponse.json({ error: "internal error", detail: msg.slice(0, 300) }, { status: 500 });
+    const stack = e instanceof Error ? e.stack : undefined;
+    console.error("[rechnung-erstellen] failed:", msg, stack);
+    return NextResponse.json({ error: "internal error", detail: msg.slice(0, 500) }, { status: 500 });
   }
 }
