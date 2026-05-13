@@ -52,6 +52,20 @@ type KundeRow = {
   Email: string;
 };
 
+type PositionRow = {
+  id: number;
+  Anzahl: string;
+  Einzelpreis_Eur: string;
+  Position_Gesamt_Eur: string;
+  Artikel_Link: Array<{ id: number; value: string }>;
+  Buchung_Link: Array<{ id: number }>;
+};
+
+type ArtikelRow = {
+  id: number;
+  Bezeichnung: string;
+};
+
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
@@ -59,23 +73,35 @@ async function loadAngebot(token: string): Promise<{
   angebot: AngebotRow;
   buchung: BuchungRow;
   kunde: KundeRow;
+  positionen: Array<{ id: number; bezeichnung: string; anzahl: number; einzelpreis: number; gesamt: number }>;
 } | null> {
-  // Suche nach Token in Token_Public-Spalte
   const list = await listRows<AngebotRow>(TABLES.Angebote, { search: token, size: 5 });
   const angebot = list.results.find((a) => a.Token_Public === token);
   if (!angebot) return null;
+  if (!angebot.Buchung_Link?.[0]?.id || !angebot.Kunde_Link?.[0]?.id) return null;
 
-  // Orphan-Angebote (ohne Buchung/Kunde) NICHT als gueltig rendern.
-  // Lieber 404, damit Kunde nicht eine falsche "0 EUR-Buchung" sieht.
-  if (!angebot.Buchung_Link?.[0]?.id || !angebot.Kunde_Link?.[0]?.id) {
-    return null;
-  }
+  const buchungId = angebot.Buchung_Link[0].id;
+  const [buchung, kunde, positionenAll, artikelAll] = await Promise.all([
+    getRow<BuchungRow>(TABLES.Buchungen, buchungId),
+    getRow<KundeRow>(TABLES.Kunden, angebot.Kunde_Link[0].id),
+    listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
+    listRows<ArtikelRow>(TABLES.Artikel, { size: 200 }),
+  ]);
+  const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
+  const positionen = positionenAll.results
+    .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
+    .map((p) => {
+      const aid = p.Artikel_Link?.[0]?.id;
+      return {
+        id: p.id,
+        bezeichnung: aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—",
+        anzahl: parseInt(p.Anzahl, 10) || 1,
+        einzelpreis: parseFloat(p.Einzelpreis_Eur) || 0,
+        gesamt: parseFloat(p.Position_Gesamt_Eur) || 0,
+      };
+    });
 
-  // Linked-Row-Fetches: bei Fehler nach oben durchreichen, NICHT swallowen
-  const buchung = await getRow<BuchungRow>(TABLES.Buchungen, angebot.Buchung_Link[0].id);
-  const kunde = await getRow<KundeRow>(TABLES.Kunden, angebot.Kunde_Link[0].id);
-
-  return { angebot, buchung, kunde };
+  return { angebot, buchung, kunde, positionen };
 }
 
 function fmtDate(d: string | null): string {
@@ -93,7 +119,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
   const { token } = await params;
   const data = await loadAngebot(token);
   if (!data) notFound();
-  const { angebot, buchung, kunde } = data;
+  const { angebot, buchung, kunde, positionen } = data;
 
   const anrede = `${kunde.Vorname} ${kunde.Nachname}`;
   const statusVal = angebot.Status?.value || "Offen";
@@ -125,13 +151,6 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                 : ""}
             </p>
 
-            {angebot.Anfragetext && (
-              <>
-                <h2 className="text-xl font-semibold text-white">Ihre Anfrage</h2>
-                <p className="whitespace-pre-wrap text-gray-400">{angebot.Anfragetext}</p>
-              </>
-            )}
-
             <h2 className="text-xl font-semibold text-white">Preisübersicht</h2>
             {!hasPrices ? (
               <div className="p-5 rounded-xl bg-white/5 border border-white/10 text-gray-300 text-sm">
@@ -145,11 +164,33 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               </div>
             ) : (
               <>
+                {positionen.length > 0 && (
+                  <table className="w-full text-sm border-collapse mb-4">
+                    <thead>
+                      <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-white/20">
+                        <th className="py-2">Position</th>
+                        <th className="py-2 text-right w-20">Anzahl</th>
+                        <th className="py-2 text-right w-28">Einzelpreis</th>
+                        <th className="py-2 text-right w-28">Gesamt</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {positionen.map((p) => (
+                        <tr key={p.id} className="border-b border-white/10">
+                          <td className="py-2">{p.bezeichnung}</td>
+                          <td className="py-2 text-right">{p.anzahl}</td>
+                          <td className="py-2 text-right">{`${p.einzelpreis.toFixed(2).replace(".", ",")} €`}</td>
+                          <td className="py-2 text-right">{`${p.gesamt.toFixed(2).replace(".", ",")} €`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
                 <table className="w-full text-sm border-collapse">
                   <tbody>
                     <tr className="border-b border-white/10">
-                      <td className="py-2">Mietsumme der Artikel</td>
-                      <td className="py-2 text-right">{fmtEur(buchung.Preis_Artikel)}</td>
+                      <td className="py-2 font-medium">Mietsumme</td>
+                      <td className="py-2 text-right font-medium">{fmtEur(buchung.Preis_Artikel)}</td>
                     </tr>
                     {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
                       <tr className="border-b border-white/10">
@@ -184,6 +225,16 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               </>
             )}
 
+            {hasPrices && statusVal !== "Akzeptiert" && (
+              <div className="mt-6 p-4 rounded-lg bg-gold-500/10 border-l-4 border-gold-500 text-sm">
+                <p className="text-gold-200 font-semibold">Wichtiger Hinweis zur Reservierung</p>
+                <p className="text-gray-300 mt-1">
+                  Mit Ihrer Bestätigung wird der Termin zunächst <strong>vorgemerkt</strong>. Die <strong>verbindliche Reservierung</strong> erfolgt erst
+                  mit Eingang Ihrer Anzahlung von <strong>{fmtEur(buchung.Anzahlung_Soll_Eur)}</strong>. Bitte überweisen Sie diese innerhalb von 7 Tagen nach Bestätigung.
+                </p>
+              </div>
+            )}
+
             <h2 className="text-xl font-semibold text-white mt-8">Mietbedingungen</h2>
             <p>
               Mit Ihrer Bestätigung erkennen Sie unsere{" "}
@@ -194,8 +245,11 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               <a href="/datenschutz" className="text-gold-400 hover:text-gold-500 underline" target="_blank">
                 Datenschutzerklärung
               </a>{" "}
-              an. Stornierung gemäß § 5 AGB (Mietsummen-basiert: 50 % bei 7 Tagen, 75 % bei 4 Tagen, 100 % bei 2 Tagen vor
-              Veranstaltung).
+              an. Die vollständigen Mietbedingungen (Aufbau, Lieferung, Rückgabe, Haftung) finden Sie in Ihrem{" "}
+              <a href={`/vertrag/${token}`} className="text-gold-400 hover:text-gold-500 underline" target="_blank">
+                Mietvertrag
+              </a>
+              .
             </p>
 
             {statusVal === "Akzeptiert" ? (

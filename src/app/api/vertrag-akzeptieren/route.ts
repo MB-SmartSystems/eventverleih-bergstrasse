@@ -6,7 +6,7 @@
  * Verhalten:
  *   1. Sucht Angebot-Row via Token_Public
  *   2. Updated Angebote.Status = Akzeptiert, Akzeptiert_am = now
- *   3. Updated Buchungen.Status_Erweitert = Bestaetigt
+ *   3. Updated Buchungen.Status_Erweitert = Reserviert (Bestaetigt erst nach Anzahlungseingang)
  *   4. Erstellt MailQueue-Eintrag fuer Vertrag-Bestaetigungs-Mail (Approval=Pending)
  *   5. Redirect zur Angebots-Seite (Status zeigt jetzt "akzeptiert")
  */
@@ -69,7 +69,7 @@ async function handle(token: string, origin: string): Promise<NextResponse> {
     if (!currentStatus || earlyStati.has(currentStatus)) {
       await updateRow(TABLES.Buchungen, buchungId, {
         Status: "Reserviert",
-        Status_Erweitert: "Bestaetigt",
+        Status_Erweitert: "Reserviert",
       });
     }
     // Sonst: Buchung ist bereits weiter im Workflow — keine Regression erlauben.
@@ -79,18 +79,23 @@ async function handle(token: string, origin: string): Promise<NextResponse> {
     // Idempotency-Key stabil → kein Duplicate.
     {
       // MailQueue: Vertrag-Bestaetigungs-Mail (mit Manuel-Approval)
-      const subject = "Reservierung bestaetigt - Eventverleih Bergstrasse";
+      const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstrasse";
+      const vertragsUrl = `${origin}/vertrag/${token}`;
       const body = `Hallo,
 
-grossartig - Ihre Reservierung ist bestaetigt. Damit ist Ihr Termin verbindlich vorgemerkt.
+vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
 
-Naechste Schritte:
-1. Anzahlung von 30 Prozent bitte innerhalb von 7 Tagen ueberweisen oder per PayPal an:
+WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestaetigt. Bitte ueberweisen Sie die Anzahlung innerhalb von 7 Tagen:
    IBAN: DE84 5001 0517 5420 4742 10
-   PayPal: info@eventverleih-bergstrasse.de
-2. Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder PayPal.
+   PayPal: manuelbuettner@web.de
+Verwendungszweck: bitte Ihre Angebotsnummer angeben.
+
+Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder PayPal.
 
 Etwa 7 Tage vor dem Event melde ich mich fuer die finale Abstimmung von Uebergabe-Ort und -Zeit.
+
+Ihren vollstaendigen Mietvertrag mit allen Bedingungen finden Sie hier:
+${vertragsUrl}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 

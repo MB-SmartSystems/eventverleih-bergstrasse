@@ -10,6 +10,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
 import RechnungErstellenButton from "./RechnungErstellenButton";
+import ZahlungsPanel from "./ZahlungsPanel";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -307,6 +308,14 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
               </tbody>
             </table>
           </section>
+
+          {/* Zahlungseingang */}
+          <ZahlungsPanel
+            buchungId={buchung.id}
+            anzahlungBezahlt={buchung.Anzahlung_Bezahlt_am}
+            restzahlungBezahlt={buchung.Restzahlung_Bezahlt_am}
+            kautionHinterlegt={buchung.Kaution_Hinterlegt_am}
+          />
 
           {/* Status-Aktionen */}
           <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
