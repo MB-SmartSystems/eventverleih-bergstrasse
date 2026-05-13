@@ -10,6 +10,7 @@ import { getSystemKonfig, configText } from "@/lib/system-konfig";
 import MietvertragText from "@/components/MietvertragText";
 import NotfallKontaktBox from "@/components/NotfallKontaktBox";
 import PrintButton from "@/components/PrintButton";
+import { parseSnapshot } from "@/lib/angebot-snapshot";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,6 +21,9 @@ type AngebotRow = {
   Status: { value: string } | null;
   Akzeptiert_am: string | null;
   Token_Public: string;
+  Snapshot_JSON: string | null;
+  Akzept_Snapshot_JSON: string | null;
+  Akzept_Version: string | null;
   Buchung_Link: Array<{ id: number }>;
   Kunde_Link: Array<{ id: number }>;
 };
@@ -93,7 +97,11 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
     getSystemKonfig(),
   ]);
   const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
-  const positionen = positionenAll.results
+  // Akzept-Snapshot bevorzugen (rechtsverbindlich), Fallback aktueller Snapshot, sonst Live
+  const akzeptSnap = parseSnapshot(angebot.Akzept_Snapshot_JSON);
+  const liveSnap = parseSnapshot(angebot.Snapshot_JSON);
+  const snap = akzeptSnap ?? liveSnap;
+  const livePositionen = positionenAll.results
     .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
     .map((p) => ({
       id: p.id,
@@ -104,6 +112,37 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
       einzelpreis: parseFloat(p.Einzelpreis_Eur) || 0,
       gesamt: parseFloat(p.Position_Gesamt_Eur) || 0,
     }));
+  const positionen = snap
+    ? snap.positionen.map((p, i) => ({
+        id: i,
+        bezeichnung: p.bezeichnung,
+        anzahl: p.anzahl,
+        einzelpreis: p.einzelpreis,
+        gesamt: p.gesamt,
+      }))
+    : livePositionen;
+
+  const displayEventVon = snap?.event_datum_von ?? buchung.Event_datum_von;
+  const displayEventBis = snap?.event_datum_bis ?? buchung.Event_datum_bis;
+  const displayPreisArtikel = snap ? String(snap.preis_artikel) : buchung.Preis_Artikel;
+  const displayPreisLieferung = snap ? String(snap.preis_lieferung) : buchung.Preis_Lieferung;
+  const displayPreisAufbau = snap ? String(snap.preis_aufbau) : buchung.Preis_Aufbau;
+  const displayAnzahlungSoll = snap ? String(snap.anzahlung_soll_eur) : buchung.Anzahlung_Soll_Eur;
+  const displayRestzahlungSoll = snap ? String(snap.restzahlung_soll_eur) : buchung.Restzahlung_Soll_Eur;
+  const displayKautionSoll = snap ? String(snap.kaution_soll_eur) : buchung.Kaution_Soll_Eur;
+  const displayLieferadresse = snap?.lieferadresse ?? buchung.Lieferadresse;
+  const displayKunde = snap
+    ? {
+        Vorname: snap.kunde.vorname,
+        Nachname: snap.kunde.nachname,
+        Firma: snap.kunde.firma,
+        Email: snap.kunde.email,
+        Telefon: snap.kunde.telefon,
+        Adresse_Strasse: snap.kunde.adresse_strasse,
+        Adresse_PLZ: snap.kunde.adresse_plz,
+        Adresse_Ort: snap.kunde.adresse_ort,
+      }
+    : kunde;
 
   const firmenname = configText(config, "Firmenname", "Eventverleih Bergstraße");
   const inhaber = configText(config, "Inhaber", "Manuel Büttner");
@@ -148,36 +187,36 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
             <div className="text-sm text-right">
               <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Mieter</div>
               <div className="text-gray-900">
-                {kunde.Firma && (
+                {displayKunde.Firma && (
                   <>
-                    <strong>{kunde.Firma}</strong>
+                    <strong>{displayKunde.Firma}</strong>
                     <br />
-                    z. Hd. {kunde.Vorname} {kunde.Nachname}
+                    z. Hd. {displayKunde.Vorname} {displayKunde.Nachname}
                   </>
                 )}
                 {!kunde.Firma && (
                   <>
-                    {kunde.Vorname} {kunde.Nachname}
+                    {displayKunde.Vorname} {displayKunde.Nachname}
                   </>
                 )}
-                {kunde.Adresse_Strasse && (
+                {displayKunde.Adresse_Strasse && (
                   <>
                     <br />
-                    {kunde.Adresse_Strasse}
+                    {displayKunde.Adresse_Strasse}
                     <br />
-                    {kunde.Adresse_PLZ} {kunde.Adresse_Ort}
+                    {displayKunde.Adresse_PLZ} {displayKunde.Adresse_Ort}
                   </>
                 )}
-                {kunde.Telefon && (
+                {displayKunde.Telefon && (
                   <>
                     <br />
-                    Tel: {kunde.Telefon}
+                    Tel: {displayKunde.Telefon}
                   </>
                 )}
-                {kunde.Email && (
+                {displayKunde.Email && (
                   <>
                     <br />
-                    {kunde.Email}
+                    {displayKunde.Email}
                   </>
                 )}
               </div>
@@ -198,15 +237,15 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
               <tr className="border-b border-gray-300">
                 <td className="py-2 text-gray-500">Event-Datum</td>
                 <td className="py-2 text-gray-900">
-                  {fmtDate(buchung.Event_datum_von)}
-                  {buchung.Event_datum_bis && buchung.Event_datum_bis !== buchung.Event_datum_von &&
-                    ` – ${fmtDate(buchung.Event_datum_bis)}`}
+                  {fmtDate(displayEventVon)}
+                  {displayEventBis && displayEventBis !== displayEventVon &&
+                    ` – ${fmtDate(displayEventBis)}`}
                 </td>
               </tr>
-              {buchung.Lieferadresse && (
+              {displayLieferadresse && (
                 <tr className="border-b border-gray-300">
                   <td className="py-2 text-gray-500">Veranstaltungsort</td>
-                  <td className="py-2 text-gray-900">{buchung.Lieferadresse}</td>
+                  <td className="py-2 text-gray-900">{displayLieferadresse}</td>
                 </tr>
               )}
               {isAccepted && angebot.Akzeptiert_am && (
@@ -251,31 +290,31 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
             <tbody>
               <tr className="border-b border-gray-300">
                 <td className="py-2">Mietsumme</td>
-                <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Artikel)}</td>
+                <td className="py-2 text-right font-mono">{fmtEur(displayPreisArtikel)}</td>
               </tr>
-              {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
+              {displayPreisLieferung && parseFloat(displayPreisLieferung) > 0 && (
                 <tr className="border-b border-gray-300">
                   <td className="py-2">Lieferung</td>
-                  <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Lieferung)}</td>
+                  <td className="py-2 text-right font-mono">{fmtEur(displayPreisLieferung)}</td>
                 </tr>
               )}
-              {buchung.Preis_Aufbau && parseFloat(buchung.Preis_Aufbau) > 0 && (
+              {displayPreisAufbau && parseFloat(displayPreisAufbau) > 0 && (
                 <tr className="border-b border-gray-300">
                   <td className="py-2">Aufbau-Service</td>
-                  <td className="py-2 text-right font-mono">{fmtEur(buchung.Preis_Aufbau)}</td>
+                  <td className="py-2 text-right font-mono">{fmtEur(displayPreisAufbau)}</td>
                 </tr>
               )}
               <tr className="border-b-2 border-gray-900 font-semibold">
                 <td className="py-2">Anzahlung bei Bestätigung (30 %)</td>
-                <td className="py-2 text-right font-mono">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
+                <td className="py-2 text-right font-mono">{fmtEur(displayAnzahlungSoll)}</td>
               </tr>
               <tr className="border-b border-gray-300">
                 <td className="py-2">Restzahlung bei Übergabe (70 %)</td>
-                <td className="py-2 text-right font-mono">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
+                <td className="py-2 text-right font-mono">{fmtEur(displayRestzahlungSoll)}</td>
               </tr>
               <tr>
                 <td className="py-2">Kaution (wird nach beanstandungsfreier Rückgabe erstattet)</td>
-                <td className="py-2 text-right font-mono">{fmtEur(buchung.Kaution_Soll_Eur)}</td>
+                <td className="py-2 text-right font-mono">{fmtEur(displayKautionSoll)}</td>
               </tr>
             </tbody>
           </table>

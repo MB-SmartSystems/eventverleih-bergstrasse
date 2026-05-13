@@ -10,6 +10,8 @@ import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import ActionPanel from "./ActionPanel";
 import PositionsEditor, { type PositionItem, type ArtikelOption } from "./PositionsEditor";
 import EventDatumEditor from "./EventDatumEditor";
+import UpdateVersandPanel from "./UpdateVersandPanel";
+import { parseSnapshot, diffAgainstLive } from "@/lib/angebot-snapshot";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,6 +29,10 @@ type AngebotRow = {
   Akzeptiert_am: string | null;
   Abgelehnt_am: string | null;
   Abgelehnt_Grund: string | null;
+  Snapshot_JSON: string | null;
+  Snapshot_Version: string | null;
+  Snapshot_Erstellt_am: string | null;
+  Akzept_Version: string | null;
   Buchung_Link: Array<{ id: number; value: string }>;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
@@ -37,6 +43,9 @@ type BuchungRow = {
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
+  Preis_Lieferung: string | null;
+  Preis_Aufbau: string | null;
+  Preis_Abbau: string | null;
   Anzahlung_Soll_Eur: string | null;
   Restzahlung_Soll_Eur: string | null;
   Kaution_Soll_Eur: string | null;
@@ -49,6 +58,7 @@ type KundeRow = {
   Kunde_ID: number;
   Vorname: string;
   Nachname: string;
+  Firma: string;
   Email: string;
   Telefon: string;
   Adresse_Strasse: string;
@@ -140,6 +150,39 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
   const status = angebot.Status?.value || "Offen";
   const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
 
+  // Snapshot-Diff: was hat sich seit letztem Versand geändert?
+  const snapshot = parseSnapshot(angebot.Snapshot_JSON);
+  const snapshotVersion = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+  const akzeptVersion = parseInt(angebot.Akzept_Version ?? "0", 10) || 0;
+  const diffs = snapshot
+    ? await diffAgainstLive(
+        snapshot,
+        {
+          Event_datum_von: buchung.Event_datum_von,
+          Event_datum_bis: buchung.Event_datum_bis,
+          Preis_Artikel: buchung.Preis_Artikel,
+          Preis_Lieferung: buchung.Preis_Lieferung,
+          Preis_Aufbau: buchung.Preis_Aufbau,
+          Preis_Abbau: buchung.Preis_Abbau,
+          Anzahlung_Soll_Eur: buchung.Anzahlung_Soll_Eur,
+          Restzahlung_Soll_Eur: buchung.Restzahlung_Soll_Eur,
+          Kaution_Soll_Eur: buchung.Kaution_Soll_Eur,
+          Lieferadresse: buchung.Lieferadresse,
+        },
+        buchungId,
+        {
+          Vorname: kunde.Vorname,
+          Nachname: kunde.Nachname,
+          Firma: kunde.Firma,
+          Email: kunde.Email,
+          Telefon: kunde.Telefon,
+          Adresse_Strasse: kunde.Adresse_Strasse,
+          Adresse_PLZ: kunde.Adresse_PLZ,
+          Adresse_Ort: kunde.Adresse_Ort,
+        }
+      )
+    : [];
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -180,6 +223,15 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Versand-Status + Update-Versand */}
+          <UpdateVersandPanel
+            angebotId={angebot.id}
+            snapshotVersion={snapshotVersion}
+            snapshotErstelltAm={angebot.Snapshot_Erstellt_am}
+            akzeptVersion={akzeptVersion}
+            diffs={diffs}
+          />
+
           {/* Mietzeitraum (Event-Datum) */}
           <EventDatumEditor
             buchungId={buchungId}

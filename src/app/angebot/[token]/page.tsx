@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import { parseSnapshot } from "@/lib/angebot-snapshot";
 import AcceptForm from "./AcceptForm";
 
 type AngebotRow = {
@@ -23,6 +24,9 @@ type AngebotRow = {
   Gesamtpreis: string | null;
   Token_Public: string;
   Akzeptiert_am: string | null;
+  Snapshot_JSON: string | null;
+  Snapshot_Version: string | null;
+  Akzept_Version: string | null;
   Buchung_Link: Array<{ id: number; value: string }>;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
@@ -125,11 +129,38 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
   if (!data) notFound();
   const { angebot, buchung, kunde, positionen } = data;
 
-  const anrede = `${kunde.Vorname} ${kunde.Nachname}`;
+  // Snapshot bevorzugen: nach "Angebot freigeben" friert die Kundenansicht ein,
+  // bis Manuel ein Update versendet. Live-Daten nur als Fallback bei Pre-Versand.
+  const snapshot = parseSnapshot(angebot.Snapshot_JSON);
+  const snapshotVersion = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+  const akzeptVersion = parseInt(angebot.Akzept_Version ?? "0", 10) || 0;
+  const hasUpdateBanner = snapshotVersion > 0 && akzeptVersion > 0 && snapshotVersion > akzeptVersion;
+
+  const anrede = snapshot
+    ? `${snapshot.kunde.vorname} ${snapshot.kunde.nachname}`
+    : `${kunde.Vorname} ${kunde.Nachname}`;
   const statusVal = angebot.Status?.value || "Offen";
 
-  // Wenn keine Preise gesetzt sind, ist das ein Anfrage-Stadium — Preisuebersicht ausblenden
-  const hasPrices = !!buchung.Preis_Artikel && parseFloat(buchung.Preis_Artikel) > 0;
+  // Anzeige-Preise aus Snapshot (eingefroren) oder Live
+  const preisArtikel = snapshot ? snapshot.preis_artikel.toString() : (buchung.Preis_Artikel ?? "0");
+  const preisLieferung = snapshot ? snapshot.preis_lieferung.toString() : (buchung.Preis_Lieferung ?? "0");
+  const preisAufbau = snapshot ? snapshot.preis_aufbau.toString() : (buchung.Preis_Aufbau ?? "0");
+  const anzahlungSoll = snapshot ? snapshot.anzahlung_soll_eur.toString() : (buchung.Anzahlung_Soll_Eur ?? "0");
+  const restzahlungSoll = snapshot ? snapshot.restzahlung_soll_eur.toString() : (buchung.Restzahlung_Soll_Eur ?? "0");
+  const kautionSoll = snapshot ? snapshot.kaution_soll_eur.toString() : (buchung.Kaution_Soll_Eur ?? buchung.Kaution ?? "0");
+  const eventVon = snapshot ? snapshot.event_datum_von : buchung.Event_datum_von;
+  const eventBis = snapshot ? snapshot.event_datum_bis : buchung.Event_datum_bis;
+  const displayPositions = snapshot
+    ? snapshot.positionen.map((p, i) => ({
+        id: i,
+        bezeichnung: p.bezeichnung,
+        anzahl: p.anzahl,
+        einzelpreis: p.einzelpreis,
+        gesamt: p.gesamt,
+      }))
+    : positionen;
+
+  const hasPrices = parseFloat(preisArtikel) > 0;
 
   return (
     <>
@@ -147,12 +178,21 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
             <p>Hallo {anrede},</p>
             <p>vielen Dank für Ihre Anfrage. Hier finden Sie alle Details Ihres persönlichen Angebots.</p>
 
-            <h2 className="text-xl font-semibold text-white mt-8">Termin</h2>
+            {hasUpdateBanner && (
+              <div className="mt-6 p-4 rounded-lg bg-blue-500/10 border border-blue-400/50 text-blue-200 text-sm">
+                <p className="font-semibold mb-1">
+                  Dieses Angebot wurde aktualisiert (Version {snapshotVersion}).
+                </p>
+                <p className="text-blue-300">
+                  Bitte prüfen Sie die aktualisierten Details und bestätigen Sie das Angebot erneut, wenn alles passt.
+                </p>
+              </div>
+            )}
+
+            <h2 className="text-xl font-semibold text-white mt-8">Mietzeitraum</h2>
             <p>
-              {fmtDate(buchung.Event_datum_von)}
-              {buchung.Event_datum_bis && buchung.Event_datum_bis !== buchung.Event_datum_von
-                ? ` – ${fmtDate(buchung.Event_datum_bis)}`
-                : ""}
+              {fmtDate(eventVon)}
+              {eventBis && eventBis !== eventVon ? ` – ${fmtDate(eventBis)}` : ""}
             </p>
 
             <h2 className="text-xl font-semibold text-white">Preisübersicht</h2>
@@ -168,7 +208,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               </div>
             ) : (
               <>
-                {positionen.length > 0 && (
+                {displayPositions.length > 0 && (
                   <table className="w-full text-sm border-collapse mb-4">
                     <thead>
                       <tr className="text-left text-xs uppercase tracking-wide text-gray-500 border-b border-white/20">
@@ -179,7 +219,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                       </tr>
                     </thead>
                     <tbody>
-                      {positionen.map((p) => (
+                      {displayPositions.map((p) => (
                         <tr key={p.id} className="border-b border-white/10">
                           <td className="py-2">{p.bezeichnung}</td>
                           <td className="py-2 text-right">{p.anzahl}</td>
@@ -194,31 +234,31 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                   <tbody>
                     <tr className="border-b border-white/10">
                       <td className="py-2 font-medium">Mietsumme</td>
-                      <td className="py-2 text-right font-medium">{fmtEur(buchung.Preis_Artikel)}</td>
+                      <td className="py-2 text-right font-medium">{fmtEur(preisArtikel)}</td>
                     </tr>
-                    {buchung.Preis_Lieferung && parseFloat(buchung.Preis_Lieferung) > 0 && (
+                    {parseFloat(preisLieferung) > 0 && (
                       <tr className="border-b border-white/10">
                         <td className="py-2">Lieferung</td>
-                        <td className="py-2 text-right">{fmtEur(buchung.Preis_Lieferung)}</td>
+                        <td className="py-2 text-right">{fmtEur(preisLieferung)}</td>
                       </tr>
                     )}
-                    {buchung.Preis_Aufbau && parseFloat(buchung.Preis_Aufbau) > 0 && (
+                    {parseFloat(preisAufbau) > 0 && (
                       <tr className="border-b border-white/10">
                         <td className="py-2">Aufbau-Service</td>
-                        <td className="py-2 text-right">{fmtEur(buchung.Preis_Aufbau)}</td>
+                        <td className="py-2 text-right">{fmtEur(preisAufbau)}</td>
                       </tr>
                     )}
                     <tr className="border-b-2 border-gold-500/30 font-semibold">
                       <td className="py-3">Anzahlung bei Bestätigung (30 %)</td>
-                      <td className="py-3 text-right">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
+                      <td className="py-3 text-right">{fmtEur(anzahlungSoll)}</td>
                     </tr>
                     <tr className="border-b border-white/10">
                       <td className="py-2">Restzahlung bei Übergabe (70 %)</td>
-                      <td className="py-2 text-right">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
+                      <td className="py-2 text-right">{fmtEur(restzahlungSoll)}</td>
                     </tr>
                     <tr className="border-b border-white/10">
                       <td className="py-2">Kaution (wird nach Rückgabe vollständig erstattet)</td>
-                      <td className="py-2 text-right">{fmtEur(buchung.Kaution_Soll_Eur || buchung.Kaution)}</td>
+                      <td className="py-2 text-right">{fmtEur(kautionSoll)}</td>
                     </tr>
                   </tbody>
                 </table>
@@ -229,12 +269,12 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               </>
             )}
 
-            {hasPrices && statusVal !== "Akzeptiert" && (
+            {hasPrices && (statusVal !== "Akzeptiert" || hasUpdateBanner) && (
               <div className="mt-6 p-4 rounded-lg bg-gold-500/10 border-l-4 border-gold-500 text-sm">
                 <p className="text-gold-200 font-semibold">Wichtiger Hinweis zur Reservierung</p>
                 <p className="text-gray-300 mt-1">
                   Mit Ihrer Bestätigung wird der Termin zunächst <strong>vorgemerkt</strong>. Die <strong>verbindliche Reservierung</strong> erfolgt erst
-                  mit Eingang Ihrer Anzahlung von <strong>{fmtEur(buchung.Anzahlung_Soll_Eur)}</strong>. Bitte überweisen Sie diese innerhalb von 7 Tagen nach Bestätigung.
+                  mit Eingang Ihrer Anzahlung von <strong>{fmtEur(anzahlungSoll)}</strong>. Bitte überweisen Sie diese innerhalb von 7 Tagen nach Bestätigung.
                 </p>
               </div>
             )}
@@ -256,7 +296,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               .
             </p>
 
-            {statusVal === "Akzeptiert" ? (
+            {statusVal === "Akzeptiert" && !hasUpdateBanner ? (
               <div className="mt-10 p-6 rounded-xl bg-green-500/10 border border-green-500/30">
                 <p className="text-green-300 font-semibold">
                   ✓ Dieses Angebot wurde von Ihnen am{" "}

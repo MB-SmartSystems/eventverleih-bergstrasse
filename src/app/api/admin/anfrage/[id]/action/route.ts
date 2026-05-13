@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { buildSnapshot } from "@/lib/angebot-snapshot";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
@@ -116,12 +117,28 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     };
     type Buchung = {
       id: number;
+      Event_datum_von: string | null;
+      Event_datum_bis: string | null;
       Preis_Artikel: string | null;
+      Preis_Lieferung: string | null;
+      Preis_Aufbau: string | null;
+      Preis_Abbau: string | null;
       Anzahlung_Soll_Eur: string | null;
       Restzahlung_Soll_Eur: string | null;
       Kaution_Soll_Eur: string | null;
+      Lieferadresse: string | null;
     };
-    type Kunde = { id: number; Vorname: string; Nachname: string };
+    type Kunde = {
+      id: number;
+      Vorname: string;
+      Nachname: string;
+      Firma: string;
+      Email: string;
+      Telefon: string;
+      Adresse_Strasse: string;
+      Adresse_PLZ: string;
+      Adresse_Ort: string;
+    };
 
     const angebot = await getRow<Angebot>(TABLES.Angebote, angebotId);
     const buchungId = angebot.Buchung_Link?.[0]?.id;
@@ -169,12 +186,65 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // Angebote-Status updaten
     const today = new Date().toISOString().slice(0, 10);
     const updateData: Record<string, unknown> = { Status: newStatus };
-    if (newStatus === "Versendet") updateData.Angebotsdatum = today;
+    if (newStatus === "Versendet") {
+      updateData.Angebotsdatum = today;
+      // Snapshot erzeugen — Kundenansicht ab jetzt eingefroren
+      try {
+        const snapshot = await buildSnapshot({
+          version: 1,
+          buchungId,
+          buchung: {
+            Event_datum_von: buchung.Event_datum_von ?? null,
+            Event_datum_bis: buchung.Event_datum_bis ?? null,
+            Preis_Artikel: buchung.Preis_Artikel,
+            Preis_Lieferung: buchung.Preis_Lieferung ?? null,
+            Preis_Aufbau: buchung.Preis_Aufbau ?? null,
+            Preis_Abbau: buchung.Preis_Abbau ?? null,
+            Anzahlung_Soll_Eur: buchung.Anzahlung_Soll_Eur,
+            Restzahlung_Soll_Eur: buchung.Restzahlung_Soll_Eur,
+            Kaution_Soll_Eur: buchung.Kaution_Soll_Eur,
+            Lieferadresse: buchung.Lieferadresse ?? null,
+          },
+          kunde: {
+            Vorname: kunde.Vorname ?? "",
+            Nachname: kunde.Nachname ?? "",
+            Firma: kunde.Firma ?? "",
+            Email: kunde.Email ?? "",
+            Telefon: kunde.Telefon ?? "",
+            Adresse_Strasse: kunde.Adresse_Strasse ?? "",
+            Adresse_PLZ: kunde.Adresse_PLZ ?? "",
+            Adresse_Ort: kunde.Adresse_Ort ?? "",
+          },
+        });
+        updateData.Snapshot_JSON = JSON.stringify(snapshot);
+        updateData.Snapshot_Version = 1;
+        updateData.Snapshot_Erstellt_am = snapshot.erstellt_am;
+      } catch (e) {
+        console.error("[anfrage-action] Snapshot-Build fehlgeschlagen:", e);
+        // Soft-fail: Mail geht trotzdem raus, Snapshot fehlt → Public rendert Live (Backward-Compat)
+      }
+    }
     if (newStatus === "Abgelehnt") {
       updateData.Abgelehnt_am = new Date().toISOString();
       updateData.Abgelehnt_Grund = "Manuel-Entscheidung im Dashboard";
     }
     await updateRow(TABLES.Angebote, angebotId, updateData);
+
+    // Buchungs-Status_Erweitert mit-aktualisieren (damit Buchungs-Dashboard konsistenter Stand zeigt)
+    try {
+      let buchungStatus: string | null = null;
+      if (body.action === "freigeben" || body.action === "freigeben_anmerkung") {
+        buchungStatus = "Angebot_versendet";
+      } else if (body.action === "ablehnen") {
+        buchungStatus = "Storniert";
+      }
+      // Rückruf: Buchungs-Status bleibt "Anfrage", weil noch nichts entschieden
+      if (buchungStatus) {
+        await updateRow(TABLES.Buchungen, buchungId, { Status_Erweitert: buchungStatus });
+      }
+    } catch (e) {
+      console.error("[anfrage-action] Buchungs-Status-Sync fehlgeschlagen:", e);
+    }
 
     // MailQueue-Row anlegen (Approved → Poll versendet)
     await createRow(TABLES.MailQueue, {

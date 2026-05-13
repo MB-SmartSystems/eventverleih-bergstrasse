@@ -36,6 +36,8 @@ async function handle(
       Buchung_Link: Array<{ id: number; value: string }>;
       Kunde_Link: Array<{ id: number; value: string }>;
       Token_Public: string;
+      Snapshot_JSON: string | null;
+      Snapshot_Version: string | null;
     }>(TABLES.Angebote, { search: token, size: 5 });
 
     const angebot = angebotList.results.find((a) => a.Token_Public === token);
@@ -77,13 +79,18 @@ async function handle(
     }
 
     // Updates IMMER laufen lassen — Baserow ist idempotent bei gleichem Wert (no-op-Write).
-    // Verhindert dass nach partial-failure beim ersten POST ein Update silently uebersprungen wird.
     const alreadyAccepted = angebot.Status?.value === "Akzeptiert";
-    await updateRow(TABLES.Angebote, angebot.id, {
+    const angebotUpdate: Record<string, unknown> = {
       Status: "Akzeptiert",
-      // Akzeptiert_am NUR setzen falls noch nicht akzeptiert (sonst original-Timestamp bewahren)
       ...(alreadyAccepted ? {} : { Akzeptiert_am: new Date().toISOString() }),
-    });
+    };
+    // Akzept-Snapshot speichern: was Kunde rechtsverbindlich akzeptiert hat
+    if (angebot.Snapshot_JSON) {
+      angebotUpdate.Akzept_Snapshot_JSON = angebot.Snapshot_JSON;
+      const v = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+      if (v > 0) angebotUpdate.Akzept_Version = v;
+    }
+    await updateRow(TABLES.Angebote, angebot.id, angebotUpdate);
 
     // Buchung-Update NUR fuer fruehe Workflow-Stati — nicht zurueckspringen
     // wenn Buchung schon weiter ist (Uebergeben/Zurueckgegeben/Abgerechnet/Storniert).
