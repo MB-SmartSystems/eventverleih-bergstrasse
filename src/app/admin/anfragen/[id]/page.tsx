@@ -1,0 +1,281 @@
+/**
+ * /admin/anfragen/[id] — Detail einer Anfrage mit 4 Action-Buttons
+ *
+ * id = Angebote.id (Baserow row id)
+ */
+import { notFound, redirect } from "next/navigation";
+import Link from "next/link";
+import { isAuthenticated } from "@/lib/auth";
+import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import ActionPanel from "./ActionPanel";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+type AngebotRow = {
+  id: number;
+  Angebot_ID: number;
+  Angebotsnummer: string;
+  Status: { value: string } | null;
+  Anfragetext: string | null;
+  Anfragedatum: string | null;
+  Angebotsdatum: string | null;
+  Gesamtpreis: string | null;
+  Token_Public: string;
+  Akzeptiert_am: string | null;
+  Abgelehnt_am: string | null;
+  Abgelehnt_Grund: string | null;
+  Buchung_Link: Array<{ id: number; value: string }>;
+  Kunde_Link: Array<{ id: number; value: string }>;
+};
+
+type BuchungRow = {
+  id: number;
+  Buchung_ID: number;
+  Event_datum_von: string | null;
+  Event_datum_bis: string | null;
+  Preis_Artikel: string | null;
+  Anzahlung_Soll_Eur: string | null;
+  Restzahlung_Soll_Eur: string | null;
+  Kaution_Soll_Eur: string | null;
+  Lieferadresse: string | null;
+  Notizen: string | null;
+};
+
+type KundeRow = {
+  id: number;
+  Kunde_ID: number;
+  Vorname: string;
+  Nachname: string;
+  Email: string;
+  Telefon: string;
+  Adresse_Strasse: string;
+  Adresse_PLZ: string;
+  Adresse_Ort: string;
+};
+
+type PositionRow = {
+  id: number;
+  Anzahl: string;
+  Einzelpreis_Eur: string;
+  Position_Gesamt_Eur: string;
+  Artikel_Link: Array<{ id: number; value: string }>;
+};
+
+function fmtEur(v: string | null | undefined): string {
+  if (!v) return "—";
+  return `${parseFloat(v).toFixed(2).replace(".", ",")} €`;
+}
+
+export default async function AnfrageDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  if (!(await isAuthenticated())) redirect("/admin");
+
+  const { id } = await params;
+  const angebotId = parseInt(id, 10);
+  if (!angebotId) notFound();
+
+  let angebot: AngebotRow;
+  try {
+    angebot = await getRow<AngebotRow>(TABLES.Angebote, angebotId);
+  } catch {
+    notFound();
+  }
+
+  const buchungId = angebot.Buchung_Link?.[0]?.id;
+  const kundeId = angebot.Kunde_Link?.[0]?.id;
+  if (!buchungId || !kundeId) {
+    return (
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-white">Anfrage unvollständig</h1>
+        <p className="text-gray-400">Diese Anfrage hat keine zugeordnete Buchung oder Kunden — bitte in Baserow prüfen.</p>
+      </div>
+    );
+  }
+
+  const [buchung, kunde] = await Promise.all([
+    getRow<BuchungRow>(TABLES.Buchungen, buchungId),
+    getRow<KundeRow>(TABLES.Kunden, kundeId),
+  ]);
+
+  // Positionen
+  const allPositionen = await listRows<PositionRow & { Buchung_Link: Array<{ id: number }> }>(TABLES.Buchungs_Position, {
+    size: 200,
+  });
+  const positionen = allPositionen.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
+
+  const status = angebot.Status?.value || "Offen";
+  const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <Link href="/admin/anfragen" className="text-sm text-gray-400 hover:text-gold-400">
+            ← Alle Anfragen
+          </Link>
+          <h1 className="text-2xl font-bold text-white mt-2">
+            {angebot.Angebotsnummer}
+            <span
+              className={
+                "ml-3 text-xs font-medium px-2 py-1 rounded " +
+                (status === "Offen"
+                  ? "bg-blue-500/20 text-blue-300"
+                  : status === "Versendet"
+                  ? "bg-yellow-500/20 text-yellow-300"
+                  : status === "Akzeptiert"
+                  ? "bg-green-500/20 text-green-300"
+                  : status === "Abgelehnt"
+                  ? "bg-red-500/20 text-red-300"
+                  : "bg-gray-500/20 text-gray-300")
+              }
+            >
+              {status}
+            </span>
+          </h1>
+          <p className="text-sm text-gray-400 mt-1">Angefragt am {angebot.Anfragedatum || "—"}</p>
+        </div>
+        <a
+          href={publicUrl}
+          target="_blank"
+          rel="noreferrer"
+          className="text-sm px-4 py-2 rounded bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
+        >
+          🔗 Kunden-Ansicht öffnen
+        </a>
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          {/* Kunde */}
+          <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+            <h2 className="text-lg font-semibold text-white mb-3">Kunde</h2>
+            <div className="space-y-1 text-sm">
+              <div className="text-white font-medium">
+                {kunde.Vorname} {kunde.Nachname}
+              </div>
+              {kunde.Email && (
+                <div className="text-gray-400">
+                  <a href={`mailto:${kunde.Email}`} className="hover:text-gold-400">
+                    {kunde.Email}
+                  </a>
+                </div>
+              )}
+              {kunde.Telefon && (
+                <div className="text-gray-400">
+                  <a href={`tel:${kunde.Telefon}`} className="hover:text-gold-400">
+                    {kunde.Telefon}
+                  </a>
+                </div>
+              )}
+              {kunde.Adresse_Strasse && (
+                <div className="text-gray-400 mt-2">
+                  {kunde.Adresse_Strasse}, {kunde.Adresse_PLZ} {kunde.Adresse_Ort}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Anfrage-Text */}
+          {angebot.Anfragetext && (
+            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-lg font-semibold text-white mb-3">Anfrage-Text</h2>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">{angebot.Anfragetext}</p>
+            </section>
+          )}
+
+          {/* Buchungs_Position */}
+          <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+            <h2 className="text-lg font-semibold text-white mb-3">Artikel ({positionen.length})</h2>
+            {positionen.length === 0 ? (
+              <p className="text-sm text-gray-400">Keine automatisch zugeordnete Artikel (Anfrage war Freitext).</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-gray-500 border-b border-white/10">
+                    <th className="py-2">Artikel</th>
+                    <th className="text-right">Anzahl</th>
+                    <th className="text-right">Einzel</th>
+                    <th className="text-right">Gesamt</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positionen.map((p) => (
+                    <tr key={p.id} className="border-b border-white/5">
+                      <td className="py-2 text-gray-300">{p.Artikel_Link?.[0]?.value || "—"}</td>
+                      <td className="text-right text-gray-300">{p.Anzahl}</td>
+                      <td className="text-right text-gray-400">{fmtEur(p.Einzelpreis_Eur)}</td>
+                      <td className="text-right text-white font-medium">{fmtEur(p.Position_Gesamt_Eur)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {/* Notizen */}
+          {buchung.Notizen && (
+            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-lg font-semibold text-white mb-3">Notizen</h2>
+              <p className="text-sm text-gray-400 whitespace-pre-wrap">{buchung.Notizen}</p>
+            </section>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          {/* Preise */}
+          <section className="p-5 rounded-xl bg-gold-500/5 border border-gold-500/20">
+            <h2 className="text-lg font-semibold text-white mb-3">Preise</h2>
+            <table className="w-full text-sm">
+              <tbody>
+                <tr>
+                  <td className="py-1 text-gray-400">Mietsumme</td>
+                  <td className="text-right font-mono text-white">{fmtEur(buchung.Preis_Artikel)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-400">Anzahlung 30 %</td>
+                  <td className="text-right font-mono text-gold-300">{fmtEur(buchung.Anzahlung_Soll_Eur)}</td>
+                </tr>
+                <tr>
+                  <td className="py-1 text-gray-400">Restzahlung 70 %</td>
+                  <td className="text-right font-mono text-gray-300">{fmtEur(buchung.Restzahlung_Soll_Eur)}</td>
+                </tr>
+                <tr className="border-t border-white/10">
+                  <td className="py-1 text-gray-400">Kaution</td>
+                  <td className="text-right font-mono text-gray-300">{fmtEur(buchung.Kaution_Soll_Eur)}</td>
+                </tr>
+              </tbody>
+            </table>
+            {!buchung.Preis_Artikel && (
+              <p className="text-xs text-yellow-400 mt-3">
+                ⚠ Preise fehlen — in Baserow ergänzen bevor du freigibst, sonst sieht Kunde nichts.
+              </p>
+            )}
+          </section>
+
+          {/* Aktionen */}
+          {status === "Offen" ? (
+            <ActionPanel angebotId={angebot.id} hasPrices={!!buchung.Preis_Artikel && parseFloat(buchung.Preis_Artikel) > 0} />
+          ) : (
+            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-lg font-semibold text-white mb-3">Status</h2>
+              {status === "Versendet" && (
+                <p className="text-sm text-yellow-300">Angebot ist beim Kunden — er kann auf der Public-Seite akzeptieren.</p>
+              )}
+              {status === "Akzeptiert" && (
+                <p className="text-sm text-green-300">
+                  ✓ Kunde hat akzeptiert am {angebot.Akzeptiert_am?.slice(0, 10) || "?"}
+                </p>
+              )}
+              {status === "Abgelehnt" && (
+                <div className="text-sm text-red-300">
+                  <p>✗ Abgelehnt am {angebot.Abgelehnt_am?.slice(0, 10) || "?"}</p>
+                  {angebot.Abgelehnt_Grund && <p className="text-xs text-gray-400 mt-2">{angebot.Abgelehnt_Grund}</p>}
+                </div>
+              )}
+            </section>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
