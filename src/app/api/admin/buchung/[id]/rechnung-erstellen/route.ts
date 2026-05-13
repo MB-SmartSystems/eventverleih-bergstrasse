@@ -72,6 +72,30 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "Buchung hat keinen Kunden" }, { status: 422 });
     }
 
+    // §14 Abs. 4 Nr. 1 UStG: Empfänger-Anschrift Pflicht. Daher Kunde komplett laden + prüfen.
+    type Kunde = {
+      id: number;
+      Vorname: string;
+      Nachname: string;
+      Adresse_Strasse: string;
+      Adresse_PLZ: string;
+      Adresse_Ort: string;
+    };
+    const kunde = await getRow<Kunde>(TABLES.Kunden, kundeId);
+    const missing: string[] = [];
+    if (!kunde.Vorname?.trim() && !kunde.Nachname?.trim()) missing.push("Name");
+    if (!kunde.Adresse_Strasse?.trim()) missing.push("Straße");
+    if (!kunde.Adresse_PLZ?.trim()) missing.push("PLZ");
+    if (!kunde.Adresse_Ort?.trim()) missing.push("Ort");
+    if (missing.length > 0) {
+      return NextResponse.json(
+        {
+          error: `Kunde unvollständig — fehlt: ${missing.join(", ")}. Bitte erst im Kunden-Dashboard ergänzen.`,
+        },
+        { status: 422 }
+      );
+    }
+
     const summe =
       num(buchung.Preis_Artikel) +
       num(buchung.Preis_Lieferung) +

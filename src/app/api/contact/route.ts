@@ -34,6 +34,9 @@ interface ContactPayload {
   nachname: string;
   email: string;
   telefon?: string;
+  adresse_strasse?: string;
+  adresse_plz?: string;
+  adresse_ort?: string;
   nachricht: string;
   agb_akzeptiert: boolean;
   cart_items?: CartItemPayload[];
@@ -59,6 +62,9 @@ function validate(body: unknown): ContactPayload | string {
   if (!b.nachricht || typeof b.nachricht !== "string" || b.nachricht.length < 3) return "nachricht required";
   if (b.agb_akzeptiert !== true) return "agb_akzeptiert must be true";
   if (b.telefon !== undefined && typeof b.telefon !== "string") return "telefon must be string";
+  if (b.adresse_strasse !== undefined && typeof b.adresse_strasse !== "string") return "adresse_strasse must be string";
+  if (b.adresse_plz !== undefined && typeof b.adresse_plz !== "string") return "adresse_plz must be string";
+  if (b.adresse_ort !== undefined && typeof b.adresse_ort !== "string") return "adresse_ort must be string";
   if (b.cart_items !== undefined && !Array.isArray(b.cart_items)) return "cart_items must be array";
   return b as ContactPayload;
 }
@@ -132,6 +138,9 @@ export async function POST(req: NextRequest) {
         Nachname: payload.nachname,
         Email: payload.email,
         Telefon: payload.telefon || "",
+        Adresse_Strasse: payload.adresse_strasse || "",
+        Adresse_PLZ: payload.adresse_plz || "",
+        Adresse_Ort: payload.adresse_ort || "",
         Notizen: "Selbstangelegt via /api/contact",
         Kunden_Status: "Aktiv",
         DSE_Akzeptiert_Version: "1.0",

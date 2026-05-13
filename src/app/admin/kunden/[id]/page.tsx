@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import KundeEditForm from "./KundeEditForm";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -155,6 +156,21 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
               <p className="text-xs text-warm-muted whitespace-pre-wrap">{kunde.Notizen}</p>
             </section>
           )}
+
+          <KundeEditForm
+            kundeId={kunde.id}
+            initial={{
+              Vorname: kunde.Vorname ?? "",
+              Nachname: kunde.Nachname ?? "",
+              Firma: kunde.Firma ?? "",
+              Email: kunde.Email ?? "",
+              Telefon: kunde.Telefon ?? "",
+              WhatsApp: kunde.WhatsApp ?? "",
+              Adresse_Strasse: kunde.Adresse_Strasse ?? "",
+              Adresse_PLZ: kunde.Adresse_PLZ ?? "",
+              Adresse_Ort: kunde.Adresse_Ort ?? "",
+            }}
+          />
         </div>
 
         <div className="lg:col-span-2 space-y-6">

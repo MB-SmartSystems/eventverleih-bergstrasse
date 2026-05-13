@@ -36,6 +36,9 @@ export default function Contact() {
           nachname: String(fd.get("nachname") || ""),
           email: String(fd.get("email") || ""),
           telefon: String(fd.get("telefon") || ""),
+          adresse_strasse: String(fd.get("adresse_strasse") || ""),
+          adresse_plz: String(fd.get("adresse_plz") || ""),
+          adresse_ort: String(fd.get("adresse_ort") || ""),
           nachricht: String(fd.get("nachricht") || ""),
           agb_akzeptiert: agreed,
           cart_items: items.map((i) => ({ name: i.name, quantity: i.quantity })),
@@ -243,6 +246,46 @@ export default function Contact() {
                   required
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                 />
+              </div>
+
+              <div className="pt-2 border-t border-white/10">
+                <div className="text-xs text-gray-500 mb-3">
+                  Anschrift (für Rechnung — kann auch später nachgereicht werden)
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-1.5">
+                    Straße + Hausnummer
+                  </label>
+                  <input
+                    type="text"
+                    name="adresse_strasse"
+                    autoComplete="street-address"
+                    className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4 mt-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">PLZ</label>
+                    <input
+                      type="text"
+                      name="adresse_plz"
+                      inputMode="numeric"
+                      pattern="[0-9]{4,5}"
+                      maxLength={5}
+                      autoComplete="postal-code"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label className="block text-sm text-gray-400 mb-1.5">Ort</label>
+                    <input
+                      type="text"
+                      name="adresse_ort"
+                      autoComplete="address-level2"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

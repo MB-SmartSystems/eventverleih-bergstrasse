@@ -114,6 +114,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const email = configText(config, "Email", "info@eventverleih-bergstrasse.de");
   const iban = configText(config, "IBAN", "");
   const paypal = configText(config, "PayPal", "info@eventverleih-bergstrasse.de");
+  const steuernummer = configText(config, "Steuernummer", "");
 
   return (
     <div className="min-h-screen bg-warm-bg py-8 px-4 sm:py-12">
@@ -280,13 +281,17 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
             )}
           </div>
 
-          {/* USt-Hinweis */}
-          <div className="mt-6 text-xs text-warm-muted">{ustHinweis}</div>
+          {/* USt-Hinweis + Steuernummer */}
+          <div className="mt-6 text-xs text-warm-muted space-y-1">
+            <div>{ustHinweis}</div>
+            {steuernummer && <div>Steuernummer: {steuernummer}</div>}
+          </div>
         </div>
 
         {/* Footer */}
         <div className="mt-6 text-center text-xs text-warm-muted">
           {firmenname} · {anschrift} · {telefon}
+          {steuernummer && <> · Steuernummer {steuernummer}</>}
         </div>
       </div>
     </div>
