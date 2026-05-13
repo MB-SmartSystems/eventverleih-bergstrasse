@@ -22,7 +22,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
-import { createRow, deleteRow, listRows, TABLES } from "@/lib/baserow/client";
+import { createRow, deleteRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 
 interface CartItemPayload {
   name: string;
@@ -42,7 +42,15 @@ interface ContactPayload {
   cart_items?: CartItemPayload[];
 }
 
-interface KundenRow { id: number; Kunde_ID: number; Email: string }
+interface KundenRow {
+  id: number;
+  Kunde_ID: number;
+  Email: string;
+  Telefon?: string;
+  Adresse_Strasse?: string;
+  Adresse_PLZ?: string;
+  Adresse_Ort?: string;
+}
 interface BuchungRow { id: number; Buchung_ID: number }
 interface AngebotRow { id: number; Angebot_ID: number; Token_Public: string }
 interface ArtikelRow {
@@ -131,6 +139,21 @@ export async function POST(req: NextRequest) {
     let kundeId: number;
     if (foundKunde) {
       kundeId = foundKunde.id;
+      // Bestehenden Kunden mit neuen Stammdaten anreichern, aber NICHT überschreiben
+      const patch: Record<string, unknown> = {};
+      if (!foundKunde.Telefon?.trim() && payload.telefon?.trim()) patch.Telefon = payload.telefon;
+      if (!foundKunde.Adresse_Strasse?.trim() && payload.adresse_strasse?.trim()) patch.Adresse_Strasse = payload.adresse_strasse;
+      if (!foundKunde.Adresse_PLZ?.trim() && payload.adresse_plz?.trim()) patch.Adresse_PLZ = payload.adresse_plz;
+      if (!foundKunde.Adresse_Ort?.trim() && payload.adresse_ort?.trim()) patch.Adresse_Ort = payload.adresse_ort;
+      patch.Letzter_Kontakt_am = today;
+      if (Object.keys(patch).length > 0) {
+        try {
+          await updateRow(TABLES.Kunden, kundeId, patch);
+        } catch (e) {
+          // nicht-fatal — Anfrage soll trotzdem durchlaufen
+          console.error("[contact] Kunde-Update fehlgeschlagen:", e);
+        }
+      }
     } else {
       const newKunde = await createRow<KundenRow>(TABLES.Kunden, {
         Kunde_Typ: "Privat",

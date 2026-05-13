@@ -263,8 +263,8 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
             </div>
           )}
 
-          {/* PDF Download */}
-          <div className="mt-6 flex flex-wrap gap-3">
+          {/* PDF-Info */}
+          <div className="mt-6">
             {rechnung.PDF_URL ? (
               <a
                 href={rechnung.PDF_URL}
@@ -275,8 +275,10 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                 📄 Rechnung als PDF herunterladen
               </a>
             ) : (
-              <div className="text-xs text-warm-muted italic">
-                PDF wird gerade erstellt … bitte in 1–2 Minuten neu laden.
+              <div className="p-3 rounded-lg bg-warm-bg border border-warm-border text-sm text-warm-muted">
+                📧 Diese Rechnung wurde Ihnen mit PDF-Anhang an{" "}
+                <span className="text-warm-text">{kunde.Email}</span> zugesendet. Bitte prüfen Sie Ihren Posteingang
+                (ggf. Spam-Ordner).
               </div>
             )}
           </div>
