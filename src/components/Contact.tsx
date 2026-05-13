@@ -8,12 +8,53 @@ export default function Contact() {
   const [agreed, setAgreed] = useState(false);
   const { items, cartSummaryText, totalItems } = useCart();
   const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
+  const [errorText, setErrorText] = useState("");
 
   useEffect(() => {
     if (totalItems > 0) {
       setMessage(cartSummaryText());
     }
   }, [items, totalItems, cartSummaryText]);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submitting) return;
+    const fd = new FormData(e.currentTarget);
+    setSubmitting(true);
+    setSubmitResult("idle");
+    setErrorText("");
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          vorname: String(fd.get("vorname") || ""),
+          nachname: String(fd.get("nachname") || ""),
+          email: String(fd.get("email") || ""),
+          telefon: String(fd.get("telefon") || ""),
+          nachricht: String(fd.get("nachricht") || ""),
+          agb_akzeptiert: agreed,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorText(data.error || `HTTP ${res.status}`);
+        setSubmitResult("error");
+      } else {
+        setSubmitResult("success");
+        (e.currentTarget as HTMLFormElement).reset();
+        setAgreed(false);
+        setMessage("");
+      }
+    } catch (err) {
+      setErrorText(err instanceof Error ? err.message : "Netzwerk-Fehler");
+      setSubmitResult("error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <section id="kontakt" className="section-padding bg-navy-800">
@@ -134,11 +175,24 @@ export default function Contact() {
               Anfrage senden
             </h3>
 
-            <form
-              action="https://formspree.io/f/info@eventverleih-bergstrasse.de"
-              method="POST"
-              className="space-y-5"
-            >
+            {submitResult === "success" && (
+              <div className="mb-5 p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-300 text-sm">
+                Vielen Dank! Ihre Anfrage ist bei uns eingegangen. Sie erhalten gleich eine Bestätigungsmail und ich
+                melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot.
+              </div>
+            )}
+            {submitResult === "error" && (
+              <div className="mb-5 p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+                Es gab ein Problem beim Senden Ihrer Anfrage{errorText ? `: ${errorText}` : "."} Bitte versuchen Sie es
+                erneut oder schreiben Sie direkt an{" "}
+                <a href="mailto:info@eventverleih-bergstrasse.de" className="underline">
+                  info@eventverleih-bergstrasse.de
+                </a>
+                .
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-1.5">
@@ -199,6 +253,8 @@ export default function Contact() {
                 <textarea
                   name="nachricht"
                   rows={4}
+                  required
+                  minLength={3}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="z.B. 1x Faltzelt 3×6m, 4x Tische, 24x Stühle... oder wählen Sie oben Artikel aus."
@@ -236,9 +292,9 @@ export default function Contact() {
               <button
                 type="submit"
                 className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={!agreed}
+                disabled={!agreed || submitting}
               >
-                Anfrage absenden
+                {submitting ? "Senden …" : "Anfrage absenden"}
               </button>
             </form>
           </div>
