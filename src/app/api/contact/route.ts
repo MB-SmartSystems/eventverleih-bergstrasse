@@ -299,29 +299,32 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
       ? matched.map((m) => `${m.anzahl}× ${m.bezeichnung} (${m.einzelpreis.toFixed(2)} €)`).join("\n")
       : payload.nachricht.slice(0, 300);
 
+    // Vercel Serverless killt fire-and-forget nach Response-Return — daher AWAITEN.
+    // Latenz +200-500 ms ist akzeptabel weil Manuel-Notification kritisch ist.
     const notifyUrl = process.env.N8N_ANFRAGE_NOTIFY_URL || "";
     if (notifyUrl) {
-      fetch(notifyUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buchung_id: buchung.Buchung_ID,
-          angebot_id: angebot.id, // Baserow Row-ID (nicht Angebot_ID-autonumber)
-          kunde_name: `${payload.vorname} ${payload.nachname}`,
-          kunde_email: payload.email,
-          kunde_telefon: payload.telefon || "",
-          cart_summary: cartSummary,
-          preise_berechnet: matched.length > 0,
-          mietsumme: mietsumme.toFixed(2),
-          anzahlung: (mietsumme * 0.3).toFixed(2),
-          kaution: kautionSumme.toFixed(2),
-          angebot_url: publicUrl,
-        }),
-        // 5 s Timeout, dann ignorieren — Response soll schnell zurueck zum Kunden
-        signal: AbortSignal.timeout(5000),
-      }).catch(() => {
-        // best-effort — bei Telegram-Down sieht Manuel zumindest in Baserow die Anfrage
-      });
+      try {
+        await fetch(notifyUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            buchung_id: buchung.Buchung_ID,
+            angebot_id: angebot.id, // Baserow Row-ID (nicht Angebot_ID-autonumber)
+            kunde_name: `${payload.vorname} ${payload.nachname}`,
+            kunde_email: payload.email,
+            kunde_telefon: payload.telefon || "",
+            cart_summary: cartSummary,
+            preise_berechnet: matched.length > 0,
+            mietsumme: mietsumme.toFixed(2),
+            anzahlung: (mietsumme * 0.3).toFixed(2),
+            kaution: kautionSumme.toFixed(2),
+            angebot_url: publicUrl,
+          }),
+          signal: AbortSignal.timeout(5000),
+        });
+      } catch {
+        // Telegram-Down? Anfrage steht trotzdem in Baserow. Manuel sieht sie im Dashboard.
+      }
     }
 
     return NextResponse.json(
