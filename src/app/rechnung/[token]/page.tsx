@@ -45,6 +45,7 @@ type KundeRow = {
   Nachname: string;
   Firma: string;
   Email: string;
+  Telefon: string;
   Adresse_Strasse: string;
   Adresse_PLZ: string;
   Adresse_Ort: string;
@@ -164,6 +165,18 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                   {kunde.Adresse_Strasse}
                   <br />
                   {kunde.Adresse_PLZ} {kunde.Adresse_Ort}
+                </>
+              )}
+              {kunde.Telefon && (
+                <>
+                  <br />
+                  Tel: {kunde.Telefon}
+                </>
+              )}
+              {kunde.Email && (
+                <>
+                  <br />
+                  {kunde.Email}
                 </>
               )}
             </div>

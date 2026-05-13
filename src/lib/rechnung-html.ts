@@ -153,6 +153,8 @@ table.positionen td.num, table.positionen th.num { text-align: right; white-spac
   ${kundenName}
   ${k.adresse ? `<br>${escape(k.adresse)}` : ""}
   ${k.plz || k.ort ? `<br>${escape(k.plz ?? "")} ${escape(k.ort ?? "")}` : ""}
+  ${k.telefon ? `<br>Tel: ${escape(k.telefon)}` : ""}
+  ${k.email ? `<br>${escape(k.email)}` : ""}
 </div>
 
 <h1>Rechnung</h1>
