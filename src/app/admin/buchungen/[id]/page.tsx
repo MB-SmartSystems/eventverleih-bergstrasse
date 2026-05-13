@@ -9,6 +9,7 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
+import RechnungErstellenButton from "./RechnungErstellenButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -303,6 +304,13 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
 
           {/* Status-Aktionen */}
           <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
+
+          {/* Rechnung erstellen */}
+          <RechnungErstellenButton
+            buchungId={buchung.id}
+            hasPrice={parseFloat(buchung.Preis_Artikel ?? "0") > 0}
+            alreadyHasRechnung={rechnungen.length > 0}
+          />
 
           {/* Meta */}
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border text-xs space-y-1 text-warm-muted">
