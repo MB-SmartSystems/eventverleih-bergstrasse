@@ -50,6 +50,10 @@ type KundeRow = {
   Vorname: string;
   Nachname: string;
   Email: string;
+  Telefon: string;
+  Adresse_Strasse: string;
+  Adresse_PLZ: string;
+  Adresse_Ort: string;
 };
 
 type PositionRow = {
@@ -271,7 +275,18 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                 </p>
               </div>
             ) : (
-              <AcceptForm token={token} />
+              <AcceptForm
+                token={token}
+                kunde={{
+                  Vorname: kunde.Vorname ?? "",
+                  Nachname: kunde.Nachname ?? "",
+                  Email: kunde.Email ?? "",
+                  Telefon: kunde.Telefon ?? "",
+                  Adresse_Strasse: kunde.Adresse_Strasse ?? "",
+                  Adresse_PLZ: kunde.Adresse_PLZ ?? "",
+                  Adresse_Ort: kunde.Adresse_Ort ?? "",
+                }}
+              />
             )}
           </div>
         </div>

@@ -13,7 +13,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 
-async function handle(token: string, origin: string): Promise<NextResponse> {
+type KundePatch = {
+  Telefon?: string;
+  Adresse_Strasse?: string;
+  Adresse_PLZ?: string;
+  Adresse_Ort?: string;
+};
+
+async function handle(
+  token: string,
+  origin: string,
+  kundenDaten?: KundePatch
+): Promise<NextResponse> {
   if (!token || typeof token !== "string" || token.length < 8) {
     return NextResponse.json({ error: "invalid token" }, { status: 400 });
   }
@@ -41,6 +52,28 @@ async function handle(token: string, origin: string): Promise<NextResponse> {
         { error: "Angebot unvollstaendig (keine Buchung/Kunde verlinkt). Bitte Manuel kontaktieren." },
         { status: 422 }
       );
+    }
+
+    // Kundendaten updaten falls geliefert — Pflicht für rechtsverbindliche Bestätigung
+    if (kundenDaten) {
+      const patch: Record<string, string> = {};
+      if (kundenDaten.Telefon?.trim()) patch.Telefon = kundenDaten.Telefon.trim();
+      if (kundenDaten.Adresse_Strasse?.trim()) patch.Adresse_Strasse = kundenDaten.Adresse_Strasse.trim();
+      if (kundenDaten.Adresse_PLZ?.trim()) {
+        if (!/^\d{4,5}$/.test(kundenDaten.Adresse_PLZ.trim())) {
+          return NextResponse.json({ error: "PLZ ungültig" }, { status: 400 });
+        }
+        patch.Adresse_PLZ = kundenDaten.Adresse_PLZ.trim();
+      }
+      if (kundenDaten.Adresse_Ort?.trim()) patch.Adresse_Ort = kundenDaten.Adresse_Ort.trim();
+      if (Object.keys(patch).length > 0) {
+        try {
+          await updateRow(TABLES.Kunden, kundeId, patch);
+        } catch (e) {
+          console.error("[vertrag-akzeptieren] Kunde-Update fehlgeschlagen:", e);
+          // Nicht-fatal — Akzept soll trotzdem durchlaufen
+        }
+      }
     }
 
     // Updates IMMER laufen lassen — Baserow ist idempotent bei gleichem Wert (no-op-Write).
@@ -140,13 +173,26 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
 
 export async function POST(req: NextRequest) {
   let token = "";
+  let kundenDaten: KundePatch | undefined;
   const ct = req.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
     const body = await req.json().catch(() => ({}));
     token = body.token || "";
+    kundenDaten = {
+      Telefon: typeof body.telefon === "string" ? body.telefon : undefined,
+      Adresse_Strasse: typeof body.adresse_strasse === "string" ? body.adresse_strasse : undefined,
+      Adresse_PLZ: typeof body.adresse_plz === "string" ? body.adresse_plz : undefined,
+      Adresse_Ort: typeof body.adresse_ort === "string" ? body.adresse_ort : undefined,
+    };
   } else {
     const fd = await req.formData();
     token = String(fd.get("token") || "");
+    kundenDaten = {
+      Telefon: fd.get("telefon") ? String(fd.get("telefon")) : undefined,
+      Adresse_Strasse: fd.get("adresse_strasse") ? String(fd.get("adresse_strasse")) : undefined,
+      Adresse_PLZ: fd.get("adresse_plz") ? String(fd.get("adresse_plz")) : undefined,
+      Adresse_Ort: fd.get("adresse_ort") ? String(fd.get("adresse_ort")) : undefined,
+    };
   }
-  return handle(token, req.nextUrl.origin);
+  return handle(token, req.nextUrl.origin, kundenDaten);
 }
