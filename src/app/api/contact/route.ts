@@ -214,6 +214,7 @@ export async function POST(req: NextRequest) {
     // === Schritt 5: parallel — Angebot + Buchungs_Position[*] + MailQueue-Auto-Reply
     // Bei parallelen Inserts: jede erfolgreiche Row sofort in created tracken
     // (auch wenn andere parallel-Calls noch fehlschlagen koennten — Rollback braucht alle IDs)
+    const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${sharedToken}`;
     const angebotPromise = createRow<AngebotRow>(TABLES.Angebote, {
       Angebotsnummer: `EVE-${new Date().getFullYear()}-${String(buchung.id).padStart(4, "0")}`,
       Status: "Offen",
@@ -222,6 +223,7 @@ export async function POST(req: NextRequest) {
       Buchung_Link: [buchung.id],
       Kunde_Link: [kundeId],
       Token_Public: sharedToken,
+      Angebot_URL: publicUrl, // URL-Field → in Baserow direkt klickbar
       ...(matched.length > 0 ? { Gesamtpreis: (mietsumme + kautionSumme).toFixed(2) } : {}),
     }).then((a) => {
       created.push({ table: TABLES.Angebote, id: a.id });
@@ -251,12 +253,19 @@ export async function POST(req: NextRequest) {
       ? matched.map((m) => `  ${m.anzahl}× ${m.bezeichnung}`).join("\n") +
         (unmatched.length ? `\n\nNicht eindeutig zuordbar (Manuel pruefe das):\n${unmatched.map((u) => `  ${u}`).join("\n")}` : "")
       : `${payload.nachricht}`;
+
+    // Link in Mail nur wenn Preise schon berechnet sind (Cart-Match erfolgreich).
+    // Sonst macht der Link wenig Sinn — Kunde sieht nur "Manuel meldet sich"-Hinweis.
+    const linkBlock = matched.length > 0
+      ? `\n\nIhr Angebot mit allen Preisen koennen Sie hier direkt online ansehen und bestaetigen:\n${publicUrl}\n`
+      : "";
+
     const mailBody = `${greeting},
 
 vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
 
 Was Sie angefragt haben:
-${summary}
+${summary}${linkBlock}
 
 Falls Sie noch Fragen haben oder etwas ergaenzen moechten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
 

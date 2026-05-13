@@ -9,6 +9,7 @@ import { notFound } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import AcceptForm from "./AcceptForm";
 
 type AngebotRow = {
   id: number;
@@ -216,23 +217,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
                 </p>
               </div>
             ) : (
-              <div className="mt-10 flex flex-col gap-4">
-                <form action="/api/vertrag-akzeptieren" method="POST">
-                  <input type="hidden" name="token" value={token} />
-                  <button
-                    type="submit"
-                    className="w-full py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-lg"
-                  >
-                    Angebot bestätigen + Reservierung sichern
-                  </button>
-                </form>
-                <p className="text-xs text-gray-500 text-center">
-                  Bei Fragen direkt: WhatsApp/Telefon{" "}
-                  <a href="tel:+4915679521124" className="text-gold-400 hover:text-gold-500">
-                    +49 156 79521124
-                  </a>
-                </p>
-              </div>
+              <AcceptForm token={token} />
             )}
           </div>
         </div>
