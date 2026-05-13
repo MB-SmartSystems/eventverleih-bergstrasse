@@ -30,7 +30,7 @@ const faqs = [
   {
     question: "Kann ich meine Reservierung kurzfristig stornieren?",
     answer:
-      "Ja, eine Stornierung ist möglich. Es gelten die in den AGB angegebenen Gebühren: 7 Tage vorher 50 % der Mietkosten und 50 % der Kaution, 4 Tage vorher 75 % der Mietkosten und 75 % der Kaution, 2 Tage vorher 100 % der Mietkosten und 100 % der Kaution.",
+      "Ja, eine Stornierung ist möglich. Es gelten die in den AGB angegebenen Gebühren bezogen auf die Mietsumme (Artikel, ohne Lieferung, Aufbau und Abbau): 7 Tage vorher 50 %, 4 Tage vorher 75 %, 2 Tage vorher 100 %. Die bereits gezahlte Anzahlung wird verrechnet; falls die Stornogebühr die Anzahlung übersteigt, wird die Differenz nachgefordert.",
   },
 ];
 
