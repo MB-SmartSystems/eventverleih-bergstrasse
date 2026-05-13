@@ -247,25 +247,20 @@ export async function POST(req: NextRequest) {
       })
     );
 
-    // Auto-Reply-Mail vorrendern (Variablen aufgeloest)
+    // Auto-Reply-Mail: nur Eingangsbestätigung — KEIN Link, KEINE Preise.
+    // Kunde bekommt erst nach Manuel-Telegram-Freigabe die Angebots-Mail.
     const greeting = `Hallo ${payload.vorname} ${payload.nachname}`;
     const summary = matched.length
       ? matched.map((m) => `  ${m.anzahl}× ${m.bezeichnung}`).join("\n") +
-        (unmatched.length ? `\n\nNicht eindeutig zuordbar (Manuel pruefe das):\n${unmatched.map((u) => `  ${u}`).join("\n")}` : "")
+        (unmatched.length ? `\n\nWeitere Wuensche: ${unmatched.join(", ")}` : "")
       : `${payload.nachricht}`;
-
-    // Link in Mail nur wenn Preise schon berechnet sind (Cart-Match erfolgreich).
-    // Sonst macht der Link wenig Sinn — Kunde sieht nur "Manuel meldet sich"-Hinweis.
-    const linkBlock = matched.length > 0
-      ? `\n\nIhr Angebot mit allen Preisen koennen Sie hier direkt online ansehen und bestaetigen:\n${publicUrl}\n`
-      : "";
 
     const mailBody = `${greeting},
 
 vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
 
 Was Sie angefragt haben:
-${summary}${linkBlock}
+${summary}
 
 Falls Sie noch Fragen haben oder etwas ergaenzen moechten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
 
@@ -297,6 +292,37 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
     });
 
     const [angebot] = await Promise.all([angebotPromise, ...positionsPromises, mailQueuePromise]);
+
+    // === Schritt 6: Telegram-Notification an Manuel (fire-and-forget, blockt Response nicht)
+    // Failure dieser Notification soll Anfrage NICHT in 500 verwandeln
+    const cartSummary = matched.length
+      ? matched.map((m) => `${m.anzahl}× ${m.bezeichnung} (${m.einzelpreis.toFixed(2)} €)`).join("\n")
+      : payload.nachricht.slice(0, 300);
+
+    const notifyUrl = process.env.N8N_ANFRAGE_NOTIFY_URL || "";
+    if (notifyUrl) {
+      fetch(notifyUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buchung_id: buchung.Buchung_ID,
+          angebot_id: angebot.id, // Baserow Row-ID (nicht Angebot_ID-autonumber)
+          kunde_name: `${payload.vorname} ${payload.nachname}`,
+          kunde_email: payload.email,
+          kunde_telefon: payload.telefon || "",
+          cart_summary: cartSummary,
+          preise_berechnet: matched.length > 0,
+          mietsumme: mietsumme.toFixed(2),
+          anzahlung: (mietsumme * 0.3).toFixed(2),
+          kaution: kautionSumme.toFixed(2),
+          angebot_url: publicUrl,
+        }),
+        // 5 s Timeout, dann ignorieren — Response soll schnell zurueck zum Kunden
+        signal: AbortSignal.timeout(5000),
+      }).catch(() => {
+        // best-effort — bei Telegram-Down sieht Manuel zumindest in Baserow die Anfrage
+      });
+    }
 
     return NextResponse.json(
       {
