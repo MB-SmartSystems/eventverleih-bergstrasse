@@ -9,6 +9,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import ActionPanel from "./ActionPanel";
 import PositionsEditor, { type PositionItem, type ArtikelOption } from "./PositionsEditor";
+import EventDatumEditor from "./EventDatumEditor";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -179,6 +180,13 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
+          {/* Mietzeitraum (Event-Datum) */}
+          <EventDatumEditor
+            buchungId={buchungId}
+            initialVon={buchung.Event_datum_von}
+            initialBis={buchung.Event_datum_bis}
+          />
+
           {/* Kunde */}
           <section className="p-5 rounded-xl bg-white/5 border border-white/10">
             <h2 className="text-lg font-semibold text-white mb-3">Kunde</h2>
