@@ -54,12 +54,34 @@ export async function listRows<T = Record<string, unknown>>(
 ): Promise<{ count: number; results: T[] }> {
   const params = new URLSearchParams({ user_field_names: "true" });
   if (opts.search) params.set("search", opts.search);
-  if (opts.size) params.set("size", String(opts.size));
+  // Baserow caps size at 200; clamp to avoid HTTP 400.
+  if (opts.size) params.set("size", String(Math.min(opts.size, 200)));
   if (opts.page) params.set("page", String(opts.page));
   const url = `${BASE}/api/database/rows/table/${tableId}/?${params}`;
   const r = await fetch(url, { headers: authHeaders(), cache: "no-store" });
   if (!r.ok) throw new Error(`Baserow list ${tableId} failed: HTTP ${r.status}`);
   return r.json();
+}
+
+/**
+ * Holt ALLE Zeilen einer Tabelle, indem über 200er-Pages paginiert wird.
+ * Maximal 50 Seiten = 10 000 Rows als Safety-Cap.
+ */
+export async function listAllRows<T = Record<string, unknown>>(
+  tableId: number,
+  opts: { search?: string } = {}
+): Promise<{ count: number; results: T[] }> {
+  const all: T[] = [];
+  let page = 1;
+  let count = 0;
+  while (page <= 50) {
+    const r = await listRows<T>(tableId, { ...opts, size: 200, page });
+    count = r.count;
+    all.push(...r.results);
+    if (r.results.length < 200) break;
+    page++;
+  }
+  return { count, results: all };
 }
 
 export async function createRow<T = Record<string, unknown>>(
