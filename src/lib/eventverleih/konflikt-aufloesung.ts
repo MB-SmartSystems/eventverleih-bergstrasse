@@ -5,9 +5,25 @@
  *
  * Aufruf: aus dem Stripe-Webhook-Handler nach Status-Update auf "Reserviert".
  */
-import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { checkConflicts } from "./conflicts";
 import { queueConflictStornoMail } from "./conflict-mails";
+
+async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
+  try {
+    await createRow(TABLES.Audit_Log, {
+      Name: `${aktion} Buchung #${buchungId}`,
+      Aktion: aktion,
+      Zeitpunkt: new Date().toISOString(),
+      Buchung_ID_Ref: String(buchungId),
+      Akteur: "System (konflikt-aufloesung)",
+      Details: JSON.stringify(details),
+      Aktiv: true,
+    });
+  } catch (e) {
+    console.error("[audit-log]", aktion, e);
+  }
+}
 
 interface BuchungRow {
   id: number;
@@ -42,6 +58,11 @@ export async function resolveKonfliktAfterAnzahlung(winnerBuchungId: number) {
         Storno_Grund: "Konflikt_verloren",
         Storno_am: new Date().toISOString().slice(0, 10),
         Konflikt_Aufgeloest_am: new Date().toISOString().slice(0, 10),
+      });
+      await logAudit(c.buchung_id, "Konflikt_aufgeloest", {
+        verloren_gegen_buchung_id: winnerBuchungId,
+        gewinner_kunde: winnerName,
+        shared_artikel: c.shared_artikel_namen,
       });
 
       // Mail an Verlierer

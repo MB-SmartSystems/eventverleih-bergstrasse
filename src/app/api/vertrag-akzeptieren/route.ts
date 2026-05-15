@@ -17,6 +17,22 @@ import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/cl
 import { checkConflicts } from "@/lib/eventverleih/conflicts";
 import { queueConflictHinweisMail } from "@/lib/eventverleih/conflict-mails";
 
+async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
+  try {
+    await createRow(TABLES.Audit_Log, {
+      Name: `${aktion} Buchung #${buchungId}`,
+      Aktion: aktion,
+      Zeitpunkt: new Date().toISOString(),
+      Buchung_ID_Ref: String(buchungId),
+      Akteur: "System (vertrag-akzeptieren)",
+      Details: JSON.stringify(details),
+      Aktiv: true,
+    });
+  } catch (e) {
+    console.error("[audit-log]", aktion, e);
+  }
+}
+
 type KundePatch = {
   Telefon?: string;
   Adresse_Strasse?: string;
@@ -118,6 +134,12 @@ async function handle(
         Status: "Reserviert", // Legacy-Feld (alte Single-Select), bleibt zur Kompatibilitaet
         Status_Erweitert: "Bestaetigt",
       });
+      await logAudit(buchungId, "Status_Change", {
+        from: currentStatus || "(neu)",
+        to: "Bestaetigt",
+        trigger: "kunde_token_klick",
+        token_prefix: token.slice(0, 8),
+      });
 
       // Konflikt-Detection: parallele Buchungen mit gemeinsamen Artikeln im Zeitraum?
       try {
@@ -126,6 +148,14 @@ async function handle(
           // Verlinke ersten Konflikt am Ziel-Datensatz (Hauptkonflikt)
           await updateRow(TABLES.Buchungen, buchungId, {
             Konflikt_Mit_Buchung_ID: [conflicts[0].buchung_id],
+          });
+          await logAudit(buchungId, "Konflikt_erkannt", {
+            konflikt_mit: conflicts.map((c) => ({
+              buchung_id: c.buchung_id,
+              status: c.status,
+              kunde: c.kunde_name,
+              shared_artikel: c.shared_artikel_namen,
+            })),
           });
 
           // Sammle Kunden-Daten der Ziel-Buchung fuer Hinweis-Mail

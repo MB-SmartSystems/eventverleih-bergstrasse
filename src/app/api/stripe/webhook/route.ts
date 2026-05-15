@@ -13,9 +13,25 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, getWebhookSecret } from "@/lib/stripe/client";
-import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { resolveKonfliktAfterAnzahlung } from "@/lib/eventverleih/konflikt-aufloesung";
 import Stripe from "stripe";
+
+async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
+  try {
+    await createRow(TABLES.Audit_Log, {
+      Name: `${aktion} Buchung #${buchungId}`,
+      Aktion: aktion,
+      Zeitpunkt: new Date().toISOString(),
+      Buchung_ID_Ref: String(buchungId),
+      Akteur: "Stripe-Webhook",
+      Details: JSON.stringify(details),
+      Aktiv: true,
+    });
+  } catch (e) {
+    console.error("[audit-log]", aktion, e);
+  }
+}
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -52,16 +68,30 @@ export async function POST(req: NextRequest) {
             Status_Erweitert: "Reserviert",
             Anzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
           });
+          await logAudit(buchungId, "Anzahlung_eingegangen", {
+            stripe_payment_intent: pi.id,
+            amount_eur: (pi.amount || 0) / 100,
+            new_status: "Reserviert",
+          });
           // Konflikt-Aufloesung: konkurrierende Buchungen auto-stornieren
           await resolveKonfliktAfterAnzahlung(buchungId);
         } else if (paymentType === "restzahlung") {
           await updateRow(TABLES.Buchungen, buchungId, {
             Restzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
           });
+          await logAudit(buchungId, "Restzahlung_eingegangen", {
+            stripe_payment_intent: pi.id,
+            amount_eur: (pi.amount || 0) / 100,
+          });
         } else if (paymentType === "kaution") {
           // Pre-Auth-Hold ist jetzt confirmed (Geld reserviert beim Kunden)
           await updateRow(TABLES.Buchungen, buchungId, {
             Kaution_Hinterlegt_am: new Date().toISOString().slice(0, 10),
+          });
+          await logAudit(buchungId, "Sonstiges", {
+            event: "kaution_hinterlegt_via_stripe",
+            stripe_payment_intent: pi.id,
+            amount_eur: (pi.amount || 0) / 100,
           });
         }
         return NextResponse.json({ ok: true, processed: paymentType });
