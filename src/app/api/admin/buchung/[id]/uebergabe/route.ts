@@ -58,7 +58,7 @@ export async function POST(
     try {
       await createRow(TABLES.Audit_Log, {
         Name: `Uebergabe Buchung #${buchungId}`,
-        Aktion: "Buchung_erstellt", // Closest existing — TODO: erweitern um "Uebergabe"
+        Aktion: "Uebergabe",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: String(buchungId),
         Akteur: "Backoffice",

@@ -96,7 +96,7 @@ export async function POST(
     try {
       await createRow(TABLES.Audit_Log, {
         Name: `Ruecknahme Buchung #${buchungId}`,
-        Aktion: schadenBetrag > 0 ? "Schaden_dokumentiert" : "Buchung_erstellt",
+        Aktion: schadenBetrag > 0 ? "Schaden_dokumentiert" : "Ruecknahme",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: String(buchungId),
         Akteur: "Backoffice",
