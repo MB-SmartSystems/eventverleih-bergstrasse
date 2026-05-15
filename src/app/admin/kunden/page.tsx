@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -26,7 +26,7 @@ export default async function KundenPage({ searchParams }: { searchParams: Promi
   if (!(await isAuthenticated())) redirect("/admin");
   const { q = "" } = await searchParams;
 
-  const list = await listRows<KundeRow>(TABLES.Kunden, { size: 500 });
+  const list = await listAllRows<KundeRow>(TABLES.Kunden);
   const term = q.trim().toLowerCase();
   let rows = list.results;
   if (term) {

@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -43,15 +43,15 @@ export default async function AnfragenPage() {
   if (!(await isAuthenticated())) redirect("/admin");
 
   // Lade alle offenen Angebote (Status = "Offen")
-  const list = await listRows<AngebotRow>(TABLES.Angebote, { size: 200 });
+  const list = await listAllRows<AngebotRow>(TABLES.Angebote);
   const offen = list.results.filter((a) => a.Status?.value === "Offen");
 
   // Kunden + Buchungen für Detail-Anzeige
   const kundenIds = Array.from(new Set(offen.map((a) => a.Kunde_Link?.[0]?.id).filter(Boolean) as number[]));
   const buchungenIds = Array.from(new Set(offen.map((a) => a.Buchung_Link?.[0]?.id).filter(Boolean) as number[]));
 
-  const kundenAll = await listRows<KundeRow>(TABLES.Kunden, { size: 200 });
-  const buchungenAll = await listRows<BuchungRow>(TABLES.Buchungen, { size: 200 });
+  const kundenAll = await listAllRows<KundeRow>(TABLES.Kunden);
+  const buchungenAll = await listAllRows<BuchungRow>(TABLES.Buchungen);
 
   const kundenById = new Map(kundenAll.results.filter((k) => kundenIds.includes(k.id)).map((k) => [k.id, k]));
   const buchungenById = new Map(buchungenAll.results.filter((b) => buchungenIds.includes(b.id)).map((b) => [b.id, b]));

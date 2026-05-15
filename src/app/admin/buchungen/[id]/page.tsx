@@ -7,10 +7,14 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
-import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
+import UebergabeDialog from "./UebergabeDialog";
+import RuecknahmeDialog from "./RuecknahmeDialog";
+import StornoDialog from "./StornoDialog";
+import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -50,6 +54,8 @@ type BuchungRow = {
   Token_Vertrag: string | null;
   Buchung_Quelle: { value: string } | null;
   Kunde_Link: Array<{ id: number; value: string }>;
+  Stripe_Kaution_PaymentIntent: string | null;
+  Uebergabe_Adresse: string | null;
 };
 
 type KundeRow = {
@@ -116,9 +122,9 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const kunde = kundeId ? await getRow<KundeRow>(TABLES.Kunden, kundeId).catch(() => null) : null;
 
   const [positionenAll, rechnungenAll, artikelAll] = await Promise.all([
-    listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
-    listRows<RechnungRow>(TABLES.Rechnungen, { size: 200 }),
-    listRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel, { size: 200 }),
+    listAllRows<PositionRow>(TABLES.Buchungs_Position),
+    listAllRows<RechnungRow>(TABLES.Rechnungen),
+    listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
   ]);
   const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const rechnungen = rechnungenAll.results.filter((r) => r.Buchung_Link?.[0]?.id === buchungId);
@@ -319,6 +325,66 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
 
           {/* Status-Aktionen */}
           <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
+
+          {/* Übergabe / Rückgabe / Storno — context-abhängig */}
+          {(status === "Reserviert" || status === "Bestaetigt") && (
+            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
+              <h2 className="text-lg font-semibold text-warm-text">Übergabe</h2>
+              <UebergabeDialog
+                buchungId={buchung.id}
+                positionen={positionen.map((p) => ({
+                  id: p.id,
+                  name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
+                  anzahl: parseFloat(p.Anzahl ?? "1"),
+                }))}
+                uebergabeAdresse={buchung.Uebergabe_Adresse ?? buchung.Lieferadresse ?? undefined}
+                kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0") || undefined}
+              />
+            </section>
+          )}
+          {(status === "Uebergeben" || status === "In_Miete") && (
+            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
+              <h2 className="text-lg font-semibold text-warm-text">Rückgabe</h2>
+              <RuecknahmeDialog
+                buchungId={buchung.id}
+                positionen={positionen.map((p) => ({
+                  id: p.id,
+                  name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
+                  anzahl: parseFloat(p.Anzahl ?? "1"),
+                }))}
+                hasKautionPreAuth={!!buchung.Stripe_Kaution_PaymentIntent}
+                kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0") || undefined}
+              />
+            </section>
+          )}
+
+          {/* Storno (nur bei aktiven Buchungen) */}
+          {!["Storniert", "Abgerechnet", "Zurueckgegeben"].includes(status) && (
+            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
+              {(async () => {
+                const settings = await loadEveSettings();
+                const bezahlt =
+                  parseFloat(buchung.Anzahlung_Soll_Eur ?? "0") +
+                  parseFloat(buchung.Restzahlung_Soll_Eur ?? "0");
+                const calc = calculateStornoErstattung(
+                  buchung.Event_datum_von,
+                  bezahlt,
+                  settings,
+                );
+                return (
+                  <StornoDialog
+                    buchungId={buchung.id}
+                    eventDatum={buchung.Event_datum_von}
+                    bezahltEur={bezahlt}
+                    stripeIntentId={buchung.Stripe_Kaution_PaymentIntent ?? undefined}
+                    defaultErstattungEur={calc.erstattung_eur}
+                    tageBisEvent={calc.tage_bis_event}
+                    quote={calc.quote}
+                  />
+                );
+              })()}
+            </section>
+          )}
 
           {/* Rechnung erstellen */}
           <RechnungErstellenButton

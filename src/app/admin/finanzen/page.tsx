@@ -6,7 +6,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -73,11 +73,11 @@ export default async function FinanzenPage({ searchParams }: { searchParams: Pro
   const jahr = parseInt(jahrParam ?? String(new Date().getFullYear()), 10);
 
   const [einnahmenList, ausgabenList, rechnungenList, positionenList, buchungenList] = await Promise.all([
-    listRows<EinnahmeRow>(TABLES.Einnahmen, { size: 500 }),
-    listRows<AusgabeRow>(TABLES.Ausgaben, { size: 500 }),
-    listRows<RechnungRow>(TABLES.Rechnungen, { size: 500 }),
-    listRows<PositionRow>(TABLES.Buchungs_Position, { size: 500 }),
-    listRows<BuchungRow>(TABLES.Buchungen, { size: 500 }),
+    listAllRows<EinnahmeRow>(TABLES.Einnahmen),
+    listAllRows<AusgabeRow>(TABLES.Ausgaben),
+    listAllRows<RechnungRow>(TABLES.Rechnungen),
+    listAllRows<PositionRow>(TABLES.Buchungs_Position),
+    listAllRows<BuchungRow>(TABLES.Buchungen),
   ]);
 
   const einnahmen = einnahmenList.results.filter((e) => e.Datum?.startsWith(String(jahr)));

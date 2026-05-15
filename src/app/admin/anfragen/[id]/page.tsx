@@ -6,7 +6,7 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
-import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import ActionPanel from "./ActionPanel";
 import PositionsEditor, { type PositionItem, type ArtikelOption } from "./PositionsEditor";
 import EventDatumEditor from "./EventDatumEditor";
@@ -120,7 +120,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
   // Positionen + Artikel-Stamm (für Bezeichnung-Lookup + Editor-Picker)
   const [allPositionen, artikelAll] = await Promise.all([
     listRows<PositionRow & { Buchung_Link: Array<{ id: number }> }>(TABLES.Buchungs_Position, { size: 200 }),
-    listRows<ArtikelRow>(TABLES.Artikel, { size: 200 }),
+    listAllRows<ArtikelRow>(TABLES.Artikel),
   ]);
   const positionen = allPositionen.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const artikelById = new Map(artikelAll.results.map((a) => [a.id, a]));

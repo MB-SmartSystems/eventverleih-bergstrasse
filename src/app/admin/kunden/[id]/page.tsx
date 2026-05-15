@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { getRow, listRows, TABLES } from "@/lib/baserow/client";
+import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import KundeEditForm from "./KundeEditForm";
 
 export const dynamic = "force-dynamic";
@@ -76,8 +76,8 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
   }
 
   const [buchungenAll, rechnungenAll] = await Promise.all([
-    listRows<BuchungRow>(TABLES.Buchungen, { size: 500 }),
-    listRows<RechnungRow>(TABLES.Rechnungen, { size: 500 }),
+    listAllRows<BuchungRow>(TABLES.Buchungen),
+    listAllRows<RechnungRow>(TABLES.Rechnungen),
   ]);
   const buchungen = buchungenAll.results
     .filter((b) => b.Kunde_Link?.[0]?.id === kundeId)

@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -65,8 +65,8 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   const { filter = "alle" } = await searchParams;
 
   const [buchungenList, kundenList] = await Promise.all([
-    listRows<BuchungRow>(TABLES.Buchungen, { size: 200 }),
-    listRows<KundeRow>(TABLES.Kunden, { size: 200 }),
+    listAllRows<BuchungRow>(TABLES.Buchungen),
+    listAllRows<KundeRow>(TABLES.Kunden),
   ]);
 
   const kundenById = new Map(kundenList.results.map((k) => [k.id, k]));

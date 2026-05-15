@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -47,8 +47,8 @@ export default async function RechnungenPage({
   const { filter = "alle" } = await searchParams;
 
   const [rechnungenList, kundenList] = await Promise.all([
-    listRows<RechnungRow>(TABLES.Rechnungen, { size: 500 }),
-    listRows<KundeRow>(TABLES.Kunden, { size: 500 }),
+    listAllRows<RechnungRow>(TABLES.Rechnungen),
+    listAllRows<KundeRow>(TABLES.Kunden),
   ]);
   const kundenById = new Map(kundenList.results.map((k) => [k.id, k]));
 

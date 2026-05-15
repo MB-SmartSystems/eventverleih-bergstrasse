@@ -7,7 +7,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -60,10 +60,10 @@ export default async function ElsterPage({ searchParams }: { searchParams: Promi
   const jahr = parseInt(jahrParam ?? String(new Date().getFullYear()), 10);
 
   const [elsterList, einnahmenList, ausgabenList, fahrtenList] = await Promise.all([
-    listRows<ELSTER>(TABLES.ELSTER_Zeile_Mapping, { size: 200 }),
-    listRows<EinnahmeRow>(TABLES.Einnahmen, { size: 500 }),
-    listRows<AusgabeRow>(TABLES.Ausgaben, { size: 500 }),
-    listRows<FahrtRow>(TABLES.Fahrten, { size: 500 }).catch(() => ({ count: 0, results: [] as FahrtRow[] })),
+    listAllRows<ELSTER>(TABLES.ELSTER_Zeile_Mapping),
+    listAllRows<EinnahmeRow>(TABLES.Einnahmen),
+    listAllRows<AusgabeRow>(TABLES.Ausgaben),
+    listAllRows<FahrtRow>(TABLES.Fahrten).catch(() => ({ count: 0, results: [] as FahrtRow[] })),
   ]);
 
   const einnahmen = einnahmenList.results.filter((e) => e.Datum?.startsWith(String(jahr)));

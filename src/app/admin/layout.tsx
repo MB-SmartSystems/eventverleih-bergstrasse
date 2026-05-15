@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import PwaRegister from './_pwa/PwaRegister';
 
 const navItems = [
   { href: '/admin/anfragen', label: 'Anfragen', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
@@ -127,6 +128,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Logged in — admin shell
   return (
     <div className="min-h-screen bg-warm-bg font-body">
+      <PwaRegister />
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-40 bg-warm-surface/90 backdrop-blur-sm border-b border-warm-border">
         <div className="flex items-center justify-between h-14 px-4 lg:px-6">
