@@ -26,7 +26,48 @@ type RechnungRow = {
   Token_Public: string;
   Buchung_Link: Array<{ id: number }>;
   Kunde_Link: Array<{ id: number }>;
+  Snapshot_JSON: string | null;
 };
+
+interface RechnungSnapshot {
+  schema_version: number;
+  gobd_frozen_at: string;
+  kunde: {
+    anrede_form: "firma" | "person";
+    firma: string | null;
+    vorname: string;
+    nachname: string;
+    adresse_strasse: string;
+    adresse_plz: string;
+    adresse_ort: string;
+  };
+  buchung: {
+    buchung_id: number;
+    event_datum_von: string | null;
+    event_datum_bis: string | null;
+    preis_artikel_eur: number;
+    preis_lieferung_eur: number;
+    preis_aufbau_eur: number;
+    preis_abbau_eur: number;
+    kaution_soll_eur: number;
+  };
+  positionen: Array<{
+    artikel: string;
+    anzahl: number;
+    einzelpreis_eur: number;
+    gesamt_eur: number;
+  }>;
+  rechnung: {
+    rechnungsnummer: string;
+    rechnungsdatum: string;
+    faelligkeit: string;
+    betrag_netto_eur: number;
+    betrag_ust_eur: number;
+    betrag_gesamt_eur: number;
+    ust_satz: number;
+    ust_hinweis: string;
+  };
+}
 
 type BuchungRow = {
   id: number;
@@ -90,13 +131,60 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const kundeId = rechnung.Kunde_Link?.[0]?.id;
   if (!buchungId || !kundeId) notFound();
 
-  const [buchung, kunde, positionenAll, config] = await Promise.all([
-    getRow<BuchungRow>(TABLES.Buchungen, buchungId),
-    getRow<KundeRow>(TABLES.Kunden, kundeId),
-    listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
+  // GoBD-Snapshot: wenn vorhanden, NUR Snapshot fuer Kunde/Buchung/Positionen nutzen.
+  // Sonst (alte Rechnungen ohne Snapshot): Live-Fallback aus Baserow.
+  let snapshot: RechnungSnapshot | null = null;
+  if (rechnung.Snapshot_JSON) {
+    try {
+      snapshot = JSON.parse(rechnung.Snapshot_JSON) as RechnungSnapshot;
+    } catch {
+      snapshot = null; // Korruptes JSON → fallback auf Live
+    }
+  }
+
+  const [buchungLive, kundeLive, positionenAll, config] = await Promise.all([
+    snapshot ? Promise.resolve(null) : getRow<BuchungRow>(TABLES.Buchungen, buchungId),
+    snapshot ? Promise.resolve(null) : getRow<KundeRow>(TABLES.Kunden, kundeId),
+    snapshot ? Promise.resolve({ count: 0, results: [] as PositionRow[] }) : listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
     getSystemKonfig(),
   ]);
-  const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
+
+  // Vereinheitlichte Datenquelle — Snapshot bevorzugt, sonst Live
+  const buchung: BuchungRow = snapshot
+    ? {
+        id: buchungId,
+        Event_datum_von: snapshot.buchung.event_datum_von,
+        Event_datum_bis: snapshot.buchung.event_datum_bis,
+        Preis_Artikel: String(snapshot.buchung.preis_artikel_eur),
+        Preis_Lieferung: String(snapshot.buchung.preis_lieferung_eur),
+        Preis_Aufbau: String(snapshot.buchung.preis_aufbau_eur),
+        Preis_Abbau: String(snapshot.buchung.preis_abbau_eur),
+        Kaution_Soll_Eur: String(snapshot.buchung.kaution_soll_eur),
+      }
+    : buchungLive!;
+  const kunde: KundeRow = snapshot
+    ? {
+        id: kundeId,
+        Vorname: snapshot.kunde.vorname,
+        Nachname: snapshot.kunde.nachname,
+        Firma: snapshot.kunde.firma || "",
+        Email: "",
+        Telefon: "",
+        Adresse_Strasse: snapshot.kunde.adresse_strasse,
+        Adresse_PLZ: snapshot.kunde.adresse_plz,
+        Adresse_Ort: snapshot.kunde.adresse_ort,
+      }
+    : kundeLive!;
+  const positionen = snapshot
+    ? snapshot.positionen.map((p, i) => ({
+        id: i,
+        Anzahl: String(p.anzahl),
+        Einzelpreis_Eur: String(p.einzelpreis_eur),
+        Position_Gesamt_Eur: String(p.gesamt_eur),
+        Artikel_Link: [{ id: 0, value: p.artikel }],
+        Buchung_Link: [{ id: buchungId }],
+      }))
+    : positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
 
   const summe = num(rechnung.Betrag_Gesamt);
   const kaution = num(buchung.Kaution_Soll_Eur);

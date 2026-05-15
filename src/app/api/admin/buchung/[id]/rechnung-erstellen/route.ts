@@ -19,7 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, listRows, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 type BuchungRow = {
   id: number;
@@ -77,6 +77,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       id: number;
       Vorname: string;
       Nachname: string;
+      Firma: string | null;
       Adresse_Strasse: string;
       Adresse_PLZ: string;
       Adresse_Ort: string;
@@ -113,6 +114,60 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const heute = new Date().toISOString().slice(0, 10);
     const faelligkeit = new Date(Date.now() + 14 * 86400 * 1000).toISOString().slice(0, 10);
 
+    // GoBD-Snapshot: alle relevanten Daten zum Rechnungs-Zeitpunkt einfrieren
+    type Position = {
+      id: number;
+      Anzahl: string | null;
+      Einzelpreis_Eur: string | null;
+      Position_Gesamt_Eur: string | null;
+      Artikel_Link: Array<{ id: number; value: string }> | null;
+      Buchung_Link: Array<{ id: number }> | null;
+    };
+    const positionenAll = await listAllRows<Position>(TABLES.Buchungs_Position);
+    const positionen = positionenAll.results
+      .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
+      .map((p) => ({
+        artikel: p.Artikel_Link?.[0]?.value || "Artikel",
+        anzahl: parseFloat(p.Anzahl ?? "0"),
+        einzelpreis_eur: parseFloat(p.Einzelpreis_Eur ?? "0"),
+        gesamt_eur: parseFloat(p.Position_Gesamt_Eur ?? "0"),
+      }));
+
+    const snapshot = {
+      schema_version: 1,
+      gobd_frozen_at: new Date().toISOString(),
+      kunde: {
+        anrede_form: kunde.Firma ? "firma" : "person",
+        firma: kunde.Firma || null,
+        vorname: kunde.Vorname,
+        nachname: kunde.Nachname,
+        adresse_strasse: kunde.Adresse_Strasse,
+        adresse_plz: kunde.Adresse_PLZ,
+        adresse_ort: kunde.Adresse_Ort,
+      },
+      buchung: {
+        buchung_id: buchung.Buchung_ID,
+        event_datum_von: buchung.Event_datum_von,
+        event_datum_bis: buchung.Event_datum_bis,
+        preis_artikel_eur: num(buchung.Preis_Artikel),
+        preis_lieferung_eur: num(buchung.Preis_Lieferung),
+        preis_aufbau_eur: num(buchung.Preis_Aufbau),
+        preis_abbau_eur: num(buchung.Preis_Abbau),
+        kaution_soll_eur: num(buchung.Kaution_Soll_Eur),
+      },
+      positionen,
+      rechnung: {
+        rechnungsnummer,
+        rechnungsdatum: heute,
+        faelligkeit,
+        betrag_netto_eur: summe,
+        betrag_ust_eur: 0,
+        betrag_gesamt_eur: summe,
+        ust_satz: 0,
+        ust_hinweis: "Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.",
+      },
+    };
+
     const created = await createRow<RechnungRow>(TABLES.Rechnungen, {
       Rechnungsnummer: rechnungsnummer,
       Rechnungsdatum: heute,
@@ -126,6 +181,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Buchung_Link: [buchungId],
       Kunde_Link: [kundeId],
       Token_Public: token,
+      Snapshot_JSON: JSON.stringify(snapshot),
     });
 
     // n8n-Webhook triggern (fire-and-await mit kurzem Timeout, damit Server-Action nicht hängt)
