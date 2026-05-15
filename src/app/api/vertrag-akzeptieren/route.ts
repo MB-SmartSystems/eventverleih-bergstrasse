@@ -102,6 +102,7 @@ async function handle(
       Status_Erweitert: { value: string } | null;
       Event_datum_von: string | null;
       Event_datum_bis: string | null;
+      Stripe_Anzahlung_Link: string | null;
     }>(TABLES.Buchungen, buchungId);
     const earlyStati = new Set([
       "Anfrage",
@@ -184,13 +185,26 @@ async function handle(
       // MailQueue: Vertrag-Bestaetigungs-Mail (mit Manuel-Approval)
       const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstrasse";
       const vertragsUrl = `${origin}/vertrag/${token}`;
+
+      // Hole Stripe-Anzahlungs-Link aus Buchung falls schon generiert
+      const stripeLink = (buchungFresh as { Stripe_Anzahlung_Link?: string | null })
+        .Stripe_Anzahlung_Link || null;
+      const stripeBlock = stripeLink
+        ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
+   ${stripeLink}
+
+Alternativ klassisch:
+   IBAN: DE84 5001 0517 5420 4742 10
+   PayPal: manuelbuettner@web.de`
+        : `   IBAN: DE84 5001 0517 5420 4742 10
+   PayPal: manuelbuettner@web.de`;
+
       const body = `Hallo,
 
 vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
 
-WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestaetigt. Bitte ueberweisen Sie die Anzahlung innerhalb von 7 Tagen:
-   IBAN: DE84 5001 0517 5420 4742 10
-   PayPal: manuelbuettner@web.de
+WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestaetigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
+${stripeBlock}
 Verwendungszweck: bitte Ihre Angebotsnummer angeben.
 
 Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder PayPal.
