@@ -181,7 +181,7 @@ export default function AcceptForm({ token, kunde }: { token: string; kunde: Kun
             ? "Bestätigt — Seite lädt neu …"
             : submitting
             ? "Wird bestätigt …"
-            : "Angebot verbindlich bestätigen"}
+            : "Angebot bestätigen"}
         </span>
       </button>
 

@@ -47,6 +47,9 @@ type BuchungRow = {
   Kaution_Soll_Eur: string | null;
   Lieferadresse: string | null;
   Notizen: string | null;
+  Stripe_Anzahlung_Link: string | null;
+  Stripe_Komplettzahlung_Link: string | null;
+  Anzahlung_Bezahlt_am: string | null;
 };
 
 type KundeRow = {
@@ -318,14 +321,68 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
             </p>
 
             {statusVal === "Akzeptiert" && !hasUpdateBanner ? (
-              <div className="mt-10 p-6 rounded-xl bg-green-500/10 border border-green-500/30">
-                <p className="text-green-300 font-semibold">
-                  ✓ Dieses Angebot wurde von Ihnen am{" "}
-                  {fmtDate(angebot.Akzeptiert_am)} bestätigt.
-                </p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Manuel meldet sich in Kürze mit der Anzahlungsaufforderung und den nächsten Schritten.
-                </p>
+              <div className="mt-10 space-y-4">
+                <div className="p-6 rounded-xl bg-green-500/10 border border-green-500/30">
+                  <p className="text-green-300 font-semibold">
+                    ✓ Dieses Angebot wurde von Ihnen am{" "}
+                    {fmtDate(angebot.Akzeptiert_am)} bestätigt.
+                  </p>
+                  {buchung.Anzahlung_Bezahlt_am ? (
+                    <p className="text-sm text-gray-300 mt-2">
+                      Anzahlung am {fmtDate(buchung.Anzahlung_Bezahlt_am)} eingegangen — die Reservierung
+                      ist jetzt verbindlich.
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-400 mt-2">
+                      Verbindlich wird die Reservierung erst mit Eingang Ihrer Anzahlung.
+                      Bitte wählen Sie unten Ihre Zahlungs-Option.
+                    </p>
+                  )}
+                </div>
+
+                {/* Stripe-Zahlungs-Buttons direkt sichtbar (kein Mail-Warten) */}
+                {!buchung.Anzahlung_Bezahlt_am && (buchung.Stripe_Anzahlung_Link || buchung.Stripe_Komplettzahlung_Link) && (
+                  <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-3">
+                    <p className="text-white font-semibold text-lg">
+                      Jetzt online bezahlen
+                    </p>
+                    <p className="text-sm text-gray-400">
+                      Sicher per Karte, Klarna oder SOFORT — Ihre Reservierung ist sofort verbindlich.
+                    </p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                      {buchung.Stripe_Anzahlung_Link && (
+                        <a
+                          href={buchung.Stripe_Anzahlung_Link}
+                          className="block px-4 py-4 rounded-lg bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-center hover:from-gold-400 hover:to-gold-500 transition-all"
+                        >
+                          <div className="text-sm uppercase tracking-wider opacity-80">Anzahlung 30 %</div>
+                          <div className="text-xl mt-1">{fmtEur(anzahlungSoll)}</div>
+                        </a>
+                      )}
+                      {buchung.Stripe_Komplettzahlung_Link && (
+                        <a
+                          href={buchung.Stripe_Komplettzahlung_Link}
+                          className="block px-4 py-4 rounded-lg border border-gold-500/30 text-gold-300 font-semibold text-center hover:bg-gold-500/10 transition-all"
+                        >
+                          <div className="text-sm uppercase tracking-wider opacity-80">Komplett bezahlen</div>
+                          <div className="text-xl mt-1">
+                            {fmtEur(
+                              (parseFloat(buchung.Preis_Artikel || "0") +
+                                parseFloat(buchung.Preis_Lieferung || "0") +
+                                parseFloat(buchung.Preis_Aufbau || "0"))
+                                .toFixed(2)
+                            )}
+                          </div>
+                        </a>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-3">
+                      Alternativ können Sie auch per Überweisung oder bar zur Übergabe zahlen.
+                      Bitte beachten Sie: Ihre Buchung ist erst zu 100 % reserviert, sobald die
+                      Anzahlung bei uns eingegangen ist.
+                    </p>
+                  </div>
+                )}
               </div>
             ) : !hasPrices ? (
               <div className="mt-10 p-6 rounded-xl bg-blue-500/10 border border-blue-500/30">

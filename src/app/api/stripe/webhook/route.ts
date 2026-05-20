@@ -94,6 +94,30 @@ export async function POST(req: NextRequest) {
             stripe_payment_intent: pi.id,
             amount_eur: (pi.amount || 0) / 100,
           });
+        } else if (paymentType === "komplettzahlung") {
+          // Kunde hat alles auf einmal bezahlt → Anzahlung + Restzahlung beide markiert,
+          // Status=Reserviert, Lock_Until setzen (gleicher Effekt wie Anzahlung allein)
+          const buchung = await getRow<{ Event_datum_bis: string | null }>(
+            TABLES.Buchungen,
+            buchungId,
+          );
+          const today = new Date().toISOString().slice(0, 10);
+          const patch: Record<string, unknown> = {
+            Status_Erweitert: "Reserviert",
+            Anzahlung_Bezahlt_am: today,
+            Restzahlung_Bezahlt_am: today,
+          };
+          if (buchung.Event_datum_bis) {
+            patch.Lock_Until = `${buchung.Event_datum_bis}T23:59:59Z`;
+          }
+          await updateRow(TABLES.Buchungen, buchungId, patch);
+          await logAudit(buchungId, "Komplettzahlung_eingegangen", {
+            stripe_payment_intent: pi.id,
+            amount_eur: (pi.amount || 0) / 100,
+            new_status: "Reserviert",
+            lock_until: buchung.Event_datum_bis,
+          });
+          await resolveKonfliktAfterAnzahlung(buchungId);
         } else if (paymentType === "kaution") {
           // Pre-Auth-Hold ist jetzt confirmed (Geld reserviert beim Kunden)
           await updateRow(TABLES.Buchungen, buchungId, {

@@ -272,7 +272,10 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
           Template_Key: "vertrag_bestaetigung",
           Subject: subject,
           Body: body,
-          Approval_Status: "Pending",
+          // Auto_Reply: Mail geht direkt ueber n8n-Poll raus, kein Manuel-Approval mehr
+          // Manuels Freigabe geschah schon beim "Angebot freigeben" — die Bestaetigung ist
+          // die logische Folge des Kunden-Klicks
+          Approval_Status: "Auto_Reply",
           Idempotency_Key: idemKey,
         });
       }

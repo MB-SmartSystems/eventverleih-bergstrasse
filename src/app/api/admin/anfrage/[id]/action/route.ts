@@ -129,6 +129,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Kaution_Soll_Eur: string | null;
       Lieferadresse: string | null;
       Stripe_Anzahlung_Link: string | null;
+      Stripe_Komplettzahlung_Link: string | null;
     };
     type Kunde = {
       id: number;
@@ -248,14 +249,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       console.error("[anfrage-action] Buchungs-Status-Sync fehlgeschlagen:", e);
     }
 
-    // Auto-Anzahlungs-Link erzeugen, damit Kunde im Vertrag-Akzeptieren-Flow direkt zahlen kann.
+    // Auto-Anzahlungs-Link UND Komplettzahlungs-Link erzeugen, damit Kunde im
+    // Vertrag-Akzeptieren-Flow direkt zwischen den Optionen waehlen kann.
     // Fail-soft: Stripe-Down darf den Angebots-Versand nicht killen.
     if (body.action === "freigeben" || body.action === "freigeben_anmerkung") {
+      const kundeName = `${kunde.Vorname} ${kunde.Nachname}`.trim() || "Kunde";
+      const stripeUpdates: Record<string, unknown> = {};
+
+      // Anzahlung
       try {
         const anzahlungSoll = buchung.Anzahlung_Soll_Eur ? parseFloat(buchung.Anzahlung_Soll_Eur) : 0;
         const alreadyLinked = (buchung.Stripe_Anzahlung_Link || "").trim().length > 0;
         if (anzahlungSoll > 0 && !alreadyLinked) {
-          const kundeName = `${kunde.Vorname} ${kunde.Nachname}`.trim() || "Kunde";
           const desc = `Anzahlung Buchung #${buchungId} — Event ${buchung.Event_datum_von || ""}`;
           const link = await createPaymentLink({
             buchungId,
@@ -264,12 +269,40 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             kundeName,
             description: desc,
           });
-          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Anzahlung_Link: link.link_url });
+          stripeUpdates.Stripe_Anzahlung_Link = link.link_url;
         }
       } catch (e) {
-        console.error("[anfrage-action] Stripe-Anzahlungs-Link konnte nicht erzeugt werden:", e);
-        // Soft-fail: Angebots-Mail geht trotzdem raus, Manuel kann Link nachtraeglich erzeugen
-        // via /api/admin/buchung/[id]/payment-link.
+        console.error("[anfrage-action] Stripe-Anzahlungs-Link fehlgeschlagen:", e);
+      }
+
+      // Komplettzahlung (Gesamt = Mietsumme + Lieferung + Aufbau, ohne Kaution)
+      try {
+        const preisArtikel = parseFloat(buchung.Preis_Artikel || "0") || 0;
+        const preisLieferung = parseFloat(buchung.Preis_Lieferung || "0") || 0;
+        const preisAufbau = parseFloat(buchung.Preis_Aufbau || "0") || 0;
+        const komplett = preisArtikel + preisLieferung + preisAufbau;
+        const alreadyLinkedK = (buchung.Stripe_Komplettzahlung_Link || "").trim().length > 0;
+        if (komplett > 0 && !alreadyLinkedK) {
+          const desc = `Komplettzahlung Buchung #${buchungId} — Event ${buchung.Event_datum_von || ""}`;
+          const link = await createPaymentLink({
+            buchungId,
+            paymentType: "komplettzahlung",
+            amountEur: komplett,
+            kundeName,
+            description: desc,
+          });
+          stripeUpdates.Stripe_Komplettzahlung_Link = link.link_url;
+        }
+      } catch (e) {
+        console.error("[anfrage-action] Stripe-Komplettzahlungs-Link fehlgeschlagen:", e);
+      }
+
+      if (Object.keys(stripeUpdates).length > 0) {
+        try {
+          await updateRow(TABLES.Buchungen, buchungId, stripeUpdates);
+        } catch (e) {
+          console.error("[anfrage-action] Buchung-Update mit Stripe-Links fehlgeschlagen:", e);
+        }
       }
     }
 

@@ -12,7 +12,7 @@
  */
 import { getStripe } from "./client";
 
-export type PaymentType = "anzahlung" | "restzahlung";
+export type PaymentType = "anzahlung" | "restzahlung" | "komplettzahlung";
 
 interface CreatePaymentLinkParams {
   buchungId: number;
@@ -73,7 +73,9 @@ export async function createPaymentLink(
         custom_message:
           params.paymentType === "anzahlung"
             ? "Vielen Dank! Ihre Anzahlung ist eingegangen — die Reservierung ist jetzt verbindlich. Sie erhalten in Kuerze eine Bestaetigung per Mail."
-            : "Vielen Dank! Restzahlung eingegangen — wir freuen uns auf Ihr Event.",
+            : params.paymentType === "komplettzahlung"
+              ? "Vielen Dank! Die Buchung ist komplett bezahlt — die Reservierung ist verbindlich. Sie erhalten in Kuerze eine Bestaetigung per Mail."
+              : "Vielen Dank! Restzahlung eingegangen — wir freuen uns auf Ihr Event.",
       },
     },
   });
