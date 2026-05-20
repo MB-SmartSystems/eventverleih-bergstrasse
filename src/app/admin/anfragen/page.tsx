@@ -10,6 +10,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
+import { getNextAction, type NextActionTone } from "@/lib/eventverleih/next-action";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,7 +21,12 @@ type BuchungRow = {
   Status_Erweitert: { value: string } | null;
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
+  Anzahlung_Soll_Eur: number | string | null;
   Anzahlung_Bezahlt_am: string | null;
+  Restzahlung_Soll_Eur: number | string | null;
+  Restzahlung_Bezahlt_am: string | null;
+  Kaution_Hinterlegt_am: string | null;
+  Kaution_Rueckzahlung_am: string | null;
   Preis_Artikel: string | null;
   Notizen: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
@@ -32,6 +38,7 @@ type AngebotRow = {
   Angebotsnummer: string;
   Anfragetext: string | null;
   Anfragedatum: string | null;
+  Akzeptiert_am: string | null;
   Buchung_Link: Array<{ id: number; value: string }>;
 };
 
@@ -61,6 +68,14 @@ const TONE_CLASSES: Record<"blue" | "yellow" | "amber", string> = {
   blue: "bg-blue-500/20 text-blue-200",
   yellow: "bg-yellow-500/20 text-yellow-200",
   amber: "bg-amber-500/20 text-amber-200",
+};
+
+const NEXT_ACTION_CLASSES: Record<NextActionTone, string> = {
+  blue: "text-blue-300",
+  amber: "text-amber-300",
+  red: "text-red-300",
+  green: "text-green-300",
+  gray: "text-gray-400",
 };
 
 function fmtDateDe(iso: string | null): string {
@@ -140,6 +155,18 @@ export default async function AnfragenPage() {
             const statusInfo = STATUS_LABELS[statusKey] ?? { label: statusKey, tone: "blue" as const };
             const href = angebot ? `/admin/anfragen/${angebot.id}` : `/admin/buchungen/${b.id}`;
             const snippet = (angebot?.Anfragetext || b.Notizen || "").slice(0, 200);
+            const nextAction = getNextAction({
+              Status_Erweitert: b.Status_Erweitert,
+              Event_datum_von: b.Event_datum_von,
+              Event_datum_bis: b.Event_datum_bis,
+              Anzahlung_Soll_Eur: b.Anzahlung_Soll_Eur,
+              Anzahlung_Bezahlt_am: b.Anzahlung_Bezahlt_am,
+              Restzahlung_Soll_Eur: b.Restzahlung_Soll_Eur,
+              Restzahlung_Bezahlt_am: b.Restzahlung_Bezahlt_am,
+              Kaution_Hinterlegt_am: b.Kaution_Hinterlegt_am,
+              Kaution_Rueckzahlung_am: b.Kaution_Rueckzahlung_am,
+              Akzeptiert_am: angebot?.Akzeptiert_am || null,
+            });
             return (
               <Link
                 key={b.id}
@@ -169,6 +196,9 @@ export default async function AnfragenPage() {
                     {snippet && (
                       <p className="text-sm text-gray-400 mt-2 line-clamp-2">{snippet}</p>
                     )}
+                    <div className={`text-xs mt-3 font-medium ${NEXT_ACTION_CLASSES[nextAction.tone]}`}>
+                      → {nextAction.label}
+                    </div>
                   </div>
                   <div className="text-right shrink-0">
                     {preisArtikel > 0 ? (
