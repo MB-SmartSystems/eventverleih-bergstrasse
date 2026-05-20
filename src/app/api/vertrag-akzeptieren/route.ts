@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { checkConflicts } from "@/lib/eventverleih/conflicts";
 import { queueConflictHinweisMail } from "@/lib/eventverleih/conflict-mails";
+import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -229,6 +230,14 @@ Alternativ klassisch:
         : `   IBAN: DE84 5001 0517 5420 4742 10
    PayPal: manuelbuettner@web.de`;
 
+      // Auto-Login-Link fuer Mein-Bereich
+      let meinBereichUrl = "";
+      try {
+        meinBereichUrl = await memberAutoLoginUrl(kundeId, origin);
+      } catch (e) {
+        console.error("[vertrag-akzeptieren] memberAutoLoginUrl fehlgeschlagen:", e);
+      }
+
       const body = `Hallo,
 
 vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
@@ -242,7 +251,10 @@ Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder 
 Etwa 7 Tage vor dem Event melde ich mich fuer die finale Abstimmung von Uebergabe-Ort und -Zeit.
 
 Ihren vollstaendigen Mietvertrag mit allen Bedingungen finden Sie hier:
-${vertragsUrl}
+${vertragsUrl}${meinBereichUrl ? `
+
+Mein Bereich (Buchungs-Status + Zahlungen + Rechnungen):
+${meinBereichUrl}` : ""}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 

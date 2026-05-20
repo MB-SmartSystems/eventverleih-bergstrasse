@@ -88,6 +88,16 @@ export async function generateMagicLinkForEmail(email: string, baseUrl: string):
 }
 
 /**
+ * Convenience-Helper: erzeugt einen ready-to-use Mein-Bereich-Login-Link.
+ * Wird in transaktionalen Mails eingebettet, damit Kunde direkt eingeloggt rauskommt.
+ */
+export async function memberAutoLoginUrl(kundeId: number, baseUrl?: string): Promise<string> {
+  const base = baseUrl || "https://eventverleih-bergstrasse.de";
+  const token = await ensureMemberToken(kundeId);
+  return `${base}/mein-bereich/login?token=${token}`;
+}
+
+/**
  * Liest Session-Cookie + verifiziert. Returns Kunde oder null. Fuer Server-Components.
  */
 export async function getCurrentMember(): Promise<KundenAuthFields | null> {

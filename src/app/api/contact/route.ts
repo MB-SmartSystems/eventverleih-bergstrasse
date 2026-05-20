@@ -24,6 +24,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createRow, deleteRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { getAvailability } from "@/lib/eventverleih/availability";
+import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 
 interface CartItemPayload {
   name: string;
@@ -344,6 +345,14 @@ export async function POST(req: NextRequest) {
     };
     const zeitraum = `${fmtDe(payload.event_datum_von)} bis ${fmtDe(payload.event_datum_bis)}`;
 
+    // Auto-Login-Link fuer Mein-Bereich (Token wird einmal pro Kunde generiert/rotiert)
+    let meinBereichUrl = "";
+    try {
+      meinBereichUrl = await memberAutoLoginUrl(kundeId);
+    } catch (e) {
+      console.error("[contact] memberAutoLoginUrl fehlgeschlagen:", e);
+    }
+
     const mailBody = `${greeting},
 
 vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
@@ -354,7 +363,10 @@ Gewuenschter Mietzeitraum:
 Was Sie angefragt haben:
 ${summary}
 
-Hinweis: Wir vermieten standardmaessig zur Selbstabholung an unserem Treffpunkt (Grillhuette Sandwiese / Freizeitanlage in Alsbach-Haehnlein). Den genauen Uebergabe-Termin sprechen wir telefonisch ab. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.
+Hinweis: Wir vermieten standardmaessig zur Selbstabholung an unserem Treffpunkt (Grillhuette Sandwiese / Freizeitanlage in Alsbach-Haehnlein). Den genauen Uebergabe-Termin sprechen wir telefonisch ab. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.${meinBereichUrl ? `
+
+Mein Bereich (Buchung jederzeit einsehen, Status nachverfolgen, spaeter Rechnung herunterladen):
+${meinBereichUrl}` : ""}
 
 Falls Sie noch Fragen haben oder etwas ergaenzen moechten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
 

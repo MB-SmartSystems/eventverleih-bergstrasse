@@ -16,6 +16,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
+import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
@@ -35,10 +36,14 @@ function buildAngebotsMail(opts: {
   kaution: string;
   angebotUrl: string;
   anmerkung?: string;
+  meinBereichUrl?: string;
 }): { subject: string; body: string } {
   const greeting = `Hallo ${opts.vorname} ${opts.nachname}`;
   const anmerkungBlock = opts.anmerkung
     ? `\n*Persoenliche Anmerkung von Manuel:*\n${opts.anmerkung}\n`
+    : "";
+  const memberBlock = opts.meinBereichUrl
+    ? `\n\nMein Bereich (alle Buchungen + Zahlungen + Rechnungen einsehen):\n${opts.meinBereichUrl}`
     : "";
   return {
     subject: "Ihr Angebot von Eventverleih Bergstrasse",
@@ -55,7 +60,7 @@ Kaution (nach Rueckgabe vollstaendig erstattet): ${opts.kaution} EUR
 Sie koennen das Angebot online ansehen und mit einem Klick bestaetigen:
 ${opts.angebotUrl}
 
-Das Angebot ist 14 Tage gueltig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${SIGNATURE}`,
+Das Angebot ist 14 Tage gueltig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
   };
 }
 
@@ -162,6 +167,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     const fmt = (v: string | null) => (v ? parseFloat(v).toFixed(2) : "0.00");
 
+    // Auto-Login-Link fuer Mein-Bereich
+    let meinBereichUrl = "";
+    try {
+      meinBereichUrl = await memberAutoLoginUrl(kundeId);
+    } catch (e) {
+      console.error("[anfrage-action] memberAutoLoginUrl fehlgeschlagen:", e);
+    }
+
     if (body.action === "freigeben" || body.action === "freigeben_anmerkung") {
       mail = buildAngebotsMail({
         vorname: kunde.Vorname,
@@ -172,6 +185,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         kaution: fmt(buchung.Kaution_Soll_Eur),
         angebotUrl: publicUrl,
         anmerkung: body.anmerkung,
+        meinBereichUrl,
       });
       newStatus = "Versendet";
       templateKey = body.action === "freigeben_anmerkung" ? "angebot_freigegeben_anmerkung" : "angebot_freigegeben";
