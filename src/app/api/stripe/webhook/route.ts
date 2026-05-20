@@ -3,8 +3,9 @@
  *
  * Verarbeitet:
  *   - payment_intent.succeeded fuer Anzahlung/Restzahlung -> Status-Update + Konflikt-Aufloesung
- *   - charge.refunded fuer Storno-Refunds -> Marker setzen
+ *   - payment_intent.amount_capturable_updated fuer Kaution-Hold platziert -> PaymentIntent-ID speichern
  *   - payment_intent.canceled fuer Kaution-Hold-Abbruch
+ *   - charge.refunded fuer Storno-Refunds -> Marker setzen
  *
  * Signature-Verify zwingend (Stripe-Best-Practice).
  *
@@ -95,6 +96,28 @@ export async function POST(req: NextRequest) {
           });
         }
         return NextResponse.json({ ok: true, processed: paymentType });
+      }
+
+      case "payment_intent.amount_capturable_updated": {
+        // Kaution-Pre-Auth-Hold wurde platziert (Kunde hat im Checkout bezahlt, Stripe blockt
+        // den Betrag, aber kein Charge). Wir speichern die PaymentIntent-ID damit Manuel sie
+        // bei der Rueckgabe via cancelKaution/captureKaution aufloesen kann.
+        const pi = event.data.object as Stripe.PaymentIntent;
+        const buchungId = parseInt(pi.metadata?.buchung_id || "", 10);
+        const paymentType = pi.metadata?.payment_type;
+        if (!buchungId || paymentType !== "kaution") {
+          return NextResponse.json({ ok: true, note: "no buchung_id or not kaution" });
+        }
+        await updateRow(TABLES.Buchungen, buchungId, {
+          Stripe_Kaution_PaymentIntent: pi.id,
+          Kaution_Hinterlegt_am: new Date().toISOString().slice(0, 10),
+        });
+        await logAudit(buchungId, "Sonstiges", {
+          event: "kaution_hold_platziert",
+          stripe_payment_intent: pi.id,
+          amount_capturable_eur: (pi.amount_capturable || 0) / 100,
+        });
+        return NextResponse.json({ ok: true, processed: "kaution_hold" });
       }
 
       case "payment_intent.canceled": {

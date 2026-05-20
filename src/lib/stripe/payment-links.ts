@@ -85,8 +85,9 @@ export async function createPaymentLink(
  * Kaution als Pre-Auth-Hold (capture_method: manual).
  * Wird im Uebergabe-Dialog erzeugt, im Rueckgabe-Dialog gecaptured (Schaden) oder gecancelled (kein Schaden).
  *
- * NOTE: Pre-Auth haelt max 7 Tage. Bei laengeren Mietzeitraeumen muss alternativ
- * ein echter Charge + Refund-Flow verwendet werden (s. lib/stripe/kaution.ts).
+ * NOTE: Standard-Hold haelt 7 Tage. Mit `request_extended_authorization: "if_available"`
+ * versucht Stripe bis zu 30 Tage Hold zu erreichen (klappt bei Visa/Mastercard, nicht bei
+ * AmEx). Bei laengeren Mietzeitraeumen Fallback Bar/Ueberweisung in AGB.
  */
 export async function createKautionPreAuth(params: {
   buchungId: number;
@@ -106,11 +107,68 @@ export async function createKautionPreAuth(params: {
       payment_type: "kaution",
     },
     automatic_payment_methods: { enabled: true },
+    payment_method_options: {
+      card: { request_extended_authorization: "if_available" },
+    },
   });
   return {
     payment_intent_id: intent.id,
     client_secret: intent.client_secret || "",
   };
+}
+
+/**
+ * Kaution-Checkout-Session — hosted Stripe-Seite mit Karteneingabe, capture_method=manual.
+ * Liefert eine URL die wir dem Kunden per Mail/Link schicken koennen. Stripe blockiert beim
+ * Bezahlen den Betrag (Hold), kein Geld fliesst. Webhook `payment_intent.amount_capturable_updated`
+ * markiert die Buchung als hold-platziert; Auflösung dann ueber cancelKaution / captureKaution.
+ */
+export async function createKautionCheckoutSession(params: {
+  buchungId: number;
+  amountEur: number;
+  kundeName: string;
+  successUrl?: string;
+  cancelUrl?: string;
+}): Promise<{ url: string; session_id: string }> {
+  const stripe = getStripe();
+  const amountCents = Math.round(params.amountEur * 100);
+  if (amountCents <= 0) {
+    throw new Error(`Invalid amount: ${params.amountEur}`);
+  }
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://eventverleih-bergstrasse.de";
+  const session = await stripe.checkout.sessions.create({
+    mode: "payment",
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        quantity: 1,
+        price_data: {
+          currency: "eur",
+          unit_amount: amountCents,
+          product_data: {
+            name: `Kaution Buchung #${params.buchungId}`,
+            description: "Kaution wird als Pre-Authorization auf der Karte vorgemerkt — kein Abbuchen vor Rueckgabe. Bei Rueckgabe ohne Schaden wird der Hold aufgeloest, es fliesst kein Geld.",
+          },
+        },
+      },
+    ],
+    payment_intent_data: {
+      capture_method: "manual",
+      description: `Kaution Buchung #${params.buchungId} — ${params.kundeName}`,
+      metadata: {
+        buchung_id: String(params.buchungId),
+        payment_type: "kaution",
+      },
+    },
+    metadata: {
+      buchung_id: String(params.buchungId),
+      payment_type: "kaution",
+      kunde_name: params.kundeName.slice(0, 250),
+    },
+    success_url: params.successUrl || `${baseUrl}/danke?type=kaution`,
+    cancel_url: params.cancelUrl || `${baseUrl}/angebot`,
+  });
+  return { url: session.url || "", session_id: session.id };
 }
 
 /**
