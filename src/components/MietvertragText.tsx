@@ -21,20 +21,24 @@ export default function MietvertragText() {
 
       <h3>§ 2 Übergabe und Mängelmeldepflicht</h3>
       <p>
-        Bei Übergabe prüft der Mieter alle Gegenstände auf Vollständigkeit und Mängel. Festgestellte Mängel sind
-        unverzüglich zu melden. Spätere Reklamationen über Mängel, die bei der Übergabe erkennbar gewesen wären, sind
-        ausgeschlossen.
+        Der Mieter prüft die Gegenstände bei Übergabe und vor Inbetriebnahme (z.B. beim Aufbau) selbst
+        auf Vollständigkeit und Mängel. Festgestellte Mängel sind <strong>per Foto an WhatsApp
+        +49 156 79521124</strong> zu melden. Spätere Reklamationen über Mängel, die bei Übergabe
+        oder Aufbau erkennbar gewesen wären, sind ausgeschlossen.
       </p>
       <p>
-        <strong>Foto-Dokumentation:</strong> Vermieter und Mieter dokumentieren den Zustand der Gegenstände bei Übergabe und
-        Rückgabe per Foto. Diese Fotos sind Grundlage für die spätere Schadensbeurteilung.
+        <strong>Foto-Dokumentation durch den Vermieter:</strong> Bei der Rückgabe dokumentiert der
+        Vermieter eventuelle Schäden per Foto und meldet diese dem Mieter zusammen mit der
+        Kautions-Abrechnung. Es wird keine separate Übergabe-Foto-Pflicht durch den Vermieter
+        durchgeführt — die Übergabe-Dokumentation übernimmt der Mieter selbst (siehe oben).
       </p>
 
       <p>
         <strong>Standard ist Abholung:</strong> Sofern im Angebot nicht ausdrücklich Lieferung
-        vereinbart, holt der Mieter die Gegenstände am Lager des Vermieters (Schlesierstraße 19a,
-        64665 Alsbach-Hähnlein) ab und bringt sie nach dem Event ebenfalls dort zurück. Eine
-        Lieferung mit oder ohne Aufbau ist gegen Aufpreis im Voraus zu vereinbaren.
+        vereinbart, holt der Mieter die Gegenstände am vereinbarten Übergabepunkt
+        (Grillhütte Sandwiese / Freizeitanlage, Alsbach-Hähnlein) ab und bringt sie nach dem Event
+        ebenfalls dort zurück. Der Übergabe-Termin wird telefonisch abgestimmt.
+        Eine Lieferung mit oder ohne Aufbau ist gegen Aufpreis im Voraus zu vereinbaren.
       </p>
 
       <h3>§ 3 Abholung durch Dritte</h3>

@@ -284,11 +284,13 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
 
             {hasPrices && parseFloat(preisLieferung) === 0 && (
               <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10 text-sm">
-                <p className="text-white font-semibold">Leistungsumfang: Abholung an unserem Lager</p>
+                <p className="text-white font-semibold">Leistungsumfang: Abholung am Treffpunkt</p>
                 <p className="text-gray-400 mt-1">
-                  Die Artikel werden von Ihnen am vereinbarten Termin in
-                  Alsbach-Hähnlein abgeholt und nach dem Event wieder zurückgebracht. Lieferung
-                  und Aufbau sind gegen Aufpreis möglich — bitte melden Sie sich falls gewünscht.
+                  Die Artikel werden von Ihnen am vereinbarten Termin am Treffpunkt{" "}
+                  <strong>Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein</strong>{" "}
+                  abgeholt und nach dem Event ebenfalls dort zurückgebracht.
+                  Den genauen Termin sprechen wir telefonisch mit Ihnen ab.
+                  Lieferung und Aufbau sind gegen Aufpreis möglich — bitte melden Sie sich falls gewünscht.
                 </p>
               </div>
             )}

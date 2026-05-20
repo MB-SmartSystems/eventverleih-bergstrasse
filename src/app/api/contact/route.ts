@@ -354,7 +354,7 @@ Gewuenschter Mietzeitraum:
 Was Sie angefragt haben:
 ${summary}
 
-Hinweis: Wir vermieten standardmaessig zur Selbstabholung am Lager in Alsbach-Haehnlein. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.
+Hinweis: Wir vermieten standardmaessig zur Selbstabholung an unserem Treffpunkt (Grillhuette Sandwiese / Freizeitanlage in Alsbach-Haehnlein). Den genauen Uebergabe-Termin sprechen wir telefonisch ab. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.
 
 Falls Sie noch Fragen haben oder etwas ergaenzen moechten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
 
