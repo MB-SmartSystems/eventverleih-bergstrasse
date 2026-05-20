@@ -10,6 +10,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
 import BuchungChecklist from "./BuchungChecklist";
+import TerminePanel from "./TerminePanel";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
@@ -48,6 +49,10 @@ type BuchungRow = {
   Zahlungen_JSON: string | null;
   Checklist_State_JSON: string | null;
   Akzeptiert_am?: string | null;
+  Uebergabe_Termin?: string | null;
+  Rueckgabe_Termin?: string | null;
+  Calendar_Event_ID_Uebergabe?: string | null;
+  Calendar_Event_ID_Rueckgabe?: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
   Kaution_Rueckzahlung_am: string | null;
@@ -495,6 +500,15 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             restzahlungLink={buchung.Stripe_Restzahlung_Link}
             anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
             restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
+          />
+
+          {/* Termine (Uebergabe + Rueckgabe) — wird in Google Calendar synct wenn ENV gesetzt */}
+          <TerminePanel
+            buchungId={buchung.id}
+            uebergabeInitial={buchung.Uebergabe_Termin ?? null}
+            rueckgabeInitial={buchung.Rueckgabe_Termin ?? null}
+            calendarIdUebergabe={buchung.Calendar_Event_ID_Uebergabe ?? null}
+            calendarIdRueckgabe={buchung.Calendar_Event_ID_Rueckgabe ?? null}
           />
 
           {/* Status-Aktionen */}
