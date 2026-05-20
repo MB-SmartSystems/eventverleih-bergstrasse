@@ -80,6 +80,14 @@ export async function POST(
       Ruecknahme_Schaden_JSON: JSON.stringify(schaden),
       Ruecknahme_Datum: body.ruecknahme_datum || new Date().toISOString().slice(0, 10),
     };
+
+    // Wenn keine sofortige Kaution-Aufloesung gewuenscht: 2-Werktage-Pruefphase starten
+    if (!kautionAufloesung && buchung.Kaution_Soll_Eur) {
+      const prueffrist = new Date();
+      prueffrist.setDate(prueffrist.getDate() + 2); // pragmatisch +2 Tage (echte Werktage-Logik spaeter)
+      patch.Kaution_Pruefung_Status = "offen";
+      patch.Kaution_Prueffrist_bis = prueffrist.toISOString().slice(0, 10);
+    }
     if (schadenBetrag > 0) {
       patch.Schaden_Betrag_Eur = schadenBetrag;
       patch.Schaden_Dokumentiert_am = new Date().toISOString().slice(0, 10);

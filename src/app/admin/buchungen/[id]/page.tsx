@@ -11,6 +11,7 @@ import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
 import BuchungChecklist from "./BuchungChecklist";
 import TerminePanel from "./TerminePanel";
+import KautionErstattenPanel from "./KautionErstattenPanel";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
@@ -53,6 +54,8 @@ type BuchungRow = {
   Rueckgabe_Termin?: string | null;
   Calendar_Event_ID_Uebergabe?: string | null;
   Calendar_Event_ID_Rueckgabe?: string | null;
+  Kaution_Pruefung_Status?: { value: string } | string | null;
+  Kaution_Prueffrist_bis?: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
   Kaution_Rueckzahlung_am: string | null;
@@ -510,6 +513,18 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             calendarIdUebergabe={buchung.Calendar_Event_ID_Uebergabe ?? null}
             calendarIdRueckgabe={buchung.Calendar_Event_ID_Rueckgabe ?? null}
           />
+
+          {/* Kaution-Pruefphase: wird nach Rueckgabe sichtbar wenn Kaution offen */}
+          {status === "Zurueckgegeben" &&
+           !buchung.Kaution_Rueckzahlung_am &&
+           parseFloat(buchung.Kaution_Soll_Eur ?? "0") > 0 && (
+            <KautionErstattenPanel
+              buchungId={buchung.id}
+              kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
+              prueffristBis={buchung.Kaution_Prueffrist_bis ?? null}
+              hasStripeHold={!!buchung.Stripe_Kaution_PaymentIntent}
+            />
+          )}
 
           {/* Status-Aktionen */}
           <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
