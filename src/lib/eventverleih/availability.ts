@@ -1,21 +1,20 @@
 /**
  * Verfuegbarkeits-Logik fuer Eventverleih-Artikel.
  *
- * Plan ich-hab-mal-bitte-snappy-boole, Punkt 7:
+ * Plan Phase 5 A2-A4:
  *   - Hart-Reservierte Buchungen (Status_Erweitert in [Reserviert, Uebergeben, In_Miete])
- *     blockieren die Verfuegbarkeit.
- *   - Soft-Reservierte Buchungen (Anfrage, Angebot_erstellt, Angebot_versendet, Bestaetigt)
- *     blockieren NICHT — der Manuel sieht sie nur als Warnung im Admin via checkConflicts().
- *
- * Verfuegbarkeit fuer einen Artikel im Zeitraum:
- *   verfuegbar = Bestand_OK > Summe(Anzahl) aller Buchungs_Position-Rows,
- *                deren Buchung Hart-Status hat UND Datums-Overlap mit [von, bis].
- *
- * Im Kunden-UI wird NUR ein boolean (ja/nein) zurueckgegeben — keine Anzahl-Anzeige.
+ *     blockieren die Verfuegbarkeit
+ *   - Soft-Reservierte (Anfrage, Angebot_erstellt, Angebot_versendet, Bestaetigt)
+ *     blockieren NICHT — Admin sieht sie nur als Warnung via checkConflicts()
+ *   - Bestand-effektiv = Bestand_OK − Bestand_Repair − Bestand_Defekt
+ *   - Nur Aktiv=true Artikel zaehlen
+ *   - Liefert restzahl + bestand_gesamt fuer "nur noch X verfuegbar"-Anzeige
+ *   - 30s in-memory Cache pro {artikelIds-Hash, von, bis}
  */
 import { listAllRows, TABLES } from "@/lib/baserow/client";
 
 const HARD_STATI = new Set(["Reserviert", "Uebergeben", "In_Miete"]);
+const CACHE_TTL_MS = 30_000;
 
 interface BuchungLite {
   id: number;
@@ -35,13 +34,17 @@ interface ArtikelLite {
   id: number;
   Bezeichnung?: string;
   Bestand_OK: string | number | null;
-  Aktiv?: boolean;
+  Bestand_Repair?: string | number | null;
+  Bestand_Defekt?: string | number | null;
+  Aktiv?: boolean | { value: string } | null;
 }
 
 export interface AvailabilityResult {
   artikel_id: number;
   artikel_name: string;
   available: boolean;
+  restzahl: number;
+  bestand_gesamt: number;
 }
 
 function parseInt0(v: string | number | null | undefined): number {
@@ -60,13 +63,47 @@ function rangeOverlaps(
   return aVon <= bBis && aBis >= bVon;
 }
 
+function isAktiv(a: ArtikelLite): boolean {
+  const v = a.Aktiv;
+  if (v === undefined || v === null) return true; // Wenn kein Feld → annehmen aktiv
+  if (typeof v === "boolean") return v;
+  if (typeof v === "object" && "value" in v) {
+    const s = String(v.value || "").toLowerCase();
+    return s === "ja" || s === "true" || s === "aktiv";
+  }
+  return Boolean(v);
+}
+
+// ----- Cache -----
+type CacheEntry = { result: Map<number, AvailabilityResult>; expires: number };
+const cache = new Map<string, CacheEntry>();
+
+function cacheKey(artikelIds: number[], von: string, bis: string): string {
+  const sortedIds = [...artikelIds].sort((a, b) => a - b).join(",");
+  return `${von}|${bis}|${sortedIds || "ALL"}`;
+}
+
+function cacheGet(key: string): Map<number, AvailabilityResult> | null {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expires) {
+    cache.delete(key);
+    return null;
+  }
+  return entry.result;
+}
+
+function cacheSet(key: string, result: Map<number, AvailabilityResult>): void {
+  cache.set(key, { result, expires: Date.now() + CACHE_TTL_MS });
+}
+
 /**
  * Berechnet Verfuegbarkeit fuer eine Liste Artikel-IDs im gegebenen Zeitraum.
  *
  * @param artikelIds Liste Artikel-IDs (Baserow-Row-IDs)
  * @param von ISO-Datum YYYY-MM-DD
  * @param bis ISO-Datum YYYY-MM-DD
- * @returns Map artikel_id -> { available: boolean }
+ * @returns Map artikel_id -> AvailabilityResult { available, restzahl, bestand_gesamt }
  */
 export async function getAvailability(
   artikelIds: number[],
@@ -80,6 +117,10 @@ export async function getAvailability(
   if (bis < von) {
     throw new Error("getAvailability: bis < von");
   }
+
+  const key = cacheKey(artikelIds, von, bis);
+  const cached = cacheGet(key);
+  if (cached) return cached;
 
   // Lade Buchungen + Buchungs_Position + Artikel parallel
   const [buchungenRes, positionenRes, artikelRes] = await Promise.all([
@@ -110,30 +151,53 @@ export async function getAvailability(
     }
   }
 
-  // Artikel-Bestand abrufen + Name lookup
-  const bestandProArtikel = new Map<number, number>();
-  const nameProArtikel = new Map<number, string>();
+  // Artikel-Daten mappen (Name + effektiver Bestand)
+  // effektiver Bestand = Bestand_OK − Bestand_Repair − Bestand_Defekt
+  // Nur aktive Artikel werden positiv gerechnet, inaktive bekommen Bestand 0
+  const artikelData = new Map<number, { name: string; bestandEffektiv: number; aktiv: boolean }>();
   for (const art of artikelRes.results) {
-    bestandProArtikel.set(art.id, parseInt0(art.Bestand_OK));
-    nameProArtikel.set(art.id, art.Bezeichnung || "");
-  }
-
-  // Pro angefragten Artikel: available = Bestand > Belegung
-  const result = new Map<number, AvailabilityResult>();
-  for (const aid of artikelIds) {
-    const bestand = bestandProArtikel.get(aid) ?? 0;
-    const belegt = belegungProArtikel.get(aid) ?? 0;
-    result.set(aid, {
-      artikel_id: aid,
-      artikel_name: nameProArtikel.get(aid) || "",
-      available: bestand > belegt,
+    const ok = parseInt0(art.Bestand_OK);
+    const repair = parseInt0(art.Bestand_Repair);
+    const defekt = parseInt0(art.Bestand_Defekt);
+    const aktiv = isAktiv(art);
+    artikelData.set(art.id, {
+      name: art.Bezeichnung || "",
+      bestandEffektiv: Math.max(0, ok - repair - defekt),
+      aktiv,
     });
   }
+
+  // Pro angefragten Artikel: available + restzahl
+  const result = new Map<number, AvailabilityResult>();
+  for (const aid of artikelIds) {
+    const data = artikelData.get(aid);
+    if (!data) {
+      result.set(aid, {
+        artikel_id: aid,
+        artikel_name: "",
+        available: false,
+        restzahl: 0,
+        bestand_gesamt: 0,
+      });
+      continue;
+    }
+    const belegt = belegungProArtikel.get(aid) ?? 0;
+    const restzahl = data.aktiv ? Math.max(0, data.bestandEffektiv - belegt) : 0;
+    result.set(aid, {
+      artikel_id: aid,
+      artikel_name: data.name,
+      available: restzahl > 0,
+      restzahl,
+      bestand_gesamt: data.bestandEffektiv,
+    });
+  }
+
+  cacheSet(key, result);
   return result;
 }
 
 /**
- * Convenience: ALLE Artikel verfuegbar pruefen, ohne explizit IDs angeben zu muessen.
+ * Convenience: ALLE aktiven Artikel verfuegbar pruefen, ohne explizit IDs angeben zu muessen.
  * Wird vom Sortiment-Frontend genutzt.
  */
 export async function getAvailabilityForAllArtikel(
@@ -141,9 +205,11 @@ export async function getAvailabilityForAllArtikel(
   bis: string,
 ): Promise<Map<number, AvailabilityResult>> {
   const artikelRes = await listAllRows<ArtikelLite>(TABLES.Artikel);
-  return getAvailability(
-    artikelRes.results.map((a) => a.id),
-    von,
-    bis,
-  );
+  const aktiveIds = artikelRes.results.filter((a) => isAktiv(a)).map((a) => a.id);
+  return getAvailability(aktiveIds, von, bis);
+}
+
+/** Cache komplett leeren — nuetzlich nach Buchungs-Status-Wechsel via Webhook */
+export function invalidateAvailabilityCache(): void {
+  cache.clear();
 }

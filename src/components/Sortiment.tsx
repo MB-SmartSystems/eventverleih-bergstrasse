@@ -17,22 +17,31 @@ function normalizeName(s: string): string {
     .trim();
 }
 
-type AvailabilityState = "available" | "unavailable" | "unknown";
+type AvailabilityState = "available" | "unavailable" | "unknown" | "knapp";
+
+interface AvailabilityEntry {
+  available: boolean;
+  restzahl: number;
+  bestand_gesamt: number;
+}
 
 function ProductCard({
   product,
   onImageClick,
   availability,
+  restzahl,
 }: {
   product: RentalProduct;
   onImageClick: (images: string[], alt: string, startIndex: number) => void;
   availability: AvailabilityState;
+  restzahl?: number;
 }) {
   const { addItem, removeItem, getQuantity } = useCart();
   const qty = getQuantity(product.name);
   const thumb = product.images[0] || product.image;
   const hasMultiple = product.images.length > 1;
   const isUnavailable = availability === "unavailable";
+  const isKnapp = availability === "knapp";
 
   return (
     <div
@@ -69,6 +78,11 @@ function ProductCard({
         {availability === "available" && qty === 0 && (
           <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-green-500/90 text-white text-[10px] font-semibold uppercase tracking-wide">
             verfügbar
+          </div>
+        )}
+        {availability === "knapp" && qty === 0 && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[10px] font-semibold uppercase tracking-wide">
+            nur noch {restzahl} verfügbar
           </div>
         )}
         {availability === "unavailable" && (
@@ -152,7 +166,7 @@ export default function Sortiment() {
   const [lightbox, setLightbox] = useState<
     { slides: { src: string; alt: string }[]; index: number } | null
   >(null);
-  const [availabilityMap, setAvailabilityMap] = useState<Map<string, boolean>>(new Map());
+  const [availabilityMap, setAvailabilityMap] = useState<Map<string, AvailabilityEntry>>(new Map());
   const searchParams = useSearchParams();
   const von = searchParams.get("von") || "";
   const bis = searchParams.get("bis") || "";
@@ -181,11 +195,17 @@ export default function Sortiment() {
       body: JSON.stringify({ von, bis }),
     })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { items?: Array<{ artikel_name: string; available: boolean }> } | null) => {
+      .then((j: { items?: Array<{ artikel_name: string; available: boolean; restzahl: number; bestand_gesamt: number }> } | null) => {
         if (cancelled || !j?.items) return;
-        const m = new Map<string, boolean>();
+        const m = new Map<string, AvailabilityEntry>();
         for (const it of j.items) {
-          if (it.artikel_name) m.set(normalizeName(it.artikel_name), it.available);
+          if (it.artikel_name) {
+            m.set(normalizeName(it.artikel_name), {
+              available: it.available,
+              restzahl: it.restzahl,
+              bestand_gesamt: it.bestand_gesamt,
+            });
+          }
         }
         setAvailabilityMap(m);
       })
@@ -197,9 +217,9 @@ export default function Sortiment() {
     };
   }, [hasRange, von, bis]);
 
-  const lookupAvailability = (name: string): AvailabilityState => {
-    if (!hasRange) return "unknown";
-    if (availabilityMap.size === 0) return "unknown";
+  const lookupEntry = (name: string): AvailabilityEntry | undefined => {
+    if (!hasRange) return undefined;
+    if (availabilityMap.size === 0) return undefined;
     const norm = normalizeName(name);
     // Exact match
     let val = availabilityMap.get(norm);
@@ -212,8 +232,18 @@ export default function Sortiment() {
         }
       });
     }
-    if (val === undefined) return "unknown";
-    return val ? "available" : "unavailable";
+    return val;
+  };
+
+  const lookupAvailability = (name: string): { state: AvailabilityState; restzahl?: number } => {
+    const entry = lookupEntry(name);
+    if (entry === undefined) return { state: "unknown" };
+    if (!entry.available || entry.restzahl === 0) return { state: "unavailable", restzahl: 0 };
+    // Knapp: restzahl <= bestand_gesamt / 2
+    if (entry.bestand_gesamt > 0 && entry.restzahl <= entry.bestand_gesamt / 2) {
+      return { state: "knapp", restzahl: entry.restzahl };
+    }
+    return { state: "available", restzahl: entry.restzahl };
   };
 
   const handleImageClick = (images: string[], alt: string, startIndex: number) => {
@@ -269,14 +299,18 @@ export default function Sortiment() {
                   </div>
 
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                    {products.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product}
-                        onImageClick={handleImageClick}
-                        availability={lookupAvailability(product.name)}
-                      />
-                    ))}
+                    {products.map((product) => {
+                      const avail = lookupAvailability(product.name);
+                      return (
+                        <ProductCard
+                          key={product.id}
+                          product={product}
+                          onImageClick={handleImageClick}
+                          availability={avail.state}
+                          restzahl={avail.restzahl}
+                        />
+                      );
+                    })}
                   </div>
                 </div>
               );

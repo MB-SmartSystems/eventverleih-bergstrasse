@@ -4,7 +4,6 @@
  * DateRangePicker — gross genuger Popup-Kalender fuer Mietzeitraum (Von / Bis).
  *
  * Zwei separate Felder, jedes oeffnet einen eigenen Monats-Kalender mit Pfeil-Navigation.
- * Quick-Picks im "Von"-Picker fuer typische Mietdauern (Wochenende, Lang-Wochenende, 5 Tage).
  * Smart-Default: nach Von-Auswahl wird Bis auf Von+3 vorgeschlagen (Lang-Wochenend-Muster).
  *
  * Constraints (Plan ich-hab-mal-bitte-snappy-boole, Punkt 7 + Manuel-Klarstellung):
@@ -66,47 +65,6 @@ function addDays(d: Date, days: number): Date {
   return c;
 }
 
-/**
- * Berechnet das naechste Wochenende ab `from`.
- * weekday: 5=Freitag, 6=Samstag, 0=Sonntag, 1=Montag.
- */
-function nextWeekday(from: Date, targetWeekday: number): Date {
-  const d = new Date(from);
-  d.setHours(0, 0, 0, 0);
-  const cur = d.getDay();
-  let delta = (targetWeekday - cur + 7) % 7;
-  if (delta === 0) delta = 7; // immer „naechstes" — nicht „heute"
-  d.setDate(d.getDate() + delta);
-  return d;
-}
-
-const QUICK_PICKS: Array<{ label: string; build: (from: Date) => { von: Date; bis: Date } }> = [
-  {
-    label: "Wochenende (Sa–So)",
-    build: (from) => {
-      const sat = nextWeekday(from, 6);
-      const sun = addDays(sat, 1);
-      return { von: sat, bis: sun };
-    },
-  },
-  {
-    label: "Lang-Wochenende (Fr–Mo)",
-    build: (from) => {
-      const fri = nextWeekday(from, 5);
-      const mon = addDays(fri, 3);
-      return { von: fri, bis: mon };
-    },
-  },
-  {
-    label: "5 Tage (Do–Mo)",
-    build: (from) => {
-      const thu = nextWeekday(from, 4);
-      const mon = addDays(thu, 4);
-      return { von: thu, bis: mon };
-    },
-  },
-];
-
 export default function DateRangePicker({ value, onChange, layout = "form", className = "" }: Props) {
   const [openField, setOpenField] = useState<null | "von" | "bis">(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -161,16 +119,6 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
       setOpenField(null);
     },
     [value, onChange],
-  );
-
-  const handleQuickPick = useCallback(
-    (idx: number) => {
-      const today = todayPlus(0);
-      const { von, bis } = QUICK_PICKS[idx].build(today);
-      onChange({ von: isoFromDate(von), bis: isoFromDate(bis) });
-      setOpenField(null);
-    },
-    [onChange],
   );
 
   // Disable-Funktionen
@@ -250,25 +198,6 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
                 ✕
               </button>
             </div>
-
-            {/* Quick-Picks nur im Von-Picker */}
-            {openField === "von" && (
-              <div className="mb-3 pb-3 border-b border-white/10">
-                <div className="text-xs text-gray-400 mb-2 uppercase tracking-wider">Schnellauswahl</div>
-                <div className="flex flex-wrap gap-2">
-                  {QUICK_PICKS.map((qp, i) => (
-                    <button
-                      key={qp.label}
-                      type="button"
-                      onClick={() => handleQuickPick(i)}
-                      className="px-3 py-1.5 text-xs rounded-full bg-gold-500/15 text-gold-300 hover:bg-gold-500/25 hover:text-gold-200 transition-all cursor-pointer"
-                    >
-                      {qp.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <DayPicker
               mode="single"

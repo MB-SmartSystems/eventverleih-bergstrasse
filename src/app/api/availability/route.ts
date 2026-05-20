@@ -44,8 +44,17 @@ export async function POST(req: NextRequest) {
     const map = Array.isArray(body.artikel_ids) && body.artikel_ids.length > 0
       ? await getAvailability(body.artikel_ids.filter((x) => typeof x === "number"), von, bis)
       : await getAvailabilityForAllArtikel(von, bis);
+    // Items enthalten jetzt restzahl + bestand_gesamt — Frontend kann "nur noch X verfuegbar" rendern
     const items = Array.from(map.values());
-    return NextResponse.json({ ok: true, von, bis, items });
+    return NextResponse.json({
+      ok: true,
+      von,
+      bis,
+      items,
+      cached: false,
+    }, {
+      headers: { "Cache-Control": "no-store" }, // Server-Cache (30s in-memory) reicht
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
     console.error("[availability]", msg);
