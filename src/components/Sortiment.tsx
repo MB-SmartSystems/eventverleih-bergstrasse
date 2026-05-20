@@ -11,9 +11,25 @@ function normalizeName(s: string): string {
     .toLowerCase()
     .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
     .replace(/×/g, "x")
+    // Em-dash, En-dash, Minus → hyphen (sonst matched „Gewicht — X" nicht „X-Gewicht")
+    .replace(/[—–−]/g, "-")
     .replace(/[()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// Token-Sort-Match: gleiche Tokens unabhaengig von Reihenfolge.
+// „gewicht-metallplatte" vs „metallplatten-gewicht" → Tokens [gewicht, metallplatte(n)]
+// Substring je Token toleriert Plural/Singular („metallplatte" in „metallplatten").
+function tokensMatch(a: string, b: string): boolean {
+  const tokenize = (s: string) =>
+    s.split(/[-\s]+/).filter((t) => t.length >= 3);
+  const ta = tokenize(a);
+  const tb = tokenize(b);
+  if (ta.length === 0 || tb.length === 0) return false;
+  // Jeder Token aus dem kuerzeren Set muss in einem Token aus dem laengeren stecken
+  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
+  return shorter.every((t) => longer.some((l) => l.includes(t) || t.includes(l)));
 }
 
 type AvailabilityState = "available" | "unavailable" | "unknown" | "knapp";
@@ -74,21 +90,6 @@ function ProductCard({
             {qty}
           </div>
         )}
-        {availability === "available" && qty === 0 && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-green-500/90 text-white text-[10px] font-semibold uppercase tracking-wide">
-            verfügbar
-          </div>
-        )}
-        {availability === "knapp" && qty === 0 && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[10px] font-semibold uppercase tracking-wide">
-            nur noch {restzahl} verfügbar
-          </div>
-        )}
-        {availability === "unavailable" && (
-          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-gray-700/90 text-white text-[10px] font-semibold uppercase tracking-wide">
-            nicht verfügbar
-          </div>
-        )}
       </button>
       <div className="p-4 md:p-5 flex flex-col flex-1">
         <h4 className="font-semibold text-white text-lg mb-1">
@@ -121,17 +122,55 @@ function ProductCard({
           )}
 
           {qty === 0 ? (
-            <button
-              onClick={() => addItem(product.name, product.price)}
-              disabled={isUnavailable}
-              className={`w-full py-2 border text-sm font-medium rounded-lg transition-all ${
-                isUnavailable
-                  ? "border-white/10 text-gray-500 cursor-not-allowed"
-                  : "border-gold-500/30 text-gold-400 hover:bg-gold-500/10"
-              }`}
-            >
-              {isUnavailable ? "Im Zeitraum nicht verfügbar" : "+ Zur Anfrage hinzufügen"}
-            </button>
+            <>
+              {isKnapp && (
+                <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"
+                    />
+                  </svg>
+                  Nur noch {restzahl} im Zeitraum
+                </div>
+              )}
+              {isUnavailable && (
+                <div className="mb-2 inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-medium">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L5.636 5.636"
+                    />
+                  </svg>
+                  Im Zeitraum belegt
+                </div>
+              )}
+              <button
+                onClick={() => addItem(product.name, product.price)}
+                disabled={isUnavailable}
+                className={`w-full py-2 border text-sm font-medium rounded-lg transition-all ${
+                  isUnavailable
+                    ? "border-white/10 text-gray-500 cursor-not-allowed"
+                    : "border-gold-500/30 text-gold-400 hover:bg-gold-500/10"
+                }`}
+              >
+                {isUnavailable ? "Bitte anderen Termin waehlen" : "+ Zur Anfrage hinzufuegen"}
+              </button>
+            </>
           ) : (
             <div className="flex items-center justify-between">
               <button
@@ -227,6 +266,15 @@ export default function Sortiment() {
       availabilityMap.forEach((v, k) => {
         if (val !== undefined) return;
         if (k.includes(norm) || norm.includes(k)) {
+          val = v;
+        }
+      });
+    }
+    if (val === undefined) {
+      // Token-Sort-Match (Word-Order-tolerant, Plural/Singular)
+      availabilityMap.forEach((v, k) => {
+        if (val !== undefined) return;
+        if (tokensMatch(k, norm)) {
           val = v;
         }
       });

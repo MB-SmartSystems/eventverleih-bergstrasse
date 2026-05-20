@@ -211,6 +211,7 @@ export async function POST(req: NextRequest) {
       kaution_pro_stueck: number;
       aufbau_pauschale: number;
       position_summe: number;
+      auf_anfrage: boolean;
     }
     const matched: MatchedItem[] = [];
     const unmatched: string[] = [];
@@ -233,6 +234,7 @@ export async function POST(req: NextRequest) {
           kaution_pro_stueck: kps,
           aufbau_pauschale: ap,
           position_summe: ep * ci.quantity,
+          auf_anfrage: false, // wird nach Availability-Check gesetzt
         });
       }
     }
@@ -242,6 +244,7 @@ export async function POST(req: NextRequest) {
     // === Safety-Net: Verfuegbarkeits-Check fuer alle gematchten Artikel
     // Falls inzwischen jemand anderes hart-reserviert hat (Stripe-Anzahlung), lehnen wir die
     // Anfrage ab mit klarem Hinweis welche Artikel nicht verfuegbar sind.
+    // Items mit on_request=true zaehlen als verfuegbar (Bestand_Bestellbar=true Pattern).
     if (matched.length > 0) {
       try {
         const availMap = await getAvailability(
@@ -249,6 +252,10 @@ export async function POST(req: NextRequest) {
           payload.event_datum_von,
           payload.event_datum_bis,
         );
+        // on_request-Flag pro Item snapshot'en fuer Position-Marker
+        for (const m of matched) {
+          m.auf_anfrage = availMap.get(m.artikelId)?.on_request ?? false;
+        }
         const ausgebucht = matched.filter((m) => availMap.get(m.artikelId)?.available === false);
         if (ausgebucht.length > 0) {
           const namen = ausgebucht.map((m) => m.bezeichnung).join(", ");
@@ -325,7 +332,10 @@ export async function POST(req: NextRequest) {
         Aufbau_gebucht: false,
         Aufbau_Pauschale_Snapshot_Eur: m.aufbau_pauschale.toFixed(2),
         Kaution_Pro_Stueck_Snapshot_Eur: m.kaution_pro_stueck.toFixed(2),
-        Notizen: "Auto-erstellt aus Anfrage-Formular Cart",
+        Auf_Anfrage_Bei_Buchung: m.auf_anfrage,
+        Notizen: m.auf_anfrage
+          ? "Auto-erstellt aus Anfrage-Formular Cart. ITEM AUF BESTELLUNG — bitte Beschaffung pruefen."
+          : "Auto-erstellt aus Anfrage-Formular Cart",
       }).then((p) => {
         created.push({ table: TABLES.Buchungs_Position, id: p.id });
         return p;

@@ -34,8 +34,9 @@ interface ArtikelLite {
   id: number;
   Bezeichnung?: string;
   Bestand_OK: string | number | null;
-  Bestand_Repair?: string | number | null;
+  Bestand_Reparatur?: string | number | null;
   Bestand_Defekt?: string | number | null;
+  Bestand_Bestellbar?: boolean | { value: string } | null;
   Aktiv?: boolean | { value: string } | null;
 }
 
@@ -45,6 +46,8 @@ export interface AvailabilityResult {
   available: boolean;
   restzahl: number;
   bestand_gesamt: number;
+  /** Wenn true: Artikel ist auf-Bestellung verfuegbar (Bestand 0, aber Bestand_Bestellbar=true). Frontend behandelt nahtlos wie verfuegbar; Backend markiert die Buchungs-Position fuer Manuels Beschaffungs-Pruefung. */
+  on_request: boolean;
 }
 
 function parseInt0(v: string | number | null | undefined): number {
@@ -70,6 +73,17 @@ function isAktiv(a: ArtikelLite): boolean {
   if (typeof v === "object" && "value" in v) {
     const s = String(v.value || "").toLowerCase();
     return s === "ja" || s === "true" || s === "aktiv";
+  }
+  return Boolean(v);
+}
+
+function isBestellbar(a: ArtikelLite): boolean {
+  const v = a.Bestand_Bestellbar;
+  if (v === undefined || v === null) return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "object" && "value" in v) {
+    const s = String(v.value || "").toLowerCase();
+    return s === "ja" || s === "true";
   }
   return Boolean(v);
 }
@@ -151,23 +165,28 @@ export async function getAvailability(
     }
   }
 
-  // Artikel-Daten mappen (Name + effektiver Bestand)
-  // effektiver Bestand = Bestand_OK − Bestand_Repair − Bestand_Defekt
+  // Artikel-Daten mappen (Name + effektiver Bestand + Bestellbar-Flag)
+  // effektiver Bestand = Bestand_OK − Bestand_Reparatur − Bestand_Defekt
   // Nur aktive Artikel werden positiv gerechnet, inaktive bekommen Bestand 0
-  const artikelData = new Map<number, { name: string; bestandEffektiv: number; aktiv: boolean }>();
+  const artikelData = new Map<
+    number,
+    { name: string; bestandEffektiv: number; aktiv: boolean; bestellbar: boolean }
+  >();
   for (const art of artikelRes.results) {
     const ok = parseInt0(art.Bestand_OK);
-    const repair = parseInt0(art.Bestand_Repair);
+    const repair = parseInt0(art.Bestand_Reparatur);
     const defekt = parseInt0(art.Bestand_Defekt);
     const aktiv = isAktiv(art);
+    const bestellbar = isBestellbar(art);
     artikelData.set(art.id, {
       name: art.Bezeichnung || "",
       bestandEffektiv: Math.max(0, ok - repair - defekt),
       aktiv,
+      bestellbar,
     });
   }
 
-  // Pro angefragten Artikel: available + restzahl
+  // Pro angefragten Artikel: available + restzahl + on_request
   const result = new Map<number, AvailabilityResult>();
   for (const aid of artikelIds) {
     const data = artikelData.get(aid);
@@ -178,17 +197,25 @@ export async function getAvailability(
         available: false,
         restzahl: 0,
         bestand_gesamt: 0,
+        on_request: false,
       });
       continue;
     }
     const belegt = belegungProArtikel.get(aid) ?? 0;
-    const restzahl = data.aktiv ? Math.max(0, data.bestandEffektiv - belegt) : 0;
+    const restzahlPhysisch = data.aktiv ? Math.max(0, data.bestandEffektiv - belegt) : 0;
+
+    // On-Request: Artikel ist bestellbar markiert UND physisch nicht verfuegbar (Bestand 0 oder alles belegt).
+    // Nahtlos im Frontend behandelt (= verfuegbar), aber on_request=true damit Backend Buchungs_Position markieren kann.
+    const isOnRequest =
+      data.aktiv && data.bestellbar && restzahlPhysisch === 0;
+
     result.set(aid, {
       artikel_id: aid,
       artikel_name: data.name,
-      available: restzahl > 0,
-      restzahl,
+      available: restzahlPhysisch > 0 || isOnRequest,
+      restzahl: restzahlPhysisch,
       bestand_gesamt: data.bestandEffektiv,
+      on_request: isOnRequest,
     });
   }
 
