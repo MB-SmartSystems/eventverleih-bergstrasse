@@ -12,6 +12,12 @@ export default function Contact() {
   const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
   const [errorText, setErrorText] = useState("");
 
+  const todayPlus1Str = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  })();
+
   useEffect(() => {
     if (totalItems > 0) {
       setMessage(cartSummaryText());
@@ -24,6 +30,25 @@ export default function Contact() {
     // Form-Reference VOR await speichern — e.currentTarget ist nach await null (React-Event-Pooling)
     const form = e.currentTarget;
     const fd = new FormData(form);
+
+    const eventVon = String(fd.get("event_datum_von") || "");
+    const eventBis = String(fd.get("event_datum_bis") || "");
+    if (!eventVon || !eventBis) {
+      setErrorText("Mietzeitraum (von und bis) ist Pflicht.");
+      setSubmitResult("error");
+      return;
+    }
+    if (eventBis < eventVon) {
+      setErrorText("Das Bis-Datum muss nach dem Von-Datum liegen.");
+      setSubmitResult("error");
+      return;
+    }
+    if (eventVon < todayPlus1Str) {
+      setErrorText("Der Mietzeitraum muss mindestens ab morgen starten.");
+      setSubmitResult("error");
+      return;
+    }
+
     setSubmitting(true);
     setSubmitResult("idle");
     setErrorText("");
@@ -39,6 +64,8 @@ export default function Contact() {
           adresse_strasse: String(fd.get("adresse_strasse") || ""),
           adresse_plz: String(fd.get("adresse_plz") || ""),
           adresse_ort: String(fd.get("adresse_ort") || ""),
+          event_datum_von: eventVon,
+          event_datum_bis: eventBis,
           nachricht: String(fd.get("nachricht") || ""),
           agb_akzeptiert: agreed,
           cart_items: items.map((i) => ({ name: i.name, quantity: i.quantity })),
@@ -282,6 +309,37 @@ export default function Contact() {
                       type="text"
                       name="adresse_ort"
                       autoComplete="address-level2"
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-white/10">
+                <div className="text-sm text-gray-300 mb-3">
+                  Mietzeitraum <span className="text-gold-400">*</span>
+                  <span className="block text-xs text-gray-500 mt-1">
+                    Wann brauchst du die Artikel? Liefer- und Rueckgabetag.
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Von</label>
+                    <input
+                      type="date"
+                      name="event_datum_von"
+                      required
+                      min={todayPlus1Str}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Bis</label>
+                    <input
+                      type="date"
+                      name="event_datum_bis"
+                      required
+                      min={todayPlus1Str}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                     />
                   </div>

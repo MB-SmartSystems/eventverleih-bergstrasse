@@ -37,10 +37,15 @@ interface ContactPayload {
   adresse_strasse?: string;
   adresse_plz?: string;
   adresse_ort?: string;
+  event_datum_von: string;
+  event_datum_bis: string;
   nachricht: string;
   agb_akzeptiert: boolean;
   cart_items?: CartItemPayload[];
 }
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const MAX_RANGE_DAYS = 60;
 
 interface KundenRow {
   id: number;
@@ -74,6 +79,21 @@ function validate(body: unknown): ContactPayload | string {
   if (b.adresse_plz !== undefined && typeof b.adresse_plz !== "string") return "adresse_plz must be string";
   if (b.adresse_ort !== undefined && typeof b.adresse_ort !== "string") return "adresse_ort must be string";
   if (b.cart_items !== undefined && !Array.isArray(b.cart_items)) return "cart_items must be array";
+
+  if (!b.event_datum_von || typeof b.event_datum_von !== "string" || !ISO_DATE_RE.test(b.event_datum_von)) {
+    return "event_datum_von erforderlich (Format YYYY-MM-DD)";
+  }
+  if (!b.event_datum_bis || typeof b.event_datum_bis !== "string" || !ISO_DATE_RE.test(b.event_datum_bis)) {
+    return "event_datum_bis erforderlich (Format YYYY-MM-DD)";
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  if (b.event_datum_von < today) return "event_datum_von darf nicht in der Vergangenheit liegen";
+  if (b.event_datum_bis < b.event_datum_von) return "event_datum_bis muss >= event_datum_von sein";
+  const von = new Date(b.event_datum_von);
+  const bis = new Date(b.event_datum_bis);
+  const days = Math.round((bis.getTime() - von.getTime()) / 86_400_000);
+  if (days > MAX_RANGE_DAYS) return `Mietzeitraum darf maximal ${MAX_RANGE_DAYS} Tage betragen`;
+
   return b as ContactPayload;
 }
 
@@ -223,6 +243,8 @@ export async function POST(req: NextRequest) {
       Status: "Anfrage",
       Status_Erweitert: "Anfrage",
       Standort_Typ: "Privatgrund_Kunde",
+      Event_datum_von: payload.event_datum_von,
+      Event_datum_bis: payload.event_datum_bis,
       Notizen: `Anfrage-Text:\n${payload.nachricht}${unmatched.length ? `\n\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : ""}`,
       Kunde_Link: [kundeId],
       Token_Angebot: sharedToken,
@@ -287,10 +309,18 @@ export async function POST(req: NextRequest) {
       ? matched.map((m) => `  ${m.anzahl}× ${m.bezeichnung}`).join("\n") +
         (unmatched.length ? `\n\nWeitere Wuensche: ${unmatched.join(", ")}` : "")
       : `${payload.nachricht}`;
+    const fmtDe = (iso: string) => {
+      const [y, m, d] = iso.split("-");
+      return `${d}.${m}.${y}`;
+    };
+    const zeitraum = `${fmtDe(payload.event_datum_von)} bis ${fmtDe(payload.event_datum_bis)}`;
 
     const mailBody = `${greeting},
 
 vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
+
+Gewuenschter Mietzeitraum:
+  ${zeitraum}
 
 Was Sie angefragt haben:
 ${summary}
@@ -346,6 +376,9 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
             kunde_name: `${payload.vorname} ${payload.nachname}`,
             kunde_email: payload.email,
             kunde_telefon: payload.telefon || "",
+            event_datum_von: payload.event_datum_von,
+            event_datum_bis: payload.event_datum_bis,
+            zeitraum_display: zeitraum,
             cart_summary: cartSummary,
             preise_berechnet: matched.length > 0,
             mietsumme: mietsumme.toFixed(2),
