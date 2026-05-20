@@ -5,6 +5,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
+import KundeRowActions from "./KundeRowActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -40,11 +41,19 @@ export default async function KundenPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-warm-text">Kunden</h1>
-        <p className="text-sm text-warm-muted mt-1">
-          {rows.length} {rows.length === 1 ? "Kunde" : "Kunden"} {term && `gefiltert nach „${term}"`}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-warm-text">Kunden</h1>
+          <p className="text-sm text-warm-muted mt-1">
+            {rows.length} {rows.length === 1 ? "Kunde" : "Kunden"} {term && `gefiltert nach „${term}"`}
+          </p>
+        </div>
+        <Link
+          href="/admin/kunden/neu"
+          className="inline-flex items-center px-4 py-2 rounded-lg bg-accent text-white hover:bg-accent-dark transition-all text-sm font-medium"
+        >
+          + Neuer Kunde
+        </Link>
       </div>
 
       <form className="flex gap-2 max-w-md">
@@ -72,6 +81,7 @@ export default async function KundenPage({ searchParams }: { searchParams: Promi
                 <th className="px-4 py-2.5">Ort</th>
                 <th className="px-4 py-2.5">Wertung</th>
                 <th className="px-4 py-2.5 text-right">Buchungen</th>
+                <th className="px-4 py-2.5"></th>
               </tr>
             </thead>
             <tbody>
@@ -106,6 +116,13 @@ export default async function KundenPage({ searchParams }: { searchParams: Promi
                     )}
                   </td>
                   <td className="px-4 py-3 text-right text-warm-text font-mono">{k.Buchungen?.length ?? 0}</td>
+                  <td className="px-4 py-3 text-right">
+                    <KundeRowActions
+                      kundeId={k.id}
+                      kundeName={`${k.Vorname} ${k.Nachname}`.trim()}
+                      buchungCount={k.Buchungen?.length ?? 0}
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
