@@ -1,19 +1,8 @@
 "use client";
 
 import { useState } from "react";
-
-// Akzeptiert TT.MM.JJJJ und konvertiert zu YYYY-MM-DD.
-function parseGermanDate(input: string): string | null {
-  const s = input.trim();
-  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
-  if (!m) return null;
-  const d = parseInt(m[1], 10);
-  const mo = parseInt(m[2], 10);
-  let y = parseInt(m[3], 10);
-  if (y < 100) y += 2000;
-  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
-  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-}
+import DateRangePicker from "@/components/DateRangePicker";
+import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 interface KundeOption {
   id: number;
@@ -50,8 +39,9 @@ export default function NeueAnfrageForm({
     email: "",
     telefon: "",
   });
-  const [vonInput, setVonInput] = useState("");
-  const [bisInput, setBisInput] = useState("");
+  const [vonIso, setVonIso] = useState<string | null>(null);
+  const [bisIso, setBisIso] = useState<string | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [artikelToAdd, setArtikelToAdd] = useState<number | "">("");
   const [anzahlToAdd, setAnzahlToAdd] = useState(1);
@@ -100,11 +90,7 @@ export default function NeueAnfrageForm({
         return;
       }
     }
-    if (!vonInput.trim() || !bisInput.trim()) { setError("Bitte Mietzeitraum eingeben."); return; }
-    const vonIso = parseGermanDate(vonInput);
-    const bisIso = parseGermanDate(bisInput);
-    if (!vonIso) { setError("Von-Datum bitte im Format TT.MM.JJJJ (z.B. 20.06.2026)."); return; }
-    if (!bisIso) { setError("Bis-Datum bitte im Format TT.MM.JJJJ."); return; }
+    if (!vonIso || !bisIso) { setError("Bitte Mietzeitraum auswaehlen."); return; }
     if (bisIso < vonIso) { setError("Bis-Datum muss nach Von-Datum liegen."); return; }
     if (cart.length === 0) { setError("Bitte mindestens einen Artikel hinzufuegen."); return; }
     setSubmitting(true);
@@ -244,24 +230,45 @@ export default function NeueAnfrageForm({
         {/* Mietzeitraum */}
         <div>
           <label className="block text-sm text-warm-muted mb-1 font-medium">Mietzeitraum</label>
-          <div className="grid grid-cols-2 gap-3">
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="Von: TT.MM.JJJJ"
-              value={vonInput}
-              onChange={(e) => setVonInput(e.target.value)}
-              className={cls}
-            />
-            <input
-              type="text"
-              inputMode="numeric"
-              placeholder="Bis: TT.MM.JJJJ"
-              value={bisInput}
-              onChange={(e) => setBisInput(e.target.value)}
-              className={cls}
-            />
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setPickerOpen((v) => !v)}
+              className="px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm hover:bg-warm-border/30 transition-colors"
+            >
+              {vonIso && bisIso
+                ? `${formatGermanShort(vonIso)} — ${formatGermanShort(bisIso)}`
+                : "Zeitraum auswaehlen"}
+            </button>
+            {(vonIso || bisIso) && (
+              <button
+                type="button"
+                onClick={() => { setVonIso(null); setBisIso(null); }}
+                className="text-xs text-warm-muted hover:text-warm-text underline"
+              >
+                zuruecksetzen
+              </button>
+            )}
           </div>
+          {pickerOpen && (
+            <div className="mt-3 p-4 rounded-lg border border-warm-border bg-warm-bg/40 inline-block">
+              <DateRangePicker
+                variant="admin"
+                rangeVon={vonIso}
+                rangeBis={bisIso}
+                onChange={(von, bis) => {
+                  setVonIso(von);
+                  setBisIso(bis);
+                  if (von && bis) {
+                    window.setTimeout(() => setPickerOpen(false), 250);
+                  }
+                }}
+              />
+              <p className="text-xs text-warm-muted mt-2">
+                Admin-Variante: Vergangenheits-Daten erlaubt (z.B. Nacherfassung).
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Cart */}

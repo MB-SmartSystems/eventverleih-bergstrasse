@@ -1,4 +1,7 @@
+"use client";
+
 import Image from "next/image";
+import HeroBookingPanel from "./HeroBookingPanel";
 
 const categories = [
   {
@@ -71,22 +74,9 @@ export default function Hero() {
             zuverlässig, transparent und regional an der Bergstraße und
             Umgebung.
           </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 mb-10">
-            <a
-              href="#kontakt"
-              className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-lg"
-            >
-              Jetzt Anfrage starten
-            </a>
-            <a
-              href="#sortiment"
-              className="inline-flex items-center justify-center px-8 py-4 border border-white/20 text-white font-medium rounded-lg hover:bg-white/5 transition-all text-lg"
-            >
-              Sortiment ansehen
-            </a>
-          </div>
         </div>
+
+        <HeroBookingPanel />
 
         {/* Category Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">

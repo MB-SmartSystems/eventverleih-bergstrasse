@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
 import ProductLightbox from "./ProductLightbox";
 import type { RentalProduct, ProductCategory, ProductsData } from "@/lib/types";
@@ -167,10 +166,10 @@ export default function Sortiment() {
     { slides: { src: string; alt: string }[]; index: number } | null
   >(null);
   const [availabilityMap, setAvailabilityMap] = useState<Map<string, AvailabilityEntry>>(new Map());
-  const searchParams = useSearchParams();
-  const von = searchParams.get("von") || "";
-  const bis = searchParams.get("bis") || "";
-  const hasRange = /^\d{4}-\d{2}-\d{2}$/.test(von) && /^\d{4}-\d{2}-\d{2}$/.test(bis);
+  const { rangeVon, rangeBis } = useCart();
+  const von = rangeVon || "";
+  const bis = rangeBis || "";
+  const hasRange = Boolean(rangeVon && rangeBis);
 
   useEffect(() => {
     fetch("/api/products")
