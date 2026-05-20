@@ -76,17 +76,9 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
   const vonDate = dateFromIso(value.von);
   const bisDate = dateFromIso(value.bis);
 
-  // Click-outside zum Schliessen
-  useEffect(() => {
-    if (!openField) return;
-    function onClick(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpenField(null);
-      }
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, [openField]);
+  // Click-outside wird via Backdrop-Klick im Modal selbst gehandelt (siehe Modal-onClick).
+  // KEIN document-level mousedown-Listener — der wuerde Klicks im Portal-Kalender als
+  // "ausserhalb" sehen (containerRef ist der Wrapper, NICHT der Portal-Content).
 
   // ESC zum Schliessen
   useEffect(() => {
