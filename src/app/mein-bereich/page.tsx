@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
+import StornoButton from "./StornoButton";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -219,12 +220,23 @@ function BuchungCard({ buchung, variant }: { buchung: BuchungRow; variant: "akti
         </div>
       )}
 
-      {/* Angebot-Link */}
-      {buchung.Token_Angebot && ["Angebot_versendet", "Bestaetigt", "Reserviert"].includes(status) && (
-        <div className="mt-3 pt-3 border-t border-white/10">
-          <Link href={`/angebot/${buchung.Token_Angebot}`} className="text-sm text-gold-400 hover:text-gold-500">
-            Angebot ansehen ↗
-          </Link>
+      {/* Angebot-Link + Storno */}
+      {variant === "aktiv" && (
+        <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-3 flex-wrap">
+          {buchung.Token_Angebot && ["Angebot_versendet", "Bestaetigt", "Reserviert"].includes(status) ? (
+            <Link href={`/angebot/${buchung.Token_Angebot}`} className="text-sm text-gold-400 hover:text-gold-500">
+              Angebot ansehen ↗
+            </Link>
+          ) : <span />}
+          {/* Stornieren nur bei aktiven, noch nicht abgeholten Buchungen */}
+          {!["Uebergeben", "In_Miete", "Zurueckgegeben"].includes(status) && (
+            <StornoButton
+              buchungId={buchung.id}
+              eventDatumVon={buchung.Event_datum_von}
+              mietsumme={gesamt}
+              bezahlt={bezahlt}
+            />
+          )}
         </div>
       )}
     </div>
