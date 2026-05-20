@@ -205,9 +205,21 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const steuernummer = configText(config, "Steuernummer", "");
 
   return (
-    <div className="min-h-screen bg-warm-bg py-8 px-4 sm:py-12">
+    <div className="min-h-screen bg-warm-bg py-8 px-4 sm:py-12 print:bg-white print:py-0 print:px-0">
+      {/* Print-CSS — Browser-Druck/Save-as-PDF-Optimierung */}
+      <style>{`
+        @media print {
+          body { background: white !important; }
+          .no-print { display: none !important; }
+          a[href]::after { content: ""; }
+          @page { margin: 1.5cm; }
+        }
+      `}</style>
       <div className="max-w-3xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-warm-border">
+        <div className="no-print mb-3 text-sm text-warm-muted">
+          Tipp: Druck-Funktion deines Browsers (Strg+P / Cmd+P) → „Als PDF speichern"
+        </div>
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-warm-border print:shadow-none print:border-0 print:rounded-none">
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
             <div>

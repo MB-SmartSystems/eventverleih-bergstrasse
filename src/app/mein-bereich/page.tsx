@@ -68,11 +68,17 @@ export default async function MeinBereichPage() {
   const kunde = await getCurrentMember();
   if (!kunde) redirect("/mein-bereich/login");
 
-  // Lade alle Buchungen des Kunden
-  const buchungenAll = await listAllRows<BuchungRow>(TABLES.Buchungen);
+  // Lade alle Buchungen + Rechnungen des Kunden
+  const [buchungenAll, rechnungenAll] = await Promise.all([
+    listAllRows<BuchungRow>(TABLES.Buchungen),
+    listAllRows<{ id: number; Rechnungsnummer: string; Rechnungsdatum: string | null; Betrag_Gesamt: string | null; Token_Public: string; Kunde_Link: Array<{ id: number }> }>(TABLES.Rechnungen),
+  ]);
   const meineBuchungen = buchungenAll.results.filter(
     (b) => b.Kunde_Link?.[0]?.id === kunde.id,
   );
+  const meineRechnungen = rechnungenAll.results
+    .filter((r) => r.Kunde_Link?.[0]?.id === kunde.id)
+    .sort((a, b) => (b.Rechnungsdatum || "").localeCompare(a.Rechnungsdatum || ""));
 
   // Sortierung: aktuelle (Status nicht Abgerechnet/Storniert/No_Show) zuerst, sortiert nach Event-Datum
   const aktive = meineBuchungen.filter((b) => {
@@ -123,13 +129,42 @@ export default async function MeinBereichPage() {
         )}
 
         {vergangene.length > 0 && (
-          <div>
+          <div className="mb-12">
             <h2 className="text-xl font-semibold mb-4">Vergangene Buchungen</h2>
             <div className="space-y-3">
               {vergangene.map((b) => (
                 <BuchungCard key={b.id} buchung={b} variant="archiv" />
               ))}
             </div>
+          </div>
+        )}
+
+        {meineRechnungen.length > 0 && (
+          <div>
+            <h2 className="text-xl font-semibold mb-4">Rechnungen</h2>
+            <div className="space-y-2">
+              {meineRechnungen.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/rechnung/${r.Token_Public}`}
+                  target="_blank"
+                  className="block p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-gold-500/30 transition-all flex items-center gap-4"
+                >
+                  <div className="flex-1">
+                    <div className="font-mono text-white">{r.Rechnungsnummer}</div>
+                    <div className="text-xs text-gray-400 mt-0.5">{fmtDate(r.Rechnungsdatum)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-medium text-white">{fmtEur(r.Betrag_Gesamt)}</div>
+                    <div className="text-xs text-gold-400 mt-0.5">Ansehen / drucken ↗</div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 mt-3">
+              Klick auf eine Rechnung öffnet die PDF-Ansicht. Über die Druck-Funktion deines Browsers
+              (Strg+P / Cmd+P) kannst du sie als PDF speichern.
+            </p>
           </div>
         )}
 
