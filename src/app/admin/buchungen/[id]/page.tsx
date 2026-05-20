@@ -44,6 +44,7 @@ type BuchungRow = {
   Restzahlung_Soll_Eur: string | null;
   Restzahlung_Bezahlt_am: string | null;
   Kaution_Soll_Eur: string | null;
+  Zahlungen_JSON: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
   Kaution_Rueckzahlung_am: string | null;
@@ -318,12 +319,77 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             </table>
           </section>
 
-          {/* Zahlungseingang */}
+          {/* Zahlungs-Saldo (Gesamt | Bezahlt | Offen) */}
+          {(() => {
+            const preisArtikel = parseFloat(buchung.Preis_Artikel ?? "0") || 0;
+            const preisLieferung = parseFloat(buchung.Preis_Lieferung ?? "0") || 0;
+            const preisAufbau = parseFloat(buchung.Preis_Aufbau ?? "0") || 0;
+            const gesamt = preisArtikel + preisLieferung + preisAufbau;
+            const zahlungen: Array<{ datum: string; typ: string; betrag: number; methode: string }> = (() => {
+              try {
+                if (!buchung.Zahlungen_JSON) return [];
+                const p = JSON.parse(buchung.Zahlungen_JSON);
+                return Array.isArray(p) ? p : [];
+              } catch { return []; }
+            })();
+            const bezahlt = zahlungen
+              .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
+              .reduce((s, z) => s + z.betrag, 0);
+            const offen = Math.max(0, gesamt - bezahlt);
+            return (
+              <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
+                <h2 className="text-lg font-semibold text-warm-text">Zahlungs-Stand</h2>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-warm-muted">Gesamt</div>
+                    <div className="text-xl font-semibold text-warm-text mt-1">{gesamt.toFixed(2)} €</div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-warm-muted">Bezahlt</div>
+                    <div className={`text-xl font-semibold mt-1 ${bezahlt >= gesamt ? "text-green-700" : "text-warm-text"}`}>
+                      {bezahlt.toFixed(2)} €
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs uppercase tracking-wider text-warm-muted">Offen</div>
+                    <div className={`text-xl font-semibold mt-1 ${offen === 0 ? "text-green-700" : "text-amber-700"}`}>
+                      {offen.toFixed(2)} €
+                    </div>
+                  </div>
+                </div>
+                {zahlungen.length > 0 && (
+                  <div className="text-xs text-warm-muted border-t border-warm-border pt-2 space-y-1">
+                    {zahlungen.map((z, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <span className="text-warm-text">{new Date(z.datum).toLocaleDateString("de-DE")}</span>
+                        <span className="capitalize">{z.typ}</span>
+                        <span>·</span>
+                        <span>{z.methode}</span>
+                        <span className="ml-auto font-medium">{z.betrag.toFixed(2)} €</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            );
+          })()}
+
+          {/* Zahlungseingang erfassen */}
           <ZahlungsPanel
             buchungId={buchung.id}
             anzahlungBezahlt={buchung.Anzahlung_Bezahlt_am}
             restzahlungBezahlt={buchung.Restzahlung_Bezahlt_am}
             kautionHinterlegt={buchung.Kaution_Hinterlegt_am}
+            anzahlungSollEur={parseFloat(buchung.Anzahlung_Soll_Eur ?? "0") || 0}
+            restzahlungSollEur={parseFloat(buchung.Restzahlung_Soll_Eur ?? "0") || 0}
+            kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0") || 0}
+            zahlungen={(() => {
+              try {
+                if (!buchung.Zahlungen_JSON) return [];
+                const p = JSON.parse(buchung.Zahlungen_JSON);
+                return Array.isArray(p) ? p : [];
+              } catch { return []; }
+            })()}
           />
 
           {/* Stripe-Zahlungslinks */}
