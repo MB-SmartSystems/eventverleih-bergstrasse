@@ -30,6 +30,13 @@ export default function MietvertragText() {
         Rückgabe per Foto. Diese Fotos sind Grundlage für die spätere Schadensbeurteilung.
       </p>
 
+      <p>
+        <strong>Standard ist Abholung:</strong> Sofern im Angebot nicht ausdrücklich Lieferung
+        vereinbart, holt der Mieter die Gegenstände am Lager des Vermieters (Schlesierstraße 19a,
+        64665 Alsbach-Hähnlein) ab und bringt sie nach dem Event ebenfalls dort zurück. Eine
+        Lieferung mit oder ohne Aufbau ist gegen Aufpreis im Voraus zu vereinbaren.
+      </p>
+
       <h3>§ 3 Abholung durch Dritte</h3>
       <p>
         Holt eine andere Person als der Besteller die Gegenstände ab, ist der Vermieter berechtigt, einen Lichtbildausweis

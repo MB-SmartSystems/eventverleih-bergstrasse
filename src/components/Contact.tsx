@@ -12,6 +12,8 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
   const [errorText, setErrorText] = useState("");
+  const [transportMode, setTransportMode] = useState<"abholung" | "lieferung">("abholung");
+  const [aufbauGewuenscht, setAufbauGewuenscht] = useState(false);
   const searchParams = useSearchParams();
 
   const todayPlus1Str = (() => {
@@ -80,6 +82,11 @@ export default function Contact() {
           event_datum_bis: eventBis,
           nachricht: String(fd.get("nachricht") || ""),
           agb_akzeptiert: agreed,
+          lieferung_gewuenscht: transportMode === "lieferung",
+          liefer_strasse: transportMode === "lieferung" ? String(fd.get("liefer_strasse") || "") : "",
+          liefer_plz: transportMode === "lieferung" ? String(fd.get("liefer_plz") || "") : "",
+          liefer_ort: transportMode === "lieferung" ? String(fd.get("liefer_ort") || "") : "",
+          aufbau_gewuenscht: transportMode === "lieferung" && aufbauGewuenscht,
           cart_items: items.map((i) => ({ name: i.name, quantity: i.quantity })),
         }),
       });
@@ -92,6 +99,8 @@ export default function Contact() {
         form.reset();
         setAgreed(false);
         setMessage("");
+        setTransportMode("abholung");
+        setAufbauGewuenscht(false);
         clearCart();
       }
     } catch (err) {
@@ -325,6 +334,92 @@ export default function Contact() {
                     />
                   </div>
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-white/10">
+                <div className="text-sm text-gray-300 mb-3">
+                  Abholung oder Lieferung? <span className="text-gold-400">*</span>
+                  <span className="block text-xs text-gray-500 mt-1">
+                    Standard ist Abholung an unserem Lager in Alsbach-Haehnlein.
+                    Lieferung und Aufbau gegen Aufpreis moeglich.
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTransportMode("abholung")}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      transportMode === "abholung"
+                        ? "border-gold-500/60 bg-gold-500/10"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="font-medium text-white text-sm">Selbst abholen</div>
+                    <div className="text-xs text-gray-400 mt-0.5">Alsbach-Haehnlein, kostenlos</div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTransportMode("lieferung")}
+                    className={`p-3 rounded-lg border text-left transition-all ${
+                      transportMode === "lieferung"
+                        ? "border-gold-500/60 bg-gold-500/10"
+                        : "border-white/10 bg-white/5 hover:border-white/20"
+                    }`}
+                  >
+                    <div className="font-medium text-white text-sm">Lieferung gewuenscht</div>
+                    <div className="text-xs text-gray-400 mt-0.5">2 EUR/km, max 60 km</div>
+                  </button>
+                </div>
+                {transportMode === "lieferung" && (
+                  <div className="mt-4 space-y-3 p-4 rounded-lg bg-white/5 border border-white/10">
+                    <div className="text-xs text-gray-400">
+                      Lieferadresse (Manuel meldet sich mit konkretem Liefer-Preis basierend auf Distanz)
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-400 mb-1">Strasse + Hausnummer</label>
+                      <input
+                        type="text"
+                        name="liefer_strasse"
+                        required
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">PLZ</label>
+                        <input
+                          type="text"
+                          name="liefer_plz"
+                          required
+                          inputMode="numeric"
+                          pattern="[0-9]{4,5}"
+                          maxLength={5}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                        />
+                      </div>
+                      <div className="col-span-2">
+                        <label className="block text-xs text-gray-400 mb-1">Ort</label>
+                        <input
+                          type="text"
+                          name="liefer_ort"
+                          required
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                        />
+                      </div>
+                    </div>
+                    <label className="flex items-start gap-2 cursor-pointer pt-2 border-t border-white/10">
+                      <input
+                        type="checkbox"
+                        checked={aufbauGewuenscht}
+                        onChange={(e) => setAufbauGewuenscht(e.target.checked)}
+                        className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50"
+                      />
+                      <span className="text-xs text-gray-300">
+                        Aufbau gewuenscht <span className="text-gray-500">(nur in Verbindung mit Lieferung — Preis pro Artikel laut Sortiment)</span>
+                      </span>
+                    </label>
+                  </div>
+                )}
               </div>
 
               <div className="pt-2 border-t border-white/10">

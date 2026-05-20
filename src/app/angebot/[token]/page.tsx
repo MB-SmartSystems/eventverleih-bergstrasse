@@ -279,6 +279,27 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
               </div>
             )}
 
+            {hasPrices && parseFloat(preisLieferung) === 0 && (
+              <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10 text-sm">
+                <p className="text-white font-semibold">Leistungsumfang: Abholung an unserem Lager</p>
+                <p className="text-gray-400 mt-1">
+                  Die Artikel werden von Ihnen am vereinbarten Termin in
+                  Alsbach-Hähnlein abgeholt und nach dem Event wieder zurückgebracht. Lieferung
+                  und Aufbau sind gegen Aufpreis möglich — bitte melden Sie sich falls gewünscht.
+                </p>
+              </div>
+            )}
+
+            {hasPrices && parseFloat(preisLieferung) > 0 && (
+              <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10 text-sm">
+                <p className="text-white font-semibold">Leistungsumfang: Lieferung{parseFloat(preisAufbau) > 0 ? " inkl. Aufbau" : ""}</p>
+                <p className="text-gray-400 mt-1">
+                  Wir liefern die Artikel zum vereinbarten Termin an Ihre Adresse{parseFloat(preisAufbau) > 0 ? " und bauen sie auf" : ""}.
+                  Rückholung nach dem Event ist im Liefer-Preis enthalten.
+                </p>
+              </div>
+            )}
+
             <h2 className="text-xl font-semibold text-white mt-8">Mietbedingungen</h2>
             <p>
               Mit Ihrer Bestätigung erkennen Sie unsere{" "}

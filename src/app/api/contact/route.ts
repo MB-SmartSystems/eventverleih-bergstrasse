@@ -42,6 +42,11 @@ interface ContactPayload {
   event_datum_bis: string;
   nachricht: string;
   agb_akzeptiert: boolean;
+  lieferung_gewuenscht?: boolean;
+  liefer_strasse?: string;
+  liefer_plz?: string;
+  liefer_ort?: string;
+  aufbau_gewuenscht?: boolean;
   cart_items?: CartItemPayload[];
 }
 
@@ -268,13 +273,31 @@ export async function POST(req: NextRequest) {
 
     // === Schritt 4: Buchung anlegen mit aggregierten Preisen
     const sharedToken = randomUUID();
+    // Liefer-/Aufbau-Felder vorbereiten
+    const lieferungGewuenscht = payload.lieferung_gewuenscht === true;
+    const aufbauGewuenscht = lieferungGewuenscht && payload.aufbau_gewuenscht === true;
+    const lieferAdresseText = lieferungGewuenscht
+      ? `${(payload.liefer_strasse || "").trim()}, ${(payload.liefer_plz || "").trim()} ${(payload.liefer_ort || "").trim()}`.replace(/\s+/g, " ").trim()
+      : "";
+    // Aufbau-Summe: nur wenn Lieferung+Aufbau gewuenscht UND Cart-Items zugeordnet
+    const aufbauSumme = aufbauGewuenscht
+      ? matched.reduce((s, m) => s + m.aufbau_pauschale * m.anzahl, 0)
+      : 0;
+    // Preis_Lieferung bleibt 0 initial — Manuel rechnet km-Strecke und setzt im Backoffice nach
+    const mietsummeTotal = mietsumme + aufbauSumme;
+
     const buchung = await createRow<BuchungRow>(TABLES.Buchungen, {
       Status: "Anfrage",
       Status_Erweitert: "Anfrage",
-      Standort_Typ: "Privatgrund_Kunde",
+      Standort_Typ: lieferungGewuenscht ? "Lieferung_Adresse" : "Privatgrund_Kunde",
       Event_datum_von: payload.event_datum_von,
       Event_datum_bis: payload.event_datum_bis,
-      Notizen: `Anfrage-Text:\n${payload.nachricht}${unmatched.length ? `\n\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : ""}`,
+      ...(lieferungGewuenscht ? { Lieferadresse: lieferAdresseText } : {}),
+      Notizen: `Anfrage-Text:\n${payload.nachricht}${
+        lieferungGewuenscht
+          ? `\n\nTRANSPORT: Lieferung gewuenscht nach ${lieferAdresseText}${aufbauGewuenscht ? " (inkl. Aufbau)" : ""}. Manuel: km-Strecke pruefen und Preis_Lieferung manuell setzen.`
+          : "\n\nTRANSPORT: Abholung durch Kunde (Standard)."
+      }${unmatched.length ? `\n\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : ""}`,
       Kunde_Link: [kundeId],
       Token_Angebot: sharedToken,
       Token_Vertrag: sharedToken,
@@ -286,10 +309,11 @@ export async function POST(req: NextRequest) {
       ...(matched.length > 0
         ? {
             Preis_Artikel: mietsumme.toFixed(2),
-            Anzahlung_Soll_Eur: (mietsumme * 0.3).toFixed(2),
-            Restzahlung_Soll_Eur: (mietsumme * 0.7).toFixed(2),
+            ...(aufbauSumme > 0 ? { Preis_Aufbau: aufbauSumme.toFixed(2) } : {}),
+            Anzahlung_Soll_Eur: (mietsummeTotal * 0.3).toFixed(2),
+            Restzahlung_Soll_Eur: (mietsummeTotal * 0.7).toFixed(2),
             Kaution_Soll_Eur: kautionSumme.toFixed(2),
-            Gesamt: (mietsumme + kautionSumme).toFixed(2),
+            Gesamt: (mietsummeTotal + kautionSumme).toFixed(2),
           }
         : {}),
     });
@@ -321,7 +345,7 @@ export async function POST(req: NextRequest) {
         Artikel_Link: [m.artikelId],
         Anzahl: m.anzahl.toString(),
         Einzelpreis_Eur: m.einzelpreis.toFixed(2),
-        Aufbau_gebucht: false,
+        Aufbau_gebucht: aufbauGewuenscht,
         Aufbau_Pauschale_Snapshot_Eur: m.aufbau_pauschale.toFixed(2),
         Kaution_Pro_Stueck_Snapshot_Eur: m.kaution_pro_stueck.toFixed(2),
         Notizen: "Auto-erstellt aus Anfrage-Formular Cart",
@@ -344,12 +368,20 @@ export async function POST(req: NextRequest) {
     };
     const zeitraum = `${fmtDe(payload.event_datum_von)} bis ${fmtDe(payload.event_datum_bis)}`;
 
+    const transportBlock = lieferungGewuenscht
+      ? `Transport: Lieferung an ${lieferAdresseText}${aufbauGewuenscht ? " inkl. Aufbau" : ""}.
+   Den genauen Liefer-Preis (2 EUR/km, max. 60 km Radius) bestaetige ich Ihnen mit dem Angebot.`
+      : `Transport: Selbstabholung an unserem Lager in Alsbach-Haehnlein (kostenlos).
+   Falls Sie spaeter doch eine Lieferung wuenschen, einfach kurz Bescheid geben.`;
+
     const mailBody = `${greeting},
 
 vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
 
 Gewuenschter Mietzeitraum:
   ${zeitraum}
+
+${transportBlock}
 
 Was Sie angefragt haben:
 ${summary}
