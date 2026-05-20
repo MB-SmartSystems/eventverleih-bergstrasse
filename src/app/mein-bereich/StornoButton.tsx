@@ -71,7 +71,7 @@ export default function StornoButton({ buchungId, eventDatumVon, mietsumme, beza
           <div className="bg-navy-800 border border-white/10 rounded-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-semibold text-white mb-4">Buchung stornieren?</h2>
             {!calc ? (
-              <p className="text-gray-400">Kein Event-Datum gesetzt — Stornierung ueber Manuel abwickeln.</p>
+              <p className="text-gray-400">Kein Event-Datum gesetzt — Stornierung über Manuel abwickeln.</p>
             ) : (
               <>
                 <div className="space-y-3 text-sm">

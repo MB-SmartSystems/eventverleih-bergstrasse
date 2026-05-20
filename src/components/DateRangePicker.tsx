@@ -148,7 +148,7 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
             aria-haspopup="dialog"
             aria-expanded={openField === "von"}
           >
-            {value.von ? fmtDe(value.von) : <span className="text-gray-500">Datum waehlen</span>}
+            {value.von ? fmtDe(value.von) : <span className="text-gray-500">Datum wählen</span>}
           </button>
           {/* Hidden inputs damit der Wert in FormData landet */}
           <input type="hidden" name="event_datum_von" value={value.von} />
@@ -164,9 +164,9 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
             className={`${fieldClass} ${!value.von ? "opacity-50 cursor-not-allowed" : ""}`}
             aria-haspopup="dialog"
             aria-expanded={openField === "bis"}
-            title={!value.von ? "Erst Von-Datum waehlen" : ""}
+            title={!value.von ? "Erst Von-Datum wählen" : ""}
           >
-            {value.bis ? fmtDe(value.bis) : <span className="text-gray-500">Datum waehlen</span>}
+            {value.bis ? fmtDe(value.bis) : <span className="text-gray-500">Datum wählen</span>}
           </button>
           <input type="hidden" name="event_datum_bis" value={value.bis} />
         </div>
@@ -178,24 +178,25 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
           role="dialog"
           aria-modal="true"
           className="fixed inset-0 z-[9999] flex items-center justify-center"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setOpenField(null);
-          }}
+          onClick={() => setOpenField(null)}
         >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpenField(null)} />
+          {/* Backdrop — rein visuell, pointer-events-none damit Klicks zum Outer durchgehen */}
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-none" />
 
-          <div className="relative w-[min(96vw,720px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto">
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-[min(96vw,720px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto"
+          >
             {/* Header mit Close */}
             <div className="flex items-center justify-between mb-5">
               <div className="text-white font-semibold text-xl">
-                {openField === "von" ? "Mietbeginn waehlen" : "Mietende waehlen"}
+                {openField === "von" ? "Mietbeginn wählen" : "Mietende wählen"}
               </div>
               <button
                 type="button"
                 onClick={() => setOpenField(null)}
                 className="text-gray-400 hover:text-white text-2xl px-3 leading-none"
-                aria-label="Schliessen"
+                aria-label="Schließen"
               >
                 ✕
               </button>

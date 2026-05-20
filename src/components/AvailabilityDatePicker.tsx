@@ -63,10 +63,10 @@ export default function AvailabilityDatePicker() {
     <form
       onSubmit={handleSubmit}
       className="glass-card p-5 md:p-6 mb-10 max-w-2xl"
-      aria-label="Verfuegbarkeit pruefen"
+      aria-label="Verfügbarkeit prüfen"
     >
       <div className="text-sm text-gray-300 mb-4 font-medium">
-        Pruefen Sie direkt die Verfuegbarkeit zu Ihrem Wunsch-Zeitraum
+        Prüfen Sie direkt die Verfügbarkeit zu Ihrem Wunsch-Zeitraum
       </div>
       <DateRangePicker value={range} onChange={setRange} layout="hero" />
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
@@ -75,7 +75,7 @@ export default function AvailabilityDatePicker() {
           disabled={submitting}
           className="py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-sm disabled:opacity-50 cursor-pointer"
         >
-          {submitting ? "Pruefe..." : "Verfuegbarkeit pruefen"}
+          {submitting ? "Prüfe..." : "Verfügbarkeit prüfen"}
         </button>
         {hasRange && (
           <button
@@ -83,7 +83,7 @@ export default function AvailabilityDatePicker() {
             onClick={handleReset}
             className="py-2.5 border border-white/15 text-gray-300 rounded-lg hover:bg-white/5 transition-all text-sm cursor-pointer"
           >
-            Zeitraum zuruecksetzen
+            Zeitraum zurücksetzen
           </button>
         )}
       </div>
@@ -92,7 +92,7 @@ export default function AvailabilityDatePicker() {
       )}
       {hasRange && !error && (
         <div className="mt-3 text-xs text-gold-300">
-          Im Sortiment werden jetzt die Verfuegbarkeit-Badges angezeigt.
+          Im Sortiment werden jetzt die Verfügbarkeit-Badges angezeigt.
         </div>
       )}
     </form>
