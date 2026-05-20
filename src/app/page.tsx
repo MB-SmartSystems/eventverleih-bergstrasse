@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Header from "@/components/Header";
 import PromoBanner from "@/components/PromoBanner";
 import Hero from "@/components/Hero";
@@ -16,12 +17,20 @@ export default function Home() {
       <PromoBanner />
       <Header />
       <main>
-        <Hero />
+        {/* Suspense-Boundaries: Hero/Sortiment/Contact nutzen useSearchParams (Verfuegbarkeits-Datepicker, Sortiment-Badges, Form-Prefill).
+            Ohne Boundary verweigert Next.js 14 den Static-Build. */}
+        <Suspense fallback={null}>
+          <Hero />
+        </Suspense>
         <Gallery />
-        <Sortiment />
+        <Suspense fallback={null}>
+          <Sortiment />
+        </Suspense>
         <Ablauf />
         <FAQ />
-        <Contact />
+        <Suspense fallback={null}>
+          <Contact />
+        </Suspense>
       </main>
       <Footer />
       <CartBar />
