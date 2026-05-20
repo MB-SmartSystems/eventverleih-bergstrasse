@@ -182,16 +182,16 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpenField(null)} />
 
-          <div className="relative w-[min(92vw,560px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-5 sm:p-6 max-h-[90vh] overflow-y-auto">
+          <div className="relative w-[min(94vw,680px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
             {/* Header mit Close */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="text-white font-medium text-lg">
+            <div className="flex items-center justify-between mb-5">
+              <div className="text-white font-semibold text-xl">
                 {openField === "von" ? "Mietbeginn waehlen" : "Mietende waehlen"}
               </div>
               <button
                 type="button"
                 onClick={() => setOpenField(null)}
-                className="text-gray-400 hover:text-white text-xl px-2"
+                className="text-gray-400 hover:text-white text-2xl px-3 leading-none"
                 aria-label="Schliessen"
               >
                 ✕
@@ -209,22 +209,23 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
               showOutsideDays
               classNames={{
                 root: "rdp-mb-eventverleih",
-                month_caption: "flex justify-center items-center py-3 mb-2",
-                caption_label: "text-white font-semibold text-base",
-                nav: "flex items-center justify-between absolute inset-x-0 top-2 px-1 z-10",
-                button_previous: "p-2 rounded hover:bg-white/10 cursor-pointer text-gray-300 hover:text-white transition-colors",
-                button_next: "p-2 rounded hover:bg-white/10 cursor-pointer text-gray-300 hover:text-white transition-colors",
-                month_grid: "w-full mt-2 border-separate",
-                weekdays: "flex",
-                weekday: "text-gray-400 text-xs font-medium uppercase tracking-wider flex-1 text-center py-2",
-                weeks: "flex flex-col gap-1",
-                week: "flex w-full gap-1",
+                month_caption: "flex justify-center items-center py-4 mb-3 relative",
+                caption_label: "text-white font-bold text-2xl",
+                nav: "flex items-center justify-between absolute inset-x-0 top-3 px-2 z-10",
+                button_previous: "p-3 rounded-md hover:bg-white/10 cursor-pointer text-gray-200 hover:text-white transition-colors text-xl",
+                button_next: "p-3 rounded-md hover:bg-white/10 cursor-pointer text-gray-200 hover:text-white transition-colors text-xl",
+                chevron: "w-6 h-6 fill-current",
+                month_grid: "w-full mt-3 border-separate",
+                weekdays: "flex mb-2",
+                weekday: "text-gray-400 text-sm font-semibold uppercase tracking-wider flex-1 text-center py-3",
+                weeks: "flex flex-col gap-2",
+                week: "flex w-full gap-2",
                 day: "flex-1 aspect-square p-0",
-                day_button: "w-full h-full rounded-md text-base text-gray-200 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-center font-medium",
+                day_button: "w-full h-full rounded-lg text-xl text-gray-100 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-center font-semibold",
                 selected: "[&_button]:bg-gold-500 [&_button]:text-navy-900 [&_button]:font-bold [&_button]:hover:bg-gold-400 [&_button]:hover:text-navy-900",
-                today: "[&_button]:ring-2 [&_button]:ring-gold-400/50",
-                disabled: "[&_button]:text-gray-700 [&_button]:opacity-30 [&_button]:cursor-not-allowed [&_button]:hover:bg-transparent [&_button]:hover:text-gray-700",
-                outside: "[&_button]:text-gray-700 [&_button]:opacity-50",
+                today: "[&_button]:ring-2 [&_button]:ring-gold-400/60",
+                disabled: "[&_button]:text-gray-600 [&_button]:opacity-40 [&_button]:cursor-not-allowed [&_button]:hover:bg-transparent [&_button]:hover:text-gray-600",
+                outside: "[&_button]:text-gray-600 [&_button]:opacity-50",
               }}
             />
 
