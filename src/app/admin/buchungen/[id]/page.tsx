@@ -12,6 +12,7 @@ import BuchungStatusPanel from "./BuchungStatusPanel";
 import BuchungChecklist from "./BuchungChecklist";
 import TerminePanel from "./TerminePanel";
 import KautionErstattenPanel from "./KautionErstattenPanel";
+import BuchungTimeline from "./BuchungTimeline";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
@@ -137,14 +138,16 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const kundeId = buchung.Kunde_Link?.[0]?.id;
   const kunde = kundeId ? await getRow<KundeRow>(TABLES.Kunden, kundeId).catch(() => null) : null;
 
-  const [positionenAll, rechnungenAll, artikelAll] = await Promise.all([
+  const [positionenAll, rechnungenAll, artikelAll, angeboteAll] = await Promise.all([
     listAllRows<PositionRow>(TABLES.Buchungs_Position),
     listAllRows<RechnungRow>(TABLES.Rechnungen),
     listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
+    listAllRows<{ id: number; Anfragedatum: string | null; Angebotsdatum: string | null; Akzeptiert_am: string | null; Buchung_Link: Array<{ id: number }> }>(TABLES.Angebote),
   ]);
   const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const rechnungen = rechnungenAll.results.filter((r) => r.Buchung_Link?.[0]?.id === buchungId);
   const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
+  const angebot = angeboteAll.results.find((a) => a.Buchung_Link?.[0]?.id === buchungId) ?? null;
 
   const status = buchung.Status_Erweitert?.value ?? "Anfrage";
 
@@ -503,6 +506,13 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             restzahlungLink={buchung.Stripe_Restzahlung_Link}
             anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
             restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
+          />
+
+          {/* Status-Timeline */}
+          <BuchungTimeline
+            buchung={buchung}
+            angebot={angebot}
+            rechnungen={rechnungen}
           />
 
           {/* Termine (Uebergabe + Rueckgabe) — wird in Google Calendar synct wenn ENV gesetzt */}
