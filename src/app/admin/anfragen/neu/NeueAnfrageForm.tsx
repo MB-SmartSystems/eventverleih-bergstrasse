@@ -1,7 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import DateRangePicker, { type DateRange } from "@/components/DateRangePicker";
+
+// Akzeptiert TT.MM.JJJJ und konvertiert zu YYYY-MM-DD.
+function parseGermanDate(input: string): string | null {
+  const s = input.trim();
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
+  if (!m) return null;
+  const d = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  let y = parseInt(m[3], 10);
+  if (y < 100) y += 2000;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
 
 interface KundeOption {
   id: number;
@@ -38,7 +50,8 @@ export default function NeueAnfrageForm({
     email: "",
     telefon: "",
   });
-  const [range, setRange] = useState<DateRange>({ von: "", bis: "" });
+  const [vonInput, setVonInput] = useState("");
+  const [bisInput, setBisInput] = useState("");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [artikelToAdd, setArtikelToAdd] = useState<number | "">("");
   const [anzahlToAdd, setAnzahlToAdd] = useState(1);
@@ -87,7 +100,12 @@ export default function NeueAnfrageForm({
         return;
       }
     }
-    if (!range.von || !range.bis) { setError("Bitte Mietzeitraum auswaehlen."); return; }
+    if (!vonInput.trim() || !bisInput.trim()) { setError("Bitte Mietzeitraum eingeben."); return; }
+    const vonIso = parseGermanDate(vonInput);
+    const bisIso = parseGermanDate(bisInput);
+    if (!vonIso) { setError("Von-Datum bitte im Format TT.MM.JJJJ (z.B. 20.06.2026)."); return; }
+    if (!bisIso) { setError("Bis-Datum bitte im Format TT.MM.JJJJ."); return; }
+    if (bisIso < vonIso) { setError("Bis-Datum muss nach Von-Datum liegen."); return; }
     if (cart.length === 0) { setError("Bitte mindestens einen Artikel hinzufuegen."); return; }
     setSubmitting(true);
     try {
@@ -97,8 +115,8 @@ export default function NeueAnfrageForm({
         body: JSON.stringify({
           kunde_id: kundeMode === "existing" ? kundeId : undefined,
           kunde_neu: kundeMode === "new" ? neuerKunde : undefined,
-          event_datum_von: range.von,
-          event_datum_bis: range.bis,
+          event_datum_von: vonIso,
+          event_datum_bis: bisIso,
           cart_items: cart.map((c) => ({ artikel_id: c.artikel_id, anzahl: c.anzahl })),
           notiz,
         }),
@@ -226,7 +244,24 @@ export default function NeueAnfrageForm({
         {/* Mietzeitraum */}
         <div>
           <label className="block text-sm text-warm-muted mb-1 font-medium">Mietzeitraum</label>
-          <DateRangePicker value={range} onChange={setRange} layout="form" />
+          <div className="grid grid-cols-2 gap-3">
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Von: TT.MM.JJJJ"
+              value={vonInput}
+              onChange={(e) => setVonInput(e.target.value)}
+              className={cls}
+            />
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="Bis: TT.MM.JJJJ"
+              value={bisInput}
+              onChange={(e) => setBisInput(e.target.value)}
+              className={cls}
+            />
+          </div>
         </div>
 
         {/* Cart */}

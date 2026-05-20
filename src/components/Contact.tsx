@@ -2,11 +2,23 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
-import DateRangePicker, { type DateRange } from "./DateRangePicker";
 
 const MAX_RANGE_DAYS = 5;
+
+// Akzeptiert TT.MM.JJJJ ODER TT.MM.JJ und konvertiert zu YYYY-MM-DD.
+// Returns null wenn nicht parsbar.
+function parseGermanDate(input: string): string | null {
+  const s = input.trim();
+  const m = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2}|\d{4})$/);
+  if (!m) return null;
+  const d = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10);
+  let y = parseInt(m[3], 10);
+  if (y < 100) y += 2000;
+  if (mo < 1 || mo > 12 || d < 1 || d > 31) return null;
+  return `${y}-${String(mo).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
 
 export default function Contact() {
   const [agreed, setAgreed] = useState(false);
@@ -15,14 +27,8 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
   const [errorText, setErrorText] = useState("");
-  const searchParams = useSearchParams();
-
-  // Wenn Kunde im Hero-Datepicker bereits einen Zeitraum gewaehlt hat → uebernehmen
-  const initialRange: DateRange = {
-    von: /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("von") || "") ? searchParams.get("von")! : "",
-    bis: /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("bis") || "") ? searchParams.get("bis")! : "",
-  };
-  const [range, setRange] = useState<DateRange>(initialRange);
+  const [vonInput, setVonInput] = useState("");
+  const [bisInput, setBisInput] = useState("");
 
   const todayPlus1Str = (() => {
     const d = new Date();
@@ -43,10 +49,20 @@ export default function Contact() {
     const form = e.currentTarget;
     const fd = new FormData(form);
 
-    const eventVon = range.von;
-    const eventBis = range.bis;
-    if (!eventVon || !eventBis) {
+    if (!vonInput.trim() || !bisInput.trim()) {
       setErrorText("Mietzeitraum (von und bis) ist Pflicht.");
+      setSubmitResult("error");
+      return;
+    }
+    const eventVon = parseGermanDate(vonInput);
+    const eventBis = parseGermanDate(bisInput);
+    if (!eventVon) {
+      setErrorText("Von-Datum bitte im Format TT.MM.JJJJ (z.B. 20.06.2026).");
+      setSubmitResult("error");
+      return;
+    }
+    if (!eventBis) {
+      setErrorText("Bis-Datum bitte im Format TT.MM.JJJJ (z.B. 22.06.2026).");
       setSubmitResult("error");
       return;
     }
@@ -98,7 +114,8 @@ export default function Contact() {
         form.reset();
         setAgreed(false);
         setMessage("");
-        setRange({ von: "", bis: "" });
+        setVonInput("");
+        setBisInput("");
         clearCart();
       }
     } catch (err) {
@@ -338,10 +355,35 @@ export default function Contact() {
                 <div className="text-sm text-gray-300 mb-3">
                   Mietzeitraum <span className="text-gold-400">*</span>
                   <span className="block text-xs text-gray-500 mt-1">
-                    Liefer- und Rueckgabetag. Maximal {MAX_RANGE_DAYS} Tage.
+                    Liefer- und Rückgabetag im Format TT.MM.JJJJ. Maximal {MAX_RANGE_DAYS} Tage.
                   </span>
                 </div>
-                <DateRangePicker value={range} onChange={setRange} layout="form" />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Von</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="z.B. 20.06.2026"
+                      value={vonInput}
+                      onChange={(e) => setVonInput(e.target.value)}
+                      required
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">Bis</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      placeholder="z.B. 22.06.2026"
+                      value={bisInput}
+                      onChange={(e) => setBisInput(e.target.value)}
+                      required
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
 
               <div>

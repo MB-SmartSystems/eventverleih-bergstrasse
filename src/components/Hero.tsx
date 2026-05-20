@@ -1,5 +1,4 @@
 import Image from "next/image";
-import AvailabilityDatePicker from "./AvailabilityDatePicker";
 
 const categories = [
   {
@@ -88,9 +87,6 @@ export default function Hero() {
             </a>
           </div>
         </div>
-
-        {/* Verfuegbarkeits-Datepicker */}
-        <AvailabilityDatePicker />
 
         {/* Category Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
