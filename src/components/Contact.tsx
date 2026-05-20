@@ -4,6 +4,9 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
+import DateRangePicker, { type DateRange } from "./DateRangePicker";
+
+const MAX_RANGE_DAYS = 5;
 
 export default function Contact() {
   const [agreed, setAgreed] = useState(false);
@@ -12,24 +15,19 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
   const [errorText, setErrorText] = useState("");
-  const [transportMode, setTransportMode] = useState<"abholung" | "lieferung">("abholung");
-  const [aufbauGewuenscht, setAufbauGewuenscht] = useState(false);
   const searchParams = useSearchParams();
+
+  // Wenn Kunde im Hero-Datepicker bereits einen Zeitraum gewaehlt hat → uebernehmen
+  const initialRange: DateRange = {
+    von: /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("von") || "") ? searchParams.get("von")! : "",
+    bis: /^\d{4}-\d{2}-\d{2}$/.test(searchParams.get("bis") || "") ? searchParams.get("bis")! : "",
+  };
+  const [range, setRange] = useState<DateRange>(initialRange);
 
   const todayPlus1Str = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
-  })();
-
-  // Wenn Kunde im Hero-Datepicker bereits einen Zeitraum gewaehlt hat → uebernehmen
-  const prefilledVon = (() => {
-    const v = searchParams.get("von") || "";
-    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
-  })();
-  const prefilledBis = (() => {
-    const v = searchParams.get("bis") || "";
-    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
   })();
 
   useEffect(() => {
@@ -45,8 +43,8 @@ export default function Contact() {
     const form = e.currentTarget;
     const fd = new FormData(form);
 
-    const eventVon = String(fd.get("event_datum_von") || "");
-    const eventBis = String(fd.get("event_datum_bis") || "");
+    const eventVon = range.von;
+    const eventBis = range.bis;
     if (!eventVon || !eventBis) {
       setErrorText("Mietzeitraum (von und bis) ist Pflicht.");
       setSubmitResult("error");
@@ -59,6 +57,12 @@ export default function Contact() {
     }
     if (eventVon < todayPlus1Str) {
       setErrorText("Der Mietzeitraum muss mindestens ab morgen starten.");
+      setSubmitResult("error");
+      return;
+    }
+    const days = Math.round((new Date(eventBis).getTime() - new Date(eventVon).getTime()) / 86_400_000);
+    if (days > MAX_RANGE_DAYS) {
+      setErrorText(`Der Mietzeitraum darf maximal ${MAX_RANGE_DAYS} Tage betragen.`);
       setSubmitResult("error");
       return;
     }
@@ -82,11 +86,6 @@ export default function Contact() {
           event_datum_bis: eventBis,
           nachricht: String(fd.get("nachricht") || ""),
           agb_akzeptiert: agreed,
-          lieferung_gewuenscht: transportMode === "lieferung",
-          liefer_strasse: transportMode === "lieferung" ? String(fd.get("liefer_strasse") || "") : "",
-          liefer_plz: transportMode === "lieferung" ? String(fd.get("liefer_plz") || "") : "",
-          liefer_ort: transportMode === "lieferung" ? String(fd.get("liefer_ort") || "") : "",
-          aufbau_gewuenscht: transportMode === "lieferung" && aufbauGewuenscht,
           cart_items: items.map((i) => ({ name: i.name, quantity: i.quantity })),
         }),
       });
@@ -99,8 +98,7 @@ export default function Contact() {
         form.reset();
         setAgreed(false);
         setMessage("");
-        setTransportMode("abholung");
-        setAufbauGewuenscht(false);
+        setRange({ von: "", bis: "" });
         clearCart();
       }
     } catch (err) {
@@ -338,121 +336,12 @@ export default function Contact() {
 
               <div className="pt-2 border-t border-white/10">
                 <div className="text-sm text-gray-300 mb-3">
-                  Abholung oder Lieferung? <span className="text-gold-400">*</span>
-                  <span className="block text-xs text-gray-500 mt-1">
-                    Standard ist Abholung an unserem Lager in Alsbach-Haehnlein.
-                    Lieferung und Aufbau gegen Aufpreis moeglich.
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setTransportMode("abholung")}
-                    className={`p-3 rounded-lg border text-left transition-all ${
-                      transportMode === "abholung"
-                        ? "border-gold-500/60 bg-gold-500/10"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
-                    }`}
-                  >
-                    <div className="font-medium text-white text-sm">Selbst abholen</div>
-                    <div className="text-xs text-gray-400 mt-0.5">Alsbach-Haehnlein, kostenlos</div>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTransportMode("lieferung")}
-                    className={`p-3 rounded-lg border text-left transition-all ${
-                      transportMode === "lieferung"
-                        ? "border-gold-500/60 bg-gold-500/10"
-                        : "border-white/10 bg-white/5 hover:border-white/20"
-                    }`}
-                  >
-                    <div className="font-medium text-white text-sm">Lieferung gewuenscht</div>
-                    <div className="text-xs text-gray-400 mt-0.5">2 EUR/km, max 60 km</div>
-                  </button>
-                </div>
-                {transportMode === "lieferung" && (
-                  <div className="mt-4 space-y-3 p-4 rounded-lg bg-white/5 border border-white/10">
-                    <div className="text-xs text-gray-400">
-                      Lieferadresse (Manuel meldet sich mit konkretem Liefer-Preis basierend auf Distanz)
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-400 mb-1">Strasse + Hausnummer</label>
-                      <input
-                        type="text"
-                        name="liefer_strasse"
-                        required
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-400 mb-1">PLZ</label>
-                        <input
-                          type="text"
-                          name="liefer_plz"
-                          required
-                          inputMode="numeric"
-                          pattern="[0-9]{4,5}"
-                          maxLength={5}
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs text-gray-400 mb-1">Ort</label>
-                        <input
-                          type="text"
-                          name="liefer_ort"
-                          required
-                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                        />
-                      </div>
-                    </div>
-                    <label className="flex items-start gap-2 cursor-pointer pt-2 border-t border-white/10">
-                      <input
-                        type="checkbox"
-                        checked={aufbauGewuenscht}
-                        onChange={(e) => setAufbauGewuenscht(e.target.checked)}
-                        className="mt-1 w-4 h-4 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50"
-                      />
-                      <span className="text-xs text-gray-300">
-                        Aufbau gewuenscht <span className="text-gray-500">(nur in Verbindung mit Lieferung — Preis pro Artikel laut Sortiment)</span>
-                      </span>
-                    </label>
-                  </div>
-                )}
-              </div>
-
-              <div className="pt-2 border-t border-white/10">
-                <div className="text-sm text-gray-300 mb-3">
                   Mietzeitraum <span className="text-gold-400">*</span>
                   <span className="block text-xs text-gray-500 mt-1">
-                    Wann brauchst du die Artikel? Liefer- und Rueckgabetag.
+                    Liefer- und Rueckgabetag. Maximal {MAX_RANGE_DAYS} Tage.
                   </span>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1.5">Von</label>
-                    <input
-                      type="date"
-                      name="event_datum_von"
-                      required
-                      min={todayPlus1Str}
-                      defaultValue={prefilledVon}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-1.5">Bis</label>
-                    <input
-                      type="date"
-                      name="event_datum_bis"
-                      required
-                      min={todayPlus1Str}
-                      defaultValue={prefilledBis}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                    />
-                  </div>
-                </div>
+                <DateRangePicker value={range} onChange={setRange} layout="form" />
               </div>
 
               <div>
@@ -474,6 +363,11 @@ export default function Contact() {
                   placeholder="z.B. 1x Faltzelt 3×6m, 4x Tische, 24x Stühle... oder wählen Sie oben Artikel aus."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all resize-none"
                 />
+                <div className="text-xs text-gray-500 mt-2">
+                  Standard ist Selbstabholung am Lager in Alsbach-Hähnlein.
+                  Falls Lieferung oder Aufbau gewünscht — bitte hier kurz erwähnen,
+                  den Preis klären wir im Angebot.
+                </div>
               </div>
 
               <label className="flex items-start gap-3 cursor-pointer">

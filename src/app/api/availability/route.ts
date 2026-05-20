@@ -32,12 +32,12 @@ export async function POST(req: NextRequest) {
   if (bis < von) {
     return NextResponse.json({ error: "bis < von" }, { status: 400 });
   }
-  // Range-Cap analog /api/contact (60 Tage max) — Spam-Schutz
+  // Range-Cap analog /api/contact: max 5 Tage Mietdauer
   const vonDate = new Date(von);
   const bisDate = new Date(bis);
   const days = Math.round((bisDate.getTime() - vonDate.getTime()) / 86_400_000);
-  if (days > 60) {
-    return NextResponse.json({ error: "Range groesser 60 Tage" }, { status: 400 });
+  if (days > 5) {
+    return NextResponse.json({ error: "Range groesser 5 Tage" }, { status: 400 });
   }
 
   try {

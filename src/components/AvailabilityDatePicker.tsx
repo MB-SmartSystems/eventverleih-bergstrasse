@@ -3,27 +3,24 @@
 /**
  * Hero-Datepicker fuer Verfuegbarkeits-Check.
  *
- * UX (Plan Punkt 7):
+ * UX (Plan ich-hab-mal-bitte-snappy-boole, Punkt 7):
  *   - Kunde gibt Mietzeitraum oben ein, klickt "Verfuegbarkeit pruefen"
  *   - Werte landen im URL-Param (?von=YYYY-MM-DD&bis=YYYY-MM-DD)
  *   - Sortiment-Liste rendert dann pro Artikel-Kachel "verfuegbar"/"nicht verfuegbar"
  *   - KEINE Anzahl-Anzeige, KEIN "wir melden uns mit Alternativen"
  *   - Default ohne Datums-Wahl: keine Badges, Sortiment normal nutzbar
+ *
+ * Datepicker = unsere eigene DateRangePicker-Komponente (gross genuger Popup-Kalender
+ * mit Monats-Pfeilen, Quick-Picks fuer typische Mietdauern, Smart-Default Von+3).
  */
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
-
-function todayPlus(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
-}
+import DateRangePicker, { type DateRange } from "./DateRangePicker";
 
 export default function AvailabilityDatePicker() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [von, setVon] = useState("");
-  const [bis, setBis] = useState("");
+  const [range, setRange] = useState<DateRange>({ von: "", bis: "" });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -31,41 +28,30 @@ export default function AvailabilityDatePicker() {
   useEffect(() => {
     const vonParam = searchParams.get("von") || "";
     const bisParam = searchParams.get("bis") || "";
-    if (vonParam && /^\d{4}-\d{2}-\d{2}$/.test(vonParam)) setVon(vonParam);
-    if (bisParam && /^\d{4}-\d{2}-\d{2}$/.test(bisParam)) setBis(bisParam);
+    if (/^\d{4}-\d{2}-\d{2}$/.test(vonParam) || /^\d{4}-\d{2}-\d{2}$/.test(bisParam)) {
+      setRange({ von: vonParam, bis: bisParam });
+    }
   }, [searchParams]);
 
-  const minDate = todayPlus(1);
   const hasRange = !!searchParams.get("von") && !!searchParams.get("bis");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    if (!von || !bis) {
-      setError("Bitte beide Datumsfelder ausfuellen.");
-      return;
-    }
-    if (bis < von) {
-      setError("Bis-Datum muss nach Von-Datum liegen.");
-      return;
-    }
-    if (von < minDate) {
-      setError("Bitte ab morgen waehlen.");
+    if (!range.von || !range.bis) {
+      setError("Bitte beide Datumsfelder auswaehlen.");
       return;
     }
     setSubmitting(true);
     const params = new URLSearchParams(searchParams.toString());
-    params.set("von", von);
-    params.set("bis", bis);
-    // Hash auf Sortiment, damit Kunde direkt sieht was verfuegbar ist
+    params.set("von", range.von);
+    params.set("bis", range.bis);
     router.push(`/?${params.toString()}#sortiment`);
-    // Submitting-State zuruecksetzen nach kurzer Pause
     setTimeout(() => setSubmitting(false), 800);
   }
 
   function handleReset() {
-    setVon("");
-    setBis("");
+    setRange({ von: "", bis: "" });
     setError("");
     const params = new URLSearchParams(searchParams.toString());
     params.delete("von");
@@ -82,48 +68,24 @@ export default function AvailabilityDatePicker() {
       <div className="text-sm text-gray-300 mb-4 font-medium">
         Pruefen Sie direkt die Verfuegbarkeit zu Ihrem Wunsch-Zeitraum
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider">Von</label>
-          <input
-            type="date"
-            required
-            min={minDate}
-            value={von}
-            onChange={(e) => setVon(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1.5 uppercase tracking-wider">Bis</label>
-          <input
-            type="date"
-            required
-            min={von || minDate}
-            value={bis}
-            onChange={(e) => setBis(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all text-sm"
-          />
-        </div>
-        <div className="flex items-end gap-2">
+      <DateRangePicker value={range} onChange={setRange} layout="hero" />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-sm disabled:opacity-50 cursor-pointer"
+        >
+          {submitting ? "Pruefe..." : "Verfuegbarkeit pruefen"}
+        </button>
+        {hasRange && (
           <button
-            type="submit"
-            disabled={submitting}
-            className="flex-1 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-sm disabled:opacity-50"
+            type="button"
+            onClick={handleReset}
+            className="py-2.5 border border-white/15 text-gray-300 rounded-lg hover:bg-white/5 transition-all text-sm cursor-pointer"
           >
-            {submitting ? "Pruefe..." : "Verfuegbarkeit pruefen"}
+            Zeitraum zuruecksetzen
           </button>
-          {hasRange && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-3 py-2.5 border border-white/15 text-gray-300 rounded-lg hover:bg-white/5 transition-all text-sm"
-              aria-label="Zeitraum zuruecksetzen"
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        )}
       </div>
       {error && (
         <div className="mt-3 text-sm text-red-300">{error}</div>
