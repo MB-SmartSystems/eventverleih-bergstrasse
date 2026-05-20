@@ -181,13 +181,35 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const setRange = (von: string | null, bis: string | null) => {
-    if (von && bis && isIsoDate(von) && isIsoDate(bis) && von <= bis) {
-      setRangeVon(von);
-      setRangeBis(bis);
-    } else {
+    // Partial-Selection erlauben: react-day-picker emittiert (from, null)
+    // nach dem ersten Tag-Klick. Wenn wir das beidseitig clearen, kommt
+    // der User nie zu einem kompletten Range. URL-Sync + AvailabilityCounter
+    // ignorieren Partial-State (pruefen rangeVon && rangeBis), insofern
+    // ist Partial im Cart unschaedlich.
+    if (!von) {
       setRangeVon(null);
       setRangeBis(null);
+      return;
     }
+    if (!isIsoDate(von)) {
+      setRangeVon(null);
+      setRangeBis(null);
+      return;
+    }
+    if (!bis) {
+      // Nur Start gesetzt — Pickers Range-Selection in Phase 1
+      setRangeVon(von);
+      setRangeBis(null);
+      return;
+    }
+    if (!isIsoDate(bis) || von > bis) {
+      // Invalide Bis → behandle wie Partial: Start behalten, Bis verwerfen
+      setRangeVon(von);
+      setRangeBis(null);
+      return;
+    }
+    setRangeVon(von);
+    setRangeBis(bis);
   };
 
   const clearRange = () => {
