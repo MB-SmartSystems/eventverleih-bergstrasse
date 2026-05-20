@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
+import { createPaymentLink } from "@/lib/stripe/payment-links";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
@@ -127,6 +128,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Restzahlung_Soll_Eur: string | null;
       Kaution_Soll_Eur: string | null;
       Lieferadresse: string | null;
+      Stripe_Anzahlung_Link: string | null;
     };
     type Kunde = {
       id: number;
@@ -244,6 +246,31 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     } catch (e) {
       console.error("[anfrage-action] Buchungs-Status-Sync fehlgeschlagen:", e);
+    }
+
+    // Auto-Anzahlungs-Link erzeugen, damit Kunde im Vertrag-Akzeptieren-Flow direkt zahlen kann.
+    // Fail-soft: Stripe-Down darf den Angebots-Versand nicht killen.
+    if (body.action === "freigeben" || body.action === "freigeben_anmerkung") {
+      try {
+        const anzahlungSoll = buchung.Anzahlung_Soll_Eur ? parseFloat(buchung.Anzahlung_Soll_Eur) : 0;
+        const alreadyLinked = (buchung.Stripe_Anzahlung_Link || "").trim().length > 0;
+        if (anzahlungSoll > 0 && !alreadyLinked) {
+          const kundeName = `${kunde.Vorname} ${kunde.Nachname}`.trim() || "Kunde";
+          const desc = `Anzahlung Buchung #${buchungId} — Event ${buchung.Event_datum_von || ""}`;
+          const link = await createPaymentLink({
+            buchungId,
+            paymentType: "anzahlung",
+            amountEur: anzahlungSoll,
+            kundeName,
+            description: desc,
+          });
+          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Anzahlung_Link: link.link_url });
+        }
+      } catch (e) {
+        console.error("[anfrage-action] Stripe-Anzahlungs-Link konnte nicht erzeugt werden:", e);
+        // Soft-fail: Angebots-Mail geht trotzdem raus, Manuel kann Link nachtraeglich erzeugen
+        // via /api/admin/buchung/[id]/payment-link.
+      }
     }
 
     // MailQueue-Row anlegen (Approved → Poll versendet)

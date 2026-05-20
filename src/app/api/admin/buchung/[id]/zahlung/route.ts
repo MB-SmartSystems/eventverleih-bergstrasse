@@ -3,7 +3,11 @@
  * Body: { typ: "anzahlung" | "restzahlung" | "kaution", datum: "YYYY-MM-DD" }
  *
  * Setzt das jeweilige Bezahlt_am/Hinterlegt_am-Feld.
- * Bei typ=anzahlung zusätzlich Status_Erweitert=Bestaetigt (verbindliche Reservierung).
+ * Bei typ=anzahlung zusaetzlich Status_Erweitert=Reserviert (Hart-Block).
+ *
+ * Status-Semantik (Plan ich-hab-mal-bitte-snappy-boole):
+ *   - Kunde-Token-Klick (vertrag-akzeptieren)  → Status_Erweitert=Bestaetigt (Soft, vorab-reserviert)
+ *   - Anzahlung bestaetigt (hier oder Webhook) → Status_Erweitert=Reserviert (Hart, fest geblockt)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
@@ -32,7 +36,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const patch: Record<string, unknown> = {};
   if (body.typ === "anzahlung") {
     patch.Anzahlung_Bezahlt_am = iso;
-    patch.Status_Erweitert = "Bestaetigt";
+    patch.Status_Erweitert = "Reserviert";
   } else if (body.typ === "restzahlung") {
     patch.Restzahlung_Bezahlt_am = iso;
   } else if (body.typ === "kaution") {
