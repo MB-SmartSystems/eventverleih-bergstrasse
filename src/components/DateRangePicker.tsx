@@ -14,6 +14,7 @@
  * Nutzt react-day-picker v9 mit deutsch-Locale + Tailwind-Styling.
  */
 import { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { DayPicker } from "react-day-picker";
 import { de } from "date-fns/locale";
 import "react-day-picker/style.css";
@@ -67,7 +68,9 @@ function addDays(d: Date, days: number): Date {
 
 export default function DateRangePicker({ value, onChange, layout = "form", className = "" }: Props) {
   const [openField, setOpenField] = useState<null | "von" | "bis">(null);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => setMounted(true), []);
 
   const minDate = todayPlus(1);
   const vonDate = dateFromIso(value.von);
@@ -169,12 +172,12 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
         </div>
       </div>
 
-      {/* Popup — Modal-Stil auf allen Viewports (z-[100] ueber Hero-Cards) */}
-      {openField && (
+      {/* Popup — via React Portal direkt in <body>, damit kein Stacking-Context-Issue */}
+      {openField && mounted && createPortal((
         <div
           role="dialog"
           aria-modal="true"
-          className="fixed inset-0 z-[100] flex items-center justify-center"
+          className="fixed inset-0 z-[9999] flex items-center justify-center"
           onClick={(e) => {
             if (e.target === e.currentTarget) setOpenField(null);
           }}
@@ -182,7 +185,7 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
           {/* Backdrop */}
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setOpenField(null)} />
 
-          <div className="relative w-[min(94vw,680px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-6 sm:p-8 max-h-[92vh] overflow-y-auto">
+          <div className="relative w-[min(96vw,720px)] rounded-2xl bg-navy-800 border border-white/10 shadow-2xl p-5 sm:p-7 max-h-[92vh] overflow-y-auto">
             {/* Header mit Close */}
             <div className="flex items-center justify-between mb-5">
               <div className="text-white font-semibold text-xl">
@@ -207,6 +210,21 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
               weekStartsOn={1}
               defaultMonth={openField === "von" ? vonDate || minDate : bisDate || vonDate || minDate}
               showOutsideDays
+              style={{
+                // Default rdp-CSS-Vars sind 44px Day-Width — wir verdoppeln auf 72px
+                ["--rdp-day-width" as string]: "72px",
+                ["--rdp-day-height" as string]: "72px",
+                ["--rdp-day_button-width" as string]: "68px",
+                ["--rdp-day_button-height" as string]: "68px",
+                ["--rdp-day_button-border-radius" as string]: "12px",
+                ["--rdp-day_button-border" as string]: "2px solid transparent",
+                ["--rdp-nav_button-width" as string]: "44px",
+                ["--rdp-nav_button-height" as string]: "44px",
+                ["--rdp-nav-height" as string]: "3.5rem",
+                ["--rdp-weekday-padding" as string]: "0.75rem 0",
+                ["--rdp-accent-color" as string]: "#f6c451", // gold-500
+                ["--rdp-accent-background-color" as string]: "rgba(246,196,81,0.15)",
+              } as React.CSSProperties}
               classNames={{
                 root: "rdp-mb-eventverleih",
                 month_caption: "flex justify-center items-center py-4 mb-3 relative",
@@ -221,7 +239,7 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
                 weeks: "flex flex-col gap-2",
                 week: "flex w-full gap-2",
                 day: "flex-1 aspect-square p-0",
-                day_button: "w-full h-full rounded-lg text-xl text-gray-100 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-center font-semibold",
+                day_button: "!w-[var(--rdp-day_button-width)] !h-[var(--rdp-day_button-height)] rounded-xl text-2xl text-gray-100 hover:bg-white/10 hover:text-white cursor-pointer transition-colors flex items-center justify-center font-semibold",
                 selected: "[&_button]:bg-gold-500 [&_button]:text-navy-900 [&_button]:font-bold [&_button]:hover:bg-gold-400 [&_button]:hover:text-navy-900",
                 today: "[&_button]:ring-2 [&_button]:ring-gold-400/60",
                 disabled: "[&_button]:text-gray-600 [&_button]:opacity-40 [&_button]:cursor-not-allowed [&_button]:hover:bg-transparent [&_button]:hover:text-gray-600",
@@ -236,7 +254,7 @@ export default function DateRangePicker({ value, onChange, layout = "form", clas
             )}
           </div>
         </div>
-      )}
+      ), document.body)}
     </div>
   );
 }
