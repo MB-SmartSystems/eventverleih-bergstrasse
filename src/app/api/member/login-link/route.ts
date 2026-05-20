@@ -7,8 +7,8 @@
  * Sicherheits-Hinweis: returnt IMMER 200 (auch wenn Mail nicht in DB) — Enumeration-Schutz.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { createRow, TABLES } from "@/lib/baserow/client";
-import { generateMagicLinkForEmail } from "@/lib/eventverleih/member-auth";
+import { createRow, listRows, TABLES } from "@/lib/baserow/client";
+import { ensureMemberToken } from "@/lib/eventverleih/member-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -30,10 +30,14 @@ export async function POST(req: NextRequest) {
 
   try {
     const baseUrl = req.nextUrl.origin;
-    const magicLink = await generateMagicLinkForEmail(email, baseUrl);
+    const target = email.toLowerCase().trim();
+    // Kunde per Email lookup
+    const kunden = await listRows<{ id: number; Email?: string }>(TABLES.Kunden, { search: target, size: 50 });
+    const kunde = kunden.results.find((k) => (k.Email || "").toLowerCase() === target);
 
-    if (magicLink) {
-      // Queue Magic-Link-Mail. Approval_Status=Auto_Reply geht direkt raus.
+    if (kunde) {
+      const token = await ensureMemberToken(kunde.id);
+      const magicLink = `${baseUrl}/mein-bereich/login?token=${token}`;
       const subject = "Ihr Login-Link für Mein Bereich — Eventverleih Bergstrasse";
       const body = `Hallo,
 
@@ -51,6 +55,7 @@ Manuel Buettner — Eventverleih Bergstrasse`;
       try {
         await createRow(TABLES.MailQueue, {
           Erstellt_am: new Date().toISOString(),
+          Kunde_Link: [kunde.id],
           Template_Key: "login_magic_link",
           Subject: subject,
           Body: body,

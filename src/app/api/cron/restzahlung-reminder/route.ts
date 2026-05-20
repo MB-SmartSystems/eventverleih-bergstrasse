@@ -11,6 +11,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, TABLES } from "@/lib/baserow/client";
+import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -46,27 +47,28 @@ function parseDec(v: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-function buildMail(tone: "freundlich" | "dringender" | "letzte_mahnung", kundeName: string, restSoll: number, eventDatumVon: string, stripeLink: string | null): { subject: string; body: string } {
+function buildMail(tone: "freundlich" | "dringender" | "letzte_mahnung", kundeName: string, restSoll: number, eventDatumVon: string, stripeLink: string | null, meinBereichUrl: string | null): { subject: string; body: string } {
   const linkLine = stripeLink
     ? `Am bequemsten zahlen Sie online:\n${stripeLink}\n\n`
     : `Bitte ueberweisen Sie auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
+  const memberBlock = meinBereichUrl ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n` : "";
   const sig = `\n\nMit freundlichen Gruessen\nManuel Buettner — Eventverleih Bergstrasse\nTel/WhatsApp +49 156 79521124`;
 
   if (tone === "freundlich") {
     return {
       subject: "Erinnerung: Restzahlung Ihrer Buchung",
-      body: `Hallo ${kundeName},\n\neine kurze freundliche Erinnerung: in zwei Wochen findet Ihr Event statt (${eventDatumVon}). Bitte denken Sie an die Restzahlung von ${restSoll.toFixed(2)} EUR.\n\n${linkLine}Alternativ koennen Sie auch bar oder per EC-Karte bei der Uebergabe zahlen.${sig}`,
+      body: `Hallo ${kundeName},\n\neine kurze freundliche Erinnerung: in zwei Wochen findet Ihr Event statt (${eventDatumVon}). Bitte denken Sie an die Restzahlung von ${restSoll.toFixed(2)} EUR.\n\n${linkLine}Alternativ koennen Sie auch bar oder per EC-Karte bei der Uebergabe zahlen.${memberBlock}${sig}`,
     };
   }
   if (tone === "dringender") {
     return {
       subject: "Restzahlung Ihrer Buchung — noch eine Woche",
-      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Damit die Uebergabe reibungslos klappt, brauche ich Ihre Restzahlung von ${restSoll.toFixed(2)} EUR bitte zeitnah.\n\n${linkLine}Falls Sie planen, bar zur Uebergabe zu zahlen, geben Sie mir kurz Bescheid — dann nehme ich es so auf.${sig}`,
+      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Damit die Uebergabe reibungslos klappt, brauche ich Ihre Restzahlung von ${restSoll.toFixed(2)} EUR bitte zeitnah.\n\n${linkLine}Falls Sie planen, bar zur Uebergabe zu zahlen, geben Sie mir kurz Bescheid — dann nehme ich es so auf.${memberBlock}${sig}`,
     };
   }
   return {
     subject: "WICHTIG: Restzahlung Ihrer Buchung — Event in 3 Tagen",
-    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}). Die Restzahlung von ${restSoll.toFixed(2)} EUR ist noch offen.\n\nBitte zahlen Sie heute, sonst kann ich die Uebergabe leider nicht durchfuehren. Bei Bar-Zahlung bei Uebergabe brauche ich eine WhatsApp-Bestaetigung von Ihnen, sonst gilt die Reservierung als gefaehrdet.\n\n${linkLine}${sig}`,
+    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}). Die Restzahlung von ${restSoll.toFixed(2)} EUR ist noch offen.\n\nBitte zahlen Sie heute, sonst kann ich die Uebergabe leider nicht durchfuehren. Bei Bar-Zahlung bei Uebergabe brauche ich eine WhatsApp-Bestaetigung von Ihnen, sonst gilt die Reservierung als gefaehrdet.\n\n${linkLine}${memberBlock}${sig}`,
   };
 }
 
@@ -116,7 +118,15 @@ export async function GET(req: NextRequest) {
       const kundeName = b.Kunde_Link?.[0]?.value || "";
       if (!kundeId) continue;
 
-      const mail = buildMail(stufe.tone, kundeName, restSoll, b.Event_datum_von, b.Stripe_Restzahlung_Link);
+      // Auto-Login-Link fuer Mein-Bereich (fail-soft)
+      let meinBereichUrl: string | null = null;
+      try {
+        meinBereichUrl = await memberAutoLoginUrl(kundeId);
+      } catch (e) {
+        console.error("[restzahlung-reminder] member-token fehlgeschlagen:", e);
+      }
+
+      const mail = buildMail(stufe.tone, kundeName, restSoll, b.Event_datum_von, b.Stripe_Restzahlung_Link, meinBereichUrl);
 
       try {
         await createRow(TABLES.MailQueue, {
