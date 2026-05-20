@@ -18,7 +18,7 @@ export default function Datenschutz() {
 
             <h2>1. Allgemeine Hinweise</h2>
             <p>
-              Wir behandeln deine personenbezogenen Daten vertraulich und entsprechend
+              Wir behandeln Ihre personenbezogenen Daten vertraulich und entsprechend
               den gesetzlichen Datenschutzvorschriften (DSGVO, BDSG, TTDSG) sowie dieser
               Datenschutzerklärung.
             </p>
@@ -69,11 +69,11 @@ export default function Datenschutz() {
 
             <h2>5. Kontaktformular und Anfragen</h2>
             <p>
-              Wenn du uns per Kontaktformular oder E-Mail Anfragen zukommen lässt,
-              werden deine Angaben aus dem Formular inklusive der dort angegebenen
+              Wenn Sie uns per Kontaktformular oder E-Mail Anfragen zukommen lassen,
+              werden Ihre Angaben aus dem Formular inklusive der dort angegebenen
               Kontaktdaten zwecks Bearbeitung der Anfrage und für den Fall von
               Anschlussfragen bei uns gespeichert. Diese Daten geben wir nicht ohne
-              deine Einwilligung weiter.
+              Ihre Einwilligung weiter.
             </p>
             <p>
               <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO
@@ -81,9 +81,9 @@ export default function Datenschutz() {
               Interesse an der Beantwortung).
             </p>
             <p>
-              <strong>Speicherdauer:</strong> bis zur vollständigen Bearbeitung deiner
+              <strong>Speicherdauer:</strong> bis zur vollständigen Bearbeitung Ihrer
               Anfrage, danach drei Jahre zur Dokumentation (handelsrechtliche
-              Aufbewahrungsfristen) — es sei denn, du widersprichst vorher.
+              Aufbewahrungsfristen) — es sei denn, Sie widersprechen vorher.
             </p>
             <p>
               Das Kontaktformular wird technisch über den Dienstleister Formspree
@@ -102,12 +102,12 @@ export default function Datenschutz() {
             <p>
               <strong>Hinweis:</strong> WhatsApp wird von Meta Platforms Ireland Ltd.
               betrieben; bei Nutzung werden Daten an Meta übermittelt, teils außerhalb
-              der EU. Nutze ausschließlich Telefon oder E-Mail, wenn du das nicht
-              wünschst.
+              der EU. Nutzen Sie ausschließlich Telefon oder E-Mail, wenn Sie das nicht
+              wünschen.
             </p>
 
-            <h2>7. Deine Rechte</h2>
-            <p>Du hast nach DSGVO jederzeit das Recht auf:</p>
+            <h2>7. Ihre Rechte</h2>
+            <p>Sie haben nach DSGVO jederzeit das Recht auf:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17)</li>
               <li>Einschränkung der Verarbeitung (Art. 18)</li>
@@ -116,7 +116,7 @@ export default function Datenschutz() {
               <li>Widerruf einer Einwilligung für die Zukunft (Art. 7 Abs. 3 DSGVO)</li>
             </ul>
             <p>
-              Wende dich dafür an{" "}
+              Wenden Sie sich dafür an{" "}
               <a href="mailto:info@eventverleih-bergstrasse.de">
                 info@eventverleih-bergstrasse.de
               </a>
@@ -125,7 +125,7 @@ export default function Datenschutz() {
 
             <h2>8. Beschwerderecht</h2>
             <p>
-              Du hast das Recht, dich bei einer Datenschutz-Aufsichtsbehörde zu
+              Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu
               beschweren. Zuständig für uns:
             </p>
             <p>

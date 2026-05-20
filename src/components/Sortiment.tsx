@@ -168,7 +168,7 @@ function ProductCard({
                     : "border-gold-500/30 text-gold-400 hover:bg-gold-500/10"
                 }`}
               >
-                {isUnavailable ? "Bitte anderen Termin waehlen" : "+ Zur Anfrage hinzufuegen"}
+                {isUnavailable ? "Bitte anderen Termin wählen" : "+ Zur Anfrage hinzufügen"}
               </button>
             </>
           ) : (
@@ -220,7 +220,7 @@ export default function Sortiment() {
       .catch(() => setError(true));
   }, []);
 
-  // Lade Verfuegbarkeit wenn URL-Range gesetzt
+  // Lade Verfügbarkeit wenn URL-Range gesetzt
   useEffect(() => {
     if (!hasRange) {
       setAvailabilityMap(new Map());

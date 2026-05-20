@@ -77,7 +77,7 @@ export default function NeueAnfrageForm({
   async function submit() {
     setError("");
     if (kundeMode === "existing" && !kundeId) {
-      setError("Bitte einen Kunden auswaehlen oder 'Neuer Kunde' anlegen.");
+      setError("Bitte einen Kunden auswählen oder 'Neuer Kunde' anlegen.");
       return;
     }
     if (kundeMode === "new") {
@@ -86,13 +86,13 @@ export default function NeueAnfrageForm({
         return;
       }
       if (!neuerKunde.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(neuerKunde.email.trim())) {
-        setError("Gueltige E-Mail-Adresse erforderlich (fuer Angebots-Versand).");
+        setError("Gueltige E-Mail-Adresse erforderlich (für Angebots-Versand).");
         return;
       }
     }
-    if (!vonIso || !bisIso) { setError("Bitte Mietzeitraum auswaehlen."); return; }
+    if (!vonIso || !bisIso) { setError("Bitte Mietzeitraum auswählen."); return; }
     if (bisIso < vonIso) { setError("Bis-Datum muss nach Von-Datum liegen."); return; }
-    if (cart.length === 0) { setError("Bitte mindestens einen Artikel hinzufuegen."); return; }
+    if (cart.length === 0) { setError("Bitte mindestens einen Artikel hinzufügen."); return; }
     setSubmitting(true);
     try {
       const res = await fetch("/api/admin/anfrage/neu", {
@@ -150,7 +150,7 @@ export default function NeueAnfrageForm({
               onClick={() => setKundeMode("existing")}
               className={`px-3 py-1 rounded transition-colors ${kundeMode === "existing" ? "bg-accent text-white" : "text-warm-muted hover:text-warm-text"}`}
             >
-              Vorhandenen Kunden waehlen
+              Vorhandenen Kunden wählen
             </button>
             <button
               type="button"
@@ -168,7 +168,7 @@ export default function NeueAnfrageForm({
                 onChange={(e) => setKundeId(e.target.value ? parseInt(e.target.value, 10) : "")}
                 className={cls}
               >
-                <option value="">— bitte waehlen —</option>
+                <option value="">— bitte wählen —</option>
                 {kunden.map((k) => (
                   <option key={k.id} value={k.id}>{k.label} {k.email ? `(${k.email})` : ""}</option>
                 ))}
@@ -207,7 +207,7 @@ export default function NeueAnfrageForm({
                     value={neuerKunde.email}
                     onChange={(e) => setNeuerKunde({ ...neuerKunde, email: e.target.value })}
                     className={cls}
-                    placeholder="fuer Angebots-Versand"
+                    placeholder="für Angebots-Versand"
                   />
                 </div>
                 <div>
@@ -238,7 +238,7 @@ export default function NeueAnfrageForm({
             >
               {vonIso && bisIso
                 ? `${formatGermanShort(vonIso)} — ${formatGermanShort(bisIso)}`
-                : "Zeitraum auswaehlen"}
+                : "Zeitraum auswählen"}
             </button>
             {(vonIso || bisIso) && (
               <button
@@ -280,7 +280,7 @@ export default function NeueAnfrageForm({
               onChange={(e) => setArtikelToAdd(e.target.value ? parseInt(e.target.value, 10) : "")}
               className="flex-1 px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
             >
-              <option value="">— Artikel waehlen —</option>
+              <option value="">— Artikel wählen —</option>
               {artikel.map((a) => (
                 <option key={a.id} value={a.id}>{a.bezeichnung} ({a.preis.toFixed(2)} €)</option>
               ))}

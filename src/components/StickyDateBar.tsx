@@ -26,7 +26,7 @@ export default function StickyDateBar() {
   const hasRange = Boolean(rangeVon && rangeBis);
   const label = hasRange
     ? `${formatGermanShort(rangeVon!)} — ${formatGermanShort(rangeBis!)}`
-    : "Mietzeitraum waehlen";
+    : "Mietzeitraum wählen";
 
   return (
     <>
@@ -61,7 +61,7 @@ export default function StickyDateBar() {
             onClick={() => setSheetOpen(true)}
             className="px-3 py-1.5 rounded-md border border-gold-500/40 text-gold-400 text-sm hover:bg-gold-500/10 transition-colors whitespace-nowrap"
           >
-            {hasRange ? "aendern" : "waehlen"}
+            {hasRange ? "ändern" : "wählen"}
           </button>
         </div>
       </div>

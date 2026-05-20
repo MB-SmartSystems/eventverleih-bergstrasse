@@ -184,7 +184,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Partial-Selection erlauben: react-day-picker emittiert (from, null)
     // nach dem ersten Tag-Klick. Wenn wir das beidseitig clearen, kommt
     // der User nie zu einem kompletten Range. URL-Sync + AvailabilityCounter
-    // ignorieren Partial-State (pruefen rangeVon && rangeBis), insofern
+    // ignorieren Partial-State (prüfen rangeVon && rangeBis), insofern
     // ist Partial im Cart unschaedlich.
     if (!von) {
       setRangeVon(null);

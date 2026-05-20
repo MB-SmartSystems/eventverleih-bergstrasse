@@ -217,7 +217,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
       `}</style>
       <div className="max-w-3xl mx-auto">
         <div className="no-print mb-3 text-sm text-warm-muted">
-          Tipp: Druck-Funktion deines Browsers (Strg+P / Cmd+P) → „Als PDF speichern"
+          Tipp: Druck-Funktion Ihres Browsers (Strg+P / Cmd+P) → „Als PDF speichern"
         </div>
         <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-warm-border print:shadow-none print:border-0 print:rounded-none">
           {/* Header */}

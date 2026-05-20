@@ -37,18 +37,18 @@ export default function Contact() {
     }
 
     if (!hasRange) {
-      setErrorText("Bitte oben den Mietzeitraum waehlen.");
+      setErrorText("Bitte oben den Mietzeitraum wählen.");
       setSubmitResult("error");
       return;
     }
     if (cartEmpty) {
-      setErrorText("Bitte oben mindestens einen Artikel zur Anfrage hinzufuegen.");
+      setErrorText("Bitte oben mindestens einen Artikel zur Anfrage hinzufügen.");
       setSubmitResult("error");
       return;
     }
     const plz = String(fd.get("adresse_plz") || "").trim();
     if (!/^\d{4,5}$/.test(plz)) {
-      setErrorText("Bitte eine gueltige Postleitzahl angeben (4-5 Ziffern).");
+      setErrorText("Bitte eine gültige Postleitzahl angeben (4-5 Ziffern).");
       setSubmitResult("error");
       return;
     }
@@ -181,7 +181,7 @@ export default function Contact() {
           <div className="glass-card p-6 md:p-8">
             <h3 className="font-display text-xl font-semibold mb-1">Anfrage senden</h3>
             <p className="text-gray-400 text-sm mb-6">
-              Nur das Noetigste. Vollstaendige Adresse braucht es erst bei Angebot-Bestaetigung.
+              Nur das Nötigste. Vollständige Adresse braucht es erst bei Angebot-Bestätigung.
             </p>
 
             {submitResult === "success" && (
@@ -279,7 +279,7 @@ export default function Contact() {
                   className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                 />
                 <p className="text-xs text-gray-500 mt-1.5">
-                  Fuer eventuellen Liefer-Preis im Angebot. Bei Selbstabholung einfach Ihre Wohn-PLZ.
+                  Für eventuellen Liefer-Preis im Angebot. Bei Selbstabholung einfach Ihre Wohn-PLZ.
                 </p>
               </div>
 
@@ -299,12 +299,12 @@ export default function Contact() {
                       onClick={() => scrollTo("datepicker")}
                       className="text-gold-400 text-sm hover:text-gold-300 underline"
                     >
-                      aendern
+                      ändern
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                    <div className="text-amber-200 text-sm">Bitte oben Mietzeitraum waehlen.</div>
+                    <div className="text-amber-200 text-sm">Bitte oben Mietzeitraum wählen.</div>
                     <button
                       type="button"
                       onClick={() => scrollTo("datepicker")}
@@ -319,8 +319,8 @@ export default function Contact() {
               {/* Artikel (read-only aus Cart) */}
               <div>
                 <div className="text-sm text-gray-300 mb-2">
-                  Gewuenschte Artikel <span className="text-gold-400">*</span>
-                  {totalItems > 0 && <span className="text-gold-400 ml-1">({totalItems} ausgewaehlt)</span>}
+                  Gewünschte Artikel <span className="text-gold-400">*</span>
+                  {totalItems > 0 && <span className="text-gold-400 ml-1">({totalItems} ausgewählt)</span>}
                 </div>
                 {items.length > 0 ? (
                   <div className="rounded-lg bg-white/5 border border-white/10 p-3">
@@ -338,12 +338,12 @@ export default function Contact() {
                       onClick={() => scrollTo("sortiment")}
                       className="text-gold-400 text-sm hover:text-gold-300 underline"
                     >
-                      Artikel im Sortiment aendern
+                      Artikel im Sortiment ändern
                     </button>
                   </div>
                 ) : (
                   <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
-                    <div className="text-amber-200 text-sm">Bitte mindestens einen Artikel im Sortiment auswaehlen.</div>
+                    <div className="text-amber-200 text-sm">Bitte mindestens einen Artikel im Sortiment auswählen.</div>
                     <button
                       type="button"
                       onClick={() => scrollTo("sortiment")}
@@ -364,7 +364,7 @@ export default function Contact() {
                   rows={3}
                   value={notiz}
                   onChange={(e) => setNotiz(e.target.value)}
-                  placeholder="z.B. Lieferung gewuenscht, Aufbau-Hilfe, besondere Wuensche..."
+                  placeholder="z.B. Lieferung gewünscht, Aufbau-Hilfe, besondere Wünsche..."
                   className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all resize-none"
                 />
               </div>

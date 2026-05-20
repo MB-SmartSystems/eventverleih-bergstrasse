@@ -86,7 +86,7 @@ export default function AvailabilityCounter({ rangeVon, rangeBis }: Props) {
             d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0V11.25A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"
           />
         </svg>
-        <span>Waehlen Sie einen Zeitraum, um die Verfuegbarkeit zu sehen</span>
+        <span>Waehlen Sie einen Zeitraum, um die Verfügbarkeit zu sehen</span>
       </div>
     );
   }
@@ -113,7 +113,7 @@ export default function AvailabilityCounter({ rangeVon, rangeBis }: Props) {
             d="M4 12a8 8 0 018-8v4l3-3-3-3v2C5.373 0 0 5.373 0 12h4z"
           />
         </svg>
-        <span>Pruefe Verfuegbarkeit…</span>
+        <span>Prüfe Verfügbarkeit…</span>
       </div>
     );
   }
@@ -121,7 +121,7 @@ export default function AvailabilityCounter({ rangeVon, rangeBis }: Props) {
   if (state.kind === "error") {
     return (
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-        <span>Verfuegbarkeit konnte nicht geladen werden.</span>
+        <span>Verfügbarkeit konnte nicht geladen werden.</span>
       </div>
     );
   }
@@ -181,8 +181,8 @@ export default function AvailabilityCounter({ rangeVon, rangeBis }: Props) {
   }
 
   const text = allOk
-    ? `Alle ${total} Artikel in Ihrem Zeitraum verfuegbar`
-    : `${available} von ${total} Artikeln verfuegbar`;
+    ? `Alle ${total} Artikel in Ihrem Zeitraum verfügbar`
+    : `${available} von ${total} Artikeln verfügbar`;
 
   return (
     <div

@@ -33,24 +33,24 @@ export default function DateRangeSheet({ open, onClose }: Props) {
       className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
       role="dialog"
       aria-modal="true"
-      aria-label="Mietzeitraum waehlen"
+      aria-label="Mietzeitraum wählen"
     >
       <button
         type="button"
-        aria-label="Schliessen"
+        aria-label="Schließen"
         onClick={onClose}
         className="absolute inset-0 bg-black/70 backdrop-blur-sm cursor-default"
       />
       <div className="relative w-full md:max-w-3xl bg-navy-900 border-t md:border border-white/10 md:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-slide-up md:animate-fade-in">
         <div className="sticky top-0 bg-navy-900/95 backdrop-blur-md border-b border-white/10 px-5 py-3 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold text-white">
-            Mietzeitraum waehlen
+            Mietzeitraum wählen
           </h2>
           <button
             type="button"
             onClick={onClose}
             className="w-8 h-8 rounded-md text-gray-400 hover:bg-white/10 hover:text-white inline-flex items-center justify-center transition-colors"
-            aria-label="Schliessen"
+            aria-label="Schließen"
           >
             <svg
               className="w-5 h-5"

@@ -162,8 +162,8 @@ export default async function MeinBereichPage() {
               ))}
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              Klick auf eine Rechnung öffnet die PDF-Ansicht. Über die Druck-Funktion deines Browsers
-              (Strg+P / Cmd+P) kannst du sie als PDF speichern.
+              Klick auf eine Rechnung öffnet die PDF-Ansicht. Über die Druck-Funktion Ihres Browsers
+              (Strg+P / Cmd+P) können Sie sie als PDF speichern.
             </p>
           </div>
         )}
