@@ -2,27 +2,45 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
 import ProductLightbox from "./ProductLightbox";
 import type { RentalProduct, ProductCategory, ProductsData } from "@/lib/types";
 
+function normalizeName(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
+    .replace(/×/g, "x")
+    .replace(/[()[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+type AvailabilityState = "available" | "unavailable" | "unknown";
+
 function ProductCard({
   product,
   onImageClick,
+  availability,
 }: {
   product: RentalProduct;
   onImageClick: (images: string[], alt: string, startIndex: number) => void;
+  availability: AvailabilityState;
 }) {
   const { addItem, removeItem, getQuantity } = useCart();
   const qty = getQuantity(product.name);
   const thumb = product.images[0] || product.image;
   const hasMultiple = product.images.length > 1;
+  const isUnavailable = availability === "unavailable";
 
   return (
     <div
       className={`glass-card overflow-hidden group transition-all flex flex-col h-full ${
         qty > 0
           ? "border-gold-500/50 ring-1 ring-gold-500/20"
+          : isUnavailable
+          ? "opacity-60"
           : "hover:border-gold-500/30"
       }`}
     >
@@ -46,6 +64,16 @@ function ProductCard({
         {qty > 0 && (
           <div className="absolute top-2 right-2 w-7 h-7 rounded-full bg-gold-500 text-navy-900 font-bold text-sm flex items-center justify-center">
             {qty}
+          </div>
+        )}
+        {availability === "available" && qty === 0 && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-green-500/90 text-white text-[10px] font-semibold uppercase tracking-wide">
+            verfügbar
+          </div>
+        )}
+        {availability === "unavailable" && (
+          <div className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-gray-700/90 text-white text-[10px] font-semibold uppercase tracking-wide">
+            nicht verfügbar
           </div>
         )}
       </button>
@@ -82,9 +110,14 @@ function ProductCard({
           {qty === 0 ? (
             <button
               onClick={() => addItem(product.name, product.price)}
-              className="w-full py-2 border border-gold-500/30 text-gold-400 text-sm font-medium rounded-lg hover:bg-gold-500/10 transition-all"
+              disabled={isUnavailable}
+              className={`w-full py-2 border text-sm font-medium rounded-lg transition-all ${
+                isUnavailable
+                  ? "border-white/10 text-gray-500 cursor-not-allowed"
+                  : "border-gold-500/30 text-gold-400 hover:bg-gold-500/10"
+              }`}
             >
-              + Zur Anfrage hinzufügen
+              {isUnavailable ? "Im Zeitraum nicht verfügbar" : "+ Zur Anfrage hinzufügen"}
             </button>
           ) : (
             <div className="flex items-center justify-between">
@@ -119,6 +152,11 @@ export default function Sortiment() {
   const [lightbox, setLightbox] = useState<
     { slides: { src: string; alt: string }[]; index: number } | null
   >(null);
+  const [availabilityMap, setAvailabilityMap] = useState<Map<string, boolean>>(new Map());
+  const searchParams = useSearchParams();
+  const von = searchParams.get("von") || "";
+  const bis = searchParams.get("bis") || "";
+  const hasRange = /^\d{4}-\d{2}-\d{2}$/.test(von) && /^\d{4}-\d{2}-\d{2}$/.test(bis);
 
   useEffect(() => {
     fetch("/api/products")
@@ -129,6 +167,54 @@ export default function Sortiment() {
       .then((d: ProductsData) => setData(d))
       .catch(() => setError(true));
   }, []);
+
+  // Lade Verfuegbarkeit wenn URL-Range gesetzt
+  useEffect(() => {
+    if (!hasRange) {
+      setAvailabilityMap(new Map());
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/availability", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ von, bis }),
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { items?: Array<{ artikel_name: string; available: boolean }> } | null) => {
+        if (cancelled || !j?.items) return;
+        const m = new Map<string, boolean>();
+        for (const it of j.items) {
+          if (it.artikel_name) m.set(normalizeName(it.artikel_name), it.available);
+        }
+        setAvailabilityMap(m);
+      })
+      .catch(() => {
+        // still ok — keine Badges
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [hasRange, von, bis]);
+
+  const lookupAvailability = (name: string): AvailabilityState => {
+    if (!hasRange) return "unknown";
+    if (availabilityMap.size === 0) return "unknown";
+    const norm = normalizeName(name);
+    // Exact match
+    let val = availabilityMap.get(norm);
+    if (val === undefined) {
+      // Substring-Match in beide Richtungen
+      availabilityMap.forEach((v, k) => {
+        if (val !== undefined) return;
+        if (k.includes(norm) || norm.includes(k)) {
+          val = v;
+        }
+      });
+    }
+    if (val === undefined) return "unknown";
+    return val ? "available" : "unavailable";
+  };
 
   const handleImageClick = (images: string[], alt: string, startIndex: number) => {
     setLightbox({
@@ -188,6 +274,7 @@ export default function Sortiment() {
                         key={product.id}
                         product={product}
                         onImageClick={handleImageClick}
+                        availability={lookupAvailability(product.name)}
                       />
                     ))}
                   </div>

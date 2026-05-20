@@ -12,6 +12,7 @@ import { listAllRows, getRow, TABLES } from "@/lib/baserow/client";
 export interface ConflictMatch {
   buchung_id: number;
   status: string;
+  is_hard: boolean; // true = bereits angezahlt (Reserviert/Uebergeben/In_Miete), false = vorab reserviert
   datum_von: string;
   datum_bis: string;
   kunde_name: string;
@@ -34,7 +35,30 @@ interface BuchungsPositionRow {
   Artikel_Link: Array<{ id: number; value: string }> | null;
 }
 
-const BLOCKING_STATI = new Set(["Angebot_versendet", "Bestaetigt", "Reserviert"]);
+// Status-Klassifizierung (Plan ich-hab-mal-bitte-snappy-boole, Punkt 3):
+// Soft = vorab-reserviert (noch keine Anzahlung) → Konflikt wird als Warnung im Admin angezeigt,
+//        blockt aber NICHT die Verfuegbarkeit fuer neue Kunden-Anfragen
+// Hard = fest-reserviert (Anzahlung eingegangen) → blockt die Verfuegbarkeit hart
+const SOFT_STATI = new Set([
+  "Anfrage",
+  "Angebot_erstellt",
+  "Angebot_versendet",
+  "Bestaetigt",
+]);
+const HARD_STATI = new Set(["Reserviert", "Uebergeben", "In_Miete"]);
+const ALL_BLOCKING = new Set<string>([
+  "Anfrage",
+  "Angebot_erstellt",
+  "Angebot_versendet",
+  "Bestaetigt",
+  "Reserviert",
+  "Uebergeben",
+  "In_Miete",
+]);
+
+export function isHardStatus(status: string): boolean {
+  return HARD_STATI.has(status);
+}
 
 /**
  * Prueft fuer eine Buchung, ob sie mit anderen aktiven Buchungen konfligiert.
@@ -66,12 +90,12 @@ export async function checkConflicts(buchungId: number): Promise<ConflictMatch[]
     return []; // Keine Artikel = kein Konflikt-Vektor
   }
 
-  // Hole alle aktiven Buchungen
+  // Hole alle aktiven Buchungen (Soft + Hard)
   const buchungen = await listAllRows<BuchungRow>(TABLES.Buchungen);
   const candidates = buchungen.results.filter((b) => {
     if (b.id === buchungId) return false;
     const status = b.Status_Erweitert?.value || "";
-    if (!BLOCKING_STATI.has(status)) return false;
+    if (!ALL_BLOCKING.has(status)) return false;
     if (!b.Event_datum_von || !b.Event_datum_bis) return false;
     const von = new Date(b.Event_datum_von);
     const bis = new Date(b.Event_datum_bis);
@@ -99,9 +123,11 @@ export async function checkConflicts(buchungId: number): Promise<ConflictMatch[]
     }
     if (sharedArtikelIds.length === 0) continue;
 
+    const candStatus = cand.Status_Erweitert?.value || "";
     conflicts.push({
       buchung_id: cand.id,
-      status: cand.Status_Erweitert?.value || "",
+      status: candStatus,
+      is_hard: HARD_STATI.has(candStatus),
       datum_von: cand.Event_datum_von!,
       datum_bis: cand.Event_datum_bis!,
       kunde_name: cand.Kunde_Link?.[0]?.value || "(unbekannt)",

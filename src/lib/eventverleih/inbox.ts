@@ -31,6 +31,7 @@ export interface QuadrantData {
 
 export interface InboxData {
   mailqueue_pending: number;
+  gerade_bestaetigt: QuadrantData;
   heute_zu_tun: QuadrantData;
   ueberfaellig: QuadrantData;
   wartet_kunde: QuadrantData;
@@ -68,6 +69,7 @@ interface AngebotRow {
   Status: { value: string } | null;
   Angebotsdatum: string | null;
   Anfragedatum: string | null;
+  Akzeptiert_am: string | null;
   Buchung_Link: Array<{ id: number; value: string }> | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
   Gesamtpreis: number | null;
@@ -335,8 +337,48 @@ export async function loadInboxData(): Promise<InboxData> {
     }
   }
 
+  // ----- GERADE BESTAETIGT (letzte 48h) -----
+  // Kunde hat ueber den Token-Link Angebot akzeptiert (Status_Erweitert=Bestaetigt
+  // UND Angebot.Akzeptiert_am > now-48h). Banner verschwindet automatisch nach 48h.
+  const FRESH_MS = 48 * 60 * 60 * 1000;
+  const cutoffFresh = Date.now() - FRESH_MS;
+  const angebotByBuchungId = new Map<number, AngebotRow>();
+  for (const a of angebote) {
+    const bid = a.Buchung_Link?.[0]?.id;
+    if (bid && !angebotByBuchungId.has(bid)) angebotByBuchungId.set(bid, a);
+  }
+  const geradeBestaetigtItems: InboxItem[] = [];
+  for (const b of buchungen) {
+    if (b.Status_Erweitert?.value !== "Bestaetigt") continue;
+    const angebot = angebotByBuchungId.get(b.id);
+    if (!angebot?.Akzeptiert_am) continue;
+    const ts = new Date(angebot.Akzeptiert_am).getTime();
+    if (isNaN(ts) || ts < cutoffFresh) continue;
+    const hrsAgo = Math.max(0, Math.floor((Date.now() - ts) / (60 * 60 * 1000)));
+    geradeBestaetigtItems.push({
+      id: b.id,
+      buchungId: b.id,
+      title: kundeName(b),
+      subtitle: hrsAgo === 0
+        ? "Soeben bestaetigt — Anzahlung steht aus"
+        : `Vor ${hrsAgo}h bestaetigt — Anzahlung steht aus`,
+      amount_eur: b.Anzahlung_Soll_Eur || undefined,
+      link: `/admin/buchungen/${b.id}`,
+    });
+  }
+  // Frischeste zuerst
+  geradeBestaetigtItems.sort((a, b) => {
+    const aHr = parseInt((a.subtitle || "").match(/(\d+)h/)?.[1] || "0", 10);
+    const bHr = parseInt((b.subtitle || "").match(/(\d+)h/)?.[1] || "0", 10);
+    return aHr - bHr;
+  });
+
   return {
     mailqueue_pending,
+    gerade_bestaetigt: {
+      total: geradeBestaetigtItems.length,
+      items: geradeBestaetigtItems.slice(0, 5),
+    },
     heute_zu_tun: { total: heuteItems.length, items: heuteItems.slice(0, 5) },
     ueberfaellig: { total: ueberItems.length, items: ueberItems.slice(0, 5) },
     wartet_kunde: { total: wartKundeItems.length, items: wartKundeItems.slice(0, 5) },

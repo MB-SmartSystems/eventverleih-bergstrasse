@@ -95,6 +95,50 @@ export default async function AdminInboxHome() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      {/* Gerade-Bestaetigt-Banner (frisch akzeptierte Anfragen, letzte 48h) */}
+      {data.gerade_bestaetigt.total > 0 && (
+        <div className="rounded-xl border border-green-300 bg-green-50 px-4 py-3">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="text-2xl">🎉</div>
+            <div className="font-display font-semibold text-green-900">
+              {data.gerade_bestaetigt.total}{" "}
+              {data.gerade_bestaetigt.total === 1
+                ? "Kunde hat gerade bestaetigt"
+                : "Kunden haben gerade bestaetigt"}
+              {" "}— Anzahlung steht aus
+            </div>
+          </div>
+          <div className="space-y-0.5 ml-9">
+            {data.gerade_bestaetigt.items.map((item) => (
+              <Link
+                key={item.id}
+                href={item.link}
+                className="flex items-start justify-between gap-2 px-3 py-2 -mx-3 rounded-lg hover:bg-green-100/60 transition-colors group"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="text-sm font-medium text-green-900 truncate group-hover:text-green-700">
+                    {item.title}
+                  </div>
+                  {item.subtitle && (
+                    <div className="text-xs text-green-700">{item.subtitle}</div>
+                  )}
+                </div>
+                {item.amount_eur !== undefined && (
+                  <div className="text-sm font-medium text-green-900 whitespace-nowrap">
+                    {fmtEur(item.amount_eur)}
+                  </div>
+                )}
+              </Link>
+            ))}
+            {data.gerade_bestaetigt.total > data.gerade_bestaetigt.items.length && (
+              <div className="text-xs text-green-700 pt-1 px-3">
+                + {data.gerade_bestaetigt.total - data.gerade_bestaetigt.items.length} weitere
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mail-Queue-Widget */}
       {data.mailqueue_pending > 0 && (
         <Link

@@ -23,6 +23,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { createRow, deleteRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
+import { getAvailability } from "@/lib/eventverleih/availability";
 
 interface CartItemPayload {
   name: string;
@@ -236,6 +237,34 @@ export async function POST(req: NextRequest) {
     }
     const mietsumme = matched.reduce((s, m) => s + m.position_summe, 0);
     const kautionSumme = matched.reduce((s, m) => s + m.kaution_pro_stueck * m.anzahl, 0);
+
+    // === Safety-Net: Verfuegbarkeits-Check fuer alle gematchten Artikel
+    // Falls inzwischen jemand anderes hart-reserviert hat (Stripe-Anzahlung), lehnen wir die
+    // Anfrage ab mit klarem Hinweis welche Artikel nicht verfuegbar sind.
+    if (matched.length > 0) {
+      try {
+        const availMap = await getAvailability(
+          matched.map((m) => m.artikelId),
+          payload.event_datum_von,
+          payload.event_datum_bis,
+        );
+        const ausgebucht = matched.filter((m) => availMap.get(m.artikelId)?.available === false);
+        if (ausgebucht.length > 0) {
+          const namen = ausgebucht.map((m) => m.bezeichnung).join(", ");
+          return NextResponse.json(
+            {
+              error: "artikel_nicht_verfuegbar",
+              detail: `Im gewuenschten Zeitraum nicht verfuegbar: ${namen}. Bitte aus dem Warenkorb entfernen oder Datum aendern.`,
+              unavailable: ausgebucht.map((m) => ({ artikel_id: m.artikelId, name: m.bezeichnung })),
+            },
+            { status: 409 },
+          );
+        }
+      } catch (e) {
+        // Fail-soft: Verfuegbarkeits-Check darf den Anfrage-Submit nicht killen wenn Baserow lahmt.
+        console.error("[contact] Verfuegbarkeits-Check fehlgeschlagen, fahre fort:", e);
+      }
+    }
 
     // === Schritt 4: Buchung anlegen mit aggregierten Preisen
     const sharedToken = randomUUID();

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 import { useCart } from "./CartContext";
 
 export default function Contact() {
@@ -11,11 +12,22 @@ export default function Contact() {
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<"idle" | "success" | "error">("idle");
   const [errorText, setErrorText] = useState("");
+  const searchParams = useSearchParams();
 
   const todayPlus1Str = (() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
     return d.toISOString().slice(0, 10);
+  })();
+
+  // Wenn Kunde im Hero-Datepicker bereits einen Zeitraum gewaehlt hat → uebernehmen
+  const prefilledVon = (() => {
+    const v = searchParams.get("von") || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
+  })();
+  const prefilledBis = (() => {
+    const v = searchParams.get("bis") || "";
+    return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : "";
   })();
 
   useEffect(() => {
@@ -330,6 +342,7 @@ export default function Contact() {
                       name="event_datum_von"
                       required
                       min={todayPlus1Str}
+                      defaultValue={prefilledVon}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                     />
                   </div>
@@ -340,6 +353,7 @@ export default function Contact() {
                       name="event_datum_bis"
                       required
                       min={todayPlus1Str}
+                      defaultValue={prefilledBis}
                       className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                     />
                   </div>

@@ -64,15 +64,25 @@ export async function POST(req: NextRequest) {
         }
 
         if (paymentType === "anzahlung") {
-          // Buchung auf "Reserviert" hochsetzen + Anzahlung_Bezahlt_am setzen
-          await updateRow(TABLES.Buchungen, buchungId, {
+          // Buchung auf "Reserviert" hochsetzen, Anzahlung_Bezahlt_am setzen
+          // + Lock_Until auf Event_datum_bis fuer Hart-Block-Sichtbarkeit
+          const buchung = await getRow<{ Event_datum_bis: string | null }>(
+            TABLES.Buchungen,
+            buchungId,
+          );
+          const patch: Record<string, unknown> = {
             Status_Erweitert: "Reserviert",
             Anzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
-          });
+          };
+          if (buchung.Event_datum_bis) {
+            patch.Lock_Until = `${buchung.Event_datum_bis}T23:59:59Z`;
+          }
+          await updateRow(TABLES.Buchungen, buchungId, patch);
           await logAudit(buchungId, "Anzahlung_eingegangen", {
             stripe_payment_intent: pi.id,
             amount_eur: (pi.amount || 0) / 100,
             new_status: "Reserviert",
+            lock_until: buchung.Event_datum_bis,
           });
           // Konflikt-Aufloesung: konkurrierende Buchungen auto-stornieren
           await resolveKonfliktAfterAnzahlung(buchungId);

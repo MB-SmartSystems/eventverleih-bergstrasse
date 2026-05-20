@@ -1,4 +1,5 @@
 import Image from "next/image";
+import AvailabilityDatePicker from "./AvailabilityDatePicker";
 
 const categories = [
   {
@@ -72,7 +73,7 @@ export default function Hero() {
             Umgebung.
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row gap-4 mb-10">
             <a
               href="#kontakt"
               className="inline-flex items-center justify-center px-8 py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-lg"
@@ -87,6 +88,9 @@ export default function Hero() {
             </a>
           </div>
         </div>
+
+        {/* Verfuegbarkeits-Datepicker */}
+        <AvailabilityDatePicker />
 
         {/* Category Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
