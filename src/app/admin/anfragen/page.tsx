@@ -139,6 +139,12 @@ export default async function AnfragenPage() {
             {offen.length} {offen.length === 1 ? "Anfrage" : "Anfragen"} — sichtbar bis Anzahlung eingegangen
           </p>
         </div>
+        <Link
+          href="/admin/anfragen/neu"
+          className="inline-flex items-center px-4 py-2 rounded-lg bg-gold-500/20 text-gold-300 hover:bg-gold-500/30 transition-all text-sm font-medium"
+        >
+          + Neue Anfrage anlegen
+        </Link>
       </div>
 
       {offen.length === 0 ? (
