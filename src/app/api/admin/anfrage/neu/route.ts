@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, listAllRows, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 
 interface CartItem { artikel_id: number; anzahl: number }
 interface ArtikelRow {
@@ -42,6 +42,7 @@ export async function POST(req: NextRequest) {
   }
   let body: {
     kunde_id?: number;
+    kunde_neu?: { vorname?: string; nachname?: string; email?: string; telefon?: string };
     event_datum_von?: string;
     event_datum_bis?: string;
     cart_items?: CartItem[];
@@ -53,9 +54,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "invalid json" }, { status: 400 });
   }
 
-  // Validation
-  const kundeId = Number(body.kunde_id);
-  if (!kundeId) return NextResponse.json({ error: "kunde_id erforderlich" }, { status: 400 });
+  // Validation: entweder kunde_id ODER kunde_neu mit Pflichtfeldern
+  let kundeId = Number(body.kunde_id || 0);
+  const kundeNeu = body.kunde_neu;
+  if (!kundeId && !kundeNeu) {
+    return NextResponse.json({ error: "kunde_id oder kunde_neu erforderlich" }, { status: 400 });
+  }
+  if (!kundeId && kundeNeu) {
+    if (!kundeNeu.vorname || !kundeNeu.nachname) {
+      return NextResponse.json({ error: "kunde_neu.vorname und kunde_neu.nachname erforderlich" }, { status: 400 });
+    }
+    if (!kundeNeu.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(kundeNeu.email)) {
+      return NextResponse.json({ error: "kunde_neu.email muss valide sein" }, { status: 400 });
+    }
+  }
+
   const von = body.event_datum_von || "";
   const bis = body.event_datum_bis || "";
   if (!ISO_DATE.test(von) || !ISO_DATE.test(bis)) {
@@ -72,6 +85,38 @@ export async function POST(req: NextRequest) {
   if (items.length === 0) return NextResponse.json({ error: "mindestens 1 cart_item" }, { status: 400 });
 
   try {
+    // Wenn kunde_neu: erst Kunde anlegen mit Email-Duplikat-Check
+    if (!kundeId && kundeNeu) {
+      const targetEmail = kundeNeu.email!.toLowerCase().trim();
+      const existing = await listRows<{ id: number; Email?: string }>(TABLES.Kunden, { search: targetEmail, size: 50 });
+      const dup = existing.results.find((k) => (k.Email || "").toLowerCase() === targetEmail);
+      if (dup) {
+        // Statt zu blocken: bestehenden Kunden wiederverwenden
+        kundeId = dup.id;
+      } else {
+        const todayShort = new Date().toISOString().slice(0, 10);
+        const nowIsoShort = new Date().toISOString();
+        const neu = await createRow<{ id: number }>(TABLES.Kunden, {
+          Kunde_Typ: "Privat",
+          Vorname: kundeNeu.vorname,
+          Nachname: kundeNeu.nachname,
+          Email: kundeNeu.email,
+          Telefon: kundeNeu.telefon || "",
+          Notizen: `Inline angelegt bei Manuell-Anfrage am ${todayShort}`,
+          Kunden_Status: "Aktiv",
+          DSE_Akzeptiert_Version: "1.0",
+          DSE_Akzeptiert_am: nowIsoShort,
+          AGB_Akzeptiert_Version: "2.0",
+          AGB_Akzeptiert_am: nowIsoShort,
+          Marketing_Optin: false,
+          Erstanfrage_am: todayShort,
+          Letzter_Kontakt_am: todayShort,
+          Stammkunde_Wertung: "Neu",
+        });
+        kundeId = neu.id;
+      }
+    }
+
     // Kunde verifizieren (existiert?)
     const kundeRow = await getRow<{ id: number; Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
     if (!kundeRow?.id) {
