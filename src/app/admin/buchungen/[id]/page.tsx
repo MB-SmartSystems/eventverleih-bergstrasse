@@ -9,6 +9,7 @@ import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import BuchungStatusPanel from "./BuchungStatusPanel";
+import BuchungChecklist from "./BuchungChecklist";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
@@ -45,6 +46,8 @@ type BuchungRow = {
   Restzahlung_Bezahlt_am: string | null;
   Kaution_Soll_Eur: string | null;
   Zahlungen_JSON: string | null;
+  Checklist_State_JSON: string | null;
+  Akzeptiert_am?: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
   Kaution_Rueckzahlung_am: string | null;
@@ -80,6 +83,7 @@ type PositionRow = {
   Position_Gesamt_Eur: string;
   Artikel_Link: Array<{ id: number; value: string }>;
   Buchung_Link: Array<{ id: number }>;
+  Eingepackt?: boolean | null;
 };
 
 type RechnungRow = {
@@ -318,6 +322,96 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
               </tbody>
             </table>
           </section>
+
+          {/* Checkliste — UI-Helfer fuer Manuel */}
+          {(() => {
+            const checklistState: Record<string, { checked: boolean; ts: string }> = (() => {
+              try {
+                if (!buchung.Checklist_State_JSON) return {};
+                const p = JSON.parse(buchung.Checklist_State_JSON);
+                return p && typeof p === "object" ? p : {};
+              } catch { return {}; }
+            })();
+
+            // Auto-Items basierend auf Buchungs-Daten
+            const autoItems = [
+              {
+                key: "angebot_versendet",
+                label: "Angebot freigegeben + Mail raus",
+                checked: ["Angebot_versendet", "Bestaetigt", "Reserviert", "Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
+              },
+              {
+                key: "kunde_bestaetigt",
+                label: "Kunde hat Angebot bestaetigt",
+                checked: ["Bestaetigt", "Reserviert", "Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
+                meta: buchung.Akzeptiert_am ? new Date(buchung.Akzeptiert_am).toLocaleDateString("de-DE") : undefined,
+              },
+              {
+                key: "anzahlung",
+                label: "Anzahlung eingegangen",
+                checked: !!buchung.Anzahlung_Bezahlt_am,
+                meta: buchung.Anzahlung_Bezahlt_am ? new Date(buchung.Anzahlung_Bezahlt_am).toLocaleDateString("de-DE") : undefined,
+              },
+              {
+                key: "restzahlung",
+                label: "Restzahlung eingegangen",
+                checked: !!buchung.Restzahlung_Bezahlt_am,
+                meta: buchung.Restzahlung_Bezahlt_am ? new Date(buchung.Restzahlung_Bezahlt_am).toLocaleDateString("de-DE") : undefined,
+              },
+              {
+                key: "uebergabe",
+                label: "Uebergabe durchgefuehrt",
+                checked: ["Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
+              },
+              {
+                key: "rueckgabe",
+                label: "Rueckgabe durchgefuehrt",
+                checked: ["Zurueckgegeben", "Abgerechnet"].includes(status),
+              },
+              {
+                key: "kaution_aufgeloest",
+                label: "Kaution aufgeloest (zurueck oder einbehalten)",
+                checked: !!buchung.Kaution_Rueckzahlung_am,
+                meta: buchung.Kaution_Rueckzahlung_am ? new Date(buchung.Kaution_Rueckzahlung_am).toLocaleDateString("de-DE") : undefined,
+              },
+              {
+                key: "abgerechnet",
+                label: "Rechnung erstellt + Mail raus",
+                checked: status === "Abgerechnet",
+              },
+            ];
+
+            // Manuelle Items
+            const manualItemKeys = [
+              { key: "uebergabe_termin", label: "Uebergabe-Termin telefonisch abgestimmt" },
+              { key: "schaden_geprueft", label: "Schaeden geprueft + ggf. dokumentiert" },
+            ];
+            const manualItems = manualItemKeys.map((m) => ({
+              ...m,
+              checked: checklistState[m.key]?.checked ?? false,
+            }));
+
+            // Pack-Items aus Buchungs_Position
+            const packItems = positionen.map((p) => {
+              const aid = p.Artikel_Link?.[0]?.id;
+              const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "Artikel";
+              const anzahl = parseFloat(p.Anzahl ?? "1");
+              return {
+                positionId: p.id,
+                label: `${anzahl}× ${name}`,
+                checked: !!p.Eingepackt,
+              };
+            });
+
+            return (
+              <BuchungChecklist
+                buchungId={buchung.id}
+                autoItems={autoItems}
+                manualItems={manualItems}
+                packItems={packItems}
+              />
+            );
+          })()}
 
           {/* Zahlungs-Saldo (Gesamt | Bezahlt | Offen) */}
           {(() => {
