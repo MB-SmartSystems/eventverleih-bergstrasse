@@ -33,7 +33,7 @@ export default function HeroBookingPanel() {
             id="datepicker-heading"
             className="font-display text-xl md:text-2xl font-semibold text-white"
           >
-            Wann brauchst du es?
+            Wann brauchen Sie es?
           </h2>
           <p className="text-gray-400 text-xs">max. 5 Tage Mietdauer</p>
         </div>

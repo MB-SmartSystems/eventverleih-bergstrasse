@@ -279,7 +279,7 @@ export default function Contact() {
                   className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
                 />
                 <p className="text-xs text-gray-500 mt-1.5">
-                  Fuer eventuellen Liefer-Preis im Angebot. Bei Selbstabholung einfach deine Wohn-PLZ.
+                  Fuer eventuellen Liefer-Preis im Angebot. Bei Selbstabholung einfach Ihre Wohn-PLZ.
                 </p>
               </div>
 
