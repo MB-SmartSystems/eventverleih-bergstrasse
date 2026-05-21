@@ -96,11 +96,19 @@ export default function UpdateVersandPanel({
             <div className="mt-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>
           )}
 
+          <a
+            href={`/admin/angebot/${angebotId}/preview`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 block w-full py-2 rounded border border-white/15 bg-white/5 hover:bg-white/10 text-center text-gray-200 text-sm font-medium transition-colors"
+          >
+            👁 Vorschau in neuem Tab öffnen
+          </a>
           {!showInput ? (
             <button
               onClick={() => setShowInput(true)}
               disabled={submitting}
-              className="mt-4 w-full py-2 rounded bg-yellow-500 hover:bg-yellow-400 text-yellow-950 text-sm font-medium disabled:opacity-40"
+              className="mt-2 w-full py-2 rounded bg-yellow-500 hover:bg-yellow-400 text-yellow-950 text-sm font-medium disabled:opacity-40"
             >
               📧 Neue Version (v{snapshotVersion + 1}) an Kunde senden
             </button>
