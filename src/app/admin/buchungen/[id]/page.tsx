@@ -20,7 +20,6 @@ import RuecknahmeDialog from "./RuecknahmeDialog";
 import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
 import KautionMailPanel from "./KautionMailPanel";
-import LieferungAufbauPanel from "./LieferungAufbauPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 
 export const dynamic = "force-dynamic";
@@ -518,18 +517,6 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
             kautionLink={buchung.Stripe_Kaution_Link}
             kautionHinterlegtAm={buchung.Kaution_Hinterlegt_am}
-          />
-
-          {/* Lieferung + Aufbau nachträglich setzen */}
-          <LieferungAufbauPanel
-            buchungId={buchung.id}
-            initialPreisLieferung={parseFloat(buchung.Preis_Lieferung ?? "0")}
-            initialPreisAufbau={parseFloat(buchung.Preis_Aufbau ?? "0")}
-            initialLieferadresse={buchung.Lieferadresse}
-            kundeStrasse={kunde?.Adresse_Strasse ?? ""}
-            kundeHausnr={kunde?.Adresse_Hausnr ?? ""}
-            kundePlz={kunde?.Adresse_PLZ ?? ""}
-            kundeOrt={kunde?.Adresse_Ort ?? ""}
           />
 
           {/* Status-Timeline */}

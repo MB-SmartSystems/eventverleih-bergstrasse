@@ -9,6 +9,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import ActionPanel from "./ActionPanel";
 import PositionsEditor, { type PositionItem, type ArtikelOption } from "./PositionsEditor";
+import ServicesEditor from "./ServicesEditor";
 import EventDatumEditor from "./EventDatumEditor";
 import UpdateVersandPanel from "./UpdateVersandPanel";
 import { parseSnapshot, diffAgainstLive } from "@/lib/angebot-snapshot";
@@ -71,6 +72,7 @@ type PositionRow = {
   Anzahl: string;
   Einzelpreis_Eur: string;
   Position_Gesamt_Eur: string;
+  Aufbau_Pauschale_Snapshot_Eur: string | null;
   Artikel_Link: Array<{ id: number; value: string }>;
 };
 
@@ -78,6 +80,7 @@ type ArtikelRow = {
   id: number;
   Bezeichnung: string;
   Mietpreis_WE_Eur: string | null;
+  Aufbau_Pauschale_Eur: string | null;
   Kategorie: { value: string } | null;
   Sichtbar_Public: boolean;
 };
@@ -149,6 +152,42 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
   const status = angebot.Status?.value || "Offen";
   const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
+
+  // ServicesEditor-Daten vorbereiten
+  // Aufbau-Summe = Summe(Anzahl × Aufbau_Pauschale aus Artikel-Stamm) — egal ob Aufbau bisher gebucht
+  let aufbauSummeEur = 0;
+  for (const p of positionen) {
+    const artikelId = p.Artikel_Link?.[0]?.id ?? 0;
+    const art = artikelById.get(artikelId);
+    const aufbauProStueck = parseFloat(art?.Aufbau_Pauschale_Eur ?? "0") || 0;
+    aufbauSummeEur += (parseInt(p.Anzahl, 10) || 0) * aufbauProStueck;
+  }
+
+  // Service-Flags aus Notizen parsen (letzter "--- Service-Update YYYY-MM-DD ---"-Block)
+  // Fallback: aus Preis-Feldern raten
+  let initialLieferung = false;
+  let initialAbholung = false;
+  let initialAufbau = false;
+  const notizen = buchung.Notizen || "";
+  const lastBlock = notizen.split(/--- (?:Service-Update|Nachtraeglich gesetzt am) /).pop() || "";
+  if (lastBlock !== notizen) {
+    initialLieferung = /Lieferung gewuenscht/.test(lastBlock);
+    initialAbholung = /Abholung gewuenscht/.test(lastBlock);
+    initialAufbau = /Aufbau-Service/.test(lastBlock);
+  } else {
+    // Kein Service-Update-Block → aus Preis-Feldern raten. Bei Mehrdeutigkeit: beide aktiv.
+    if (parseFloat(buchung.Preis_Lieferung ?? "0") > 0) {
+      initialLieferung = true;
+      initialAbholung = true;
+    }
+    if (parseFloat(buchung.Preis_Aufbau ?? "0") > 0) initialAufbau = true;
+  }
+
+  // Adress-Display: Buchung.Lieferadresse hat Vorrang, Fallback Kunde
+  let adresseDisplay: string | null = buchung.Lieferadresse;
+  if (!adresseDisplay && kunde.Adresse_Strasse && kunde.Adresse_PLZ) {
+    adresseDisplay = `${kunde.Adresse_Strasse}, ${kunde.Adresse_PLZ} ${kunde.Adresse_Ort ?? ""}`.trim();
+  }
 
   // Snapshot-Diff: was hat sich seit letztem Versand geändert?
   const snapshot = parseSnapshot(angebot.Snapshot_JSON);
@@ -278,6 +317,16 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
           {/* Positionen — editierbar */}
           <PositionsEditor buchungId={buchungId} initialPositionen={positionItems} artikelOptions={artikelOptions} />
+
+          {/* Zusatzleistungen: Lieferung / Abholung / Aufbau — Auto-Save bei Toggle */}
+          <ServicesEditor
+            buchungId={buchungId}
+            initialLieferung={initialLieferung}
+            initialAbholung={initialAbholung}
+            initialAufbau={initialAufbau}
+            adresseDisplay={adresseDisplay}
+            aufbauSummeEur={aufbauSummeEur}
+          />
 
           {/* Notizen */}
           {buchung.Notizen && (
