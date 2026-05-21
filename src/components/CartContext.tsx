@@ -22,6 +22,12 @@ interface CartContextType {
   setRange: (von: string | null, bis: string | null) => void;
   clearRange: () => void;
   hydrated: boolean;
+  drawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
+  aufbauItems: string[];
+  toggleAufbau: (name: string) => void;
+  isAufbau: (name: string) => boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -31,6 +37,7 @@ interface PersistedState {
   items: CartItem[];
   rangeVon: string | null;
   rangeBis: string | null;
+  aufbauItems: string[];
 }
 
 function isIsoDate(s: unknown): s is string {
@@ -38,7 +45,7 @@ function isIsoDate(s: unknown): s is string {
 }
 
 function loadInitial(): PersistedState {
-  const empty: PersistedState = { items: [], rangeVon: null, rangeBis: null };
+  const empty: PersistedState = { items: [], rangeVon: null, rangeBis: null, aufbauItems: [] };
   if (typeof window === "undefined") return empty;
 
   let urlVon: string | null = null;
@@ -58,6 +65,7 @@ function loadInitial(): PersistedState {
   let storedItems: CartItem[] = [];
   let storedVon: string | null = null;
   let storedBis: string | null = null;
+  let storedAufbau: string[] = [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -76,6 +84,9 @@ function loadInitial(): PersistedState {
         storedVon = parsed.rangeVon;
         storedBis = parsed.rangeBis;
       }
+      if (Array.isArray(parsed.aufbauItems)) {
+        storedAufbau = parsed.aufbauItems.filter((s): s is string => typeof s === "string");
+      }
     }
   } catch {
     // ignore
@@ -85,6 +96,7 @@ function loadInitial(): PersistedState {
     items: storedItems,
     rangeVon: urlVon ?? storedVon,
     rangeBis: urlBis ?? storedBis,
+    aufbauItems: storedAufbau,
   };
 }
 
@@ -93,6 +105,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [rangeVon, setRangeVon] = useState<string | null>(null);
   const [rangeBis, setRangeBis] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [aufbauItems, setAufbauItems] = useState<string[]>([]);
+
+  const openDrawer = () => setDrawerOpen(true);
+  const closeDrawer = () => setDrawerOpen(false);
+
+  const toggleAufbau = (name: string) => {
+    setAufbauItems((prev) =>
+      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
+    );
+  };
+
+  const isAufbau = (name: string) => aufbauItems.includes(name);
 
   // Hydration: lade aus localStorage + URL nach Mount
   useEffect(() => {
@@ -100,6 +125,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(init.items);
     setRangeVon(init.rangeVon);
     setRangeBis(init.rangeBis);
+    setAufbauItems(init.aufbauItems);
     setHydrated(true);
   }, []);
 
@@ -109,12 +135,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ items, rangeVon, rangeBis }),
+        JSON.stringify({ items, rangeVon, rangeBis, aufbauItems }),
       );
     } catch {
       // ignore quota errors
     }
-  }, [items, rangeVon, rangeBis, hydrated]);
+  }, [items, rangeVon, rangeBis, aufbauItems, hydrated]);
+
+  // Cleanup: Aufbau-Toggles fuer Items entfernen die nicht mehr im Cart sind
+  useEffect(() => {
+    if (!hydrated) return;
+    setAufbauItems((prev) => {
+      const names = new Set(items.map((i) => i.name));
+      const filtered = prev.filter((n) => names.has(n));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [items, hydrated]);
 
   // URL-Sync (Deep-Link bleibt aktuell)
   useEffect(() => {
@@ -233,6 +269,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setRange,
         clearRange,
         hydrated,
+        drawerOpen,
+        openDrawer,
+        closeDrawer,
+        aufbauItems,
+        toggleAufbau,
+        isAufbau,
       }}
     >
       {children}

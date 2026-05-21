@@ -3,7 +3,7 @@
 import { useCart } from "./CartContext";
 
 export default function CartBar() {
-  const { items, totalItems, removeItem, updateQuantity } = useCart();
+  const { items, totalItems, openDrawer } = useCart();
 
   if (totalItems === 0) return null;
 
@@ -28,7 +28,7 @@ export default function CartBar() {
                 />
               </svg>
               <span className="text-white font-semibold text-sm">
-                {totalItems} {totalItems === 1 ? "Artikel" : "Artikel"} ausgewählt
+                {totalItems} {totalItems === 1 ? "Artikel" : "Artikel"} im Warenkorb
               </span>
             </div>
             <p className="text-gray-400 text-xs truncate hidden sm:block">
@@ -37,12 +37,13 @@ export default function CartBar() {
           </div>
 
           {/* CTA */}
-          <a
-            href="#kontakt"
+          <button
+            type="button"
+            onClick={openDrawer}
             className="flex-shrink-0 px-6 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold text-sm rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all"
           >
-            Anfrage senden
-          </a>
+            Warenkorb ansehen
+          </button>
         </div>
       </div>
     </div>

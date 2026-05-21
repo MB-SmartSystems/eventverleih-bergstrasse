@@ -8,12 +8,11 @@ import FAQ from "@/components/FAQ";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import CartBar from "@/components/CartBar";
-import { CartProvider } from "@/components/CartContext";
 import StickyDateBar from "@/components/StickyDateBar";
 
 export default function Home() {
   return (
-    <CartProvider>
+    <>
       <StickyDateBar />
       <PromoBanner />
       <Header />
@@ -27,6 +26,6 @@ export default function Home() {
       </main>
       <Footer />
       <CartBar />
-    </CartProvider>
+    </>
   );
 }

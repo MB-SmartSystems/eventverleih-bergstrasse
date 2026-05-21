@@ -16,6 +16,12 @@ export interface RentalProduct {
   quantityBroken: number;
   location?: string;
   internalNotes?: string;
+  // Pricing-Daten aus Baserow Artikel-Tabelle (vom /api/products-Endpoint gejoint).
+  // Optional weil Blob-Storage-Quelle diese Felder nicht enthaelt; Public-API reichert sie an.
+  mietpreisEur?: number | null;
+  kautionEur?: number | null;
+  aufbauEur?: number | null;
+  artikelId?: number | null;
 }
 
 export interface ProductCategory {
