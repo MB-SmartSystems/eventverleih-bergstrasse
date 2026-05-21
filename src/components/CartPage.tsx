@@ -32,6 +32,15 @@ function formatEur(n: number): string {
   return n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 }
 
+// Parst Cart-Item-Preis-String ("45,00 €" / "45 €") → number. Auf-Anfrage (0/leer/invalid) → null.
+function parsePriceString(s: string | undefined | null): number | null {
+  if (!s) return null;
+  const cleaned = s.replace(/\s/g, "").replace(/€/g, "").replace(/\./g, "").replace(",", ".");
+  const n = parseFloat(cleaned);
+  if (!isFinite(n) || n <= 0) return null;
+  return n;
+}
+
 export default function CartPage() {
   const {
     items,
@@ -81,11 +90,15 @@ export default function CartPage() {
   const hasRange = Boolean(rangeVon && rangeBis);
   const dauerTage = hasRange ? rangeDays(rangeVon!, rangeBis!) + 1 : 0;
 
-  // Pricing-Berechnung pro Item
+  // Pricing-Berechnung pro Item.
+  // Fail-soft: wenn Baserow-Pricing nicht verfuegbar (Timeout, Name-Mismatch), nutze die
+  // CartItem-Price-String-Variante (kam vom Sortiment-Display). Kaution + Aufbau sind
+  // nur via Baserow verfuegbar; ohne Match werden sie 0 angezeigt.
   const itemPricing = useMemo(() => {
     return items.map((item) => {
       const product = matchProduct(item.name, products);
-      const mietpreis = product?.mietpreisEur ?? null;
+      const fallbackMiet = parsePriceString(item.price);
+      const mietpreis = product?.mietpreisEur ?? fallbackMiet;
       const kaution = product?.kautionEur ?? null;
       const aufbau = product?.aufbauEur ?? null;
       const mietsumme = mietpreis !== null ? mietpreis * item.quantity : null;
@@ -102,6 +115,9 @@ export default function CartPage() {
         aufbauAktiv,
         aufbauSumme: aufbauAktiv ? aufbau! : 0,
         aufAnfrage: mietpreis === null,
+        // Wenn Baserow-Match fehlt aber Catalog-Price existiert: Kaution/Aufbau erscheinen
+        // im Angebot statt im Live-Rechner. Kunde merkt sich das ueber den Hinweis unten.
+        pricingPartial: product === null || product?.mietpreisEur === null,
       };
     });
   }, [items, products, isAufbau]);
