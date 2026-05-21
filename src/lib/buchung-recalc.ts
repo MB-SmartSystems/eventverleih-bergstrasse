@@ -76,8 +76,15 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
     const artikelId = p.Artikel_Link?.[0]?.id;
     if (artikelId) kaution += anz * (kautionMap.get(artikelId) ?? 0);
   }
-  const anzahlung = Math.round(mietsumme * 0.3 * 100) / 100;
-  const restzahlung = Math.round((mietsumme - anzahlung) * 100) / 100;
+
+  // Lieferung + Aufbau bleiben aus dem Pre-State erhalten (recalc setzt nur Artikel).
+  // Anzahlung/Gesamt berücksichtigen sie aber, damit Stripe-Links und Sidebar konsistent
+  // mit dem Cart-Flow sind.
+  const lieferung = num(preState?.Preis_Lieferung);
+  const aufbau = num(preState?.Preis_Aufbau);
+  const anzahlungBasis = mietsumme + lieferung + aufbau;
+  const anzahlung = Math.round(anzahlungBasis * 0.3 * 100) / 100;
+  const restzahlung = Math.round((anzahlungBasis - anzahlung) * 100) / 100;
 
   await updateRow(TABLES.Buchungen, buchungId, {
     Preis_Artikel: mietsumme,
@@ -85,7 +92,7 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
     Restzahlung_Soll_Eur: restzahlung,
     Kaution_Soll_Eur: kaution,
     Kaution: kaution,
-    Gesamt: Math.round((mietsumme + kaution) * 100) / 100,
+    Gesamt: Math.round((anzahlungBasis + kaution) * 100) / 100,
   });
 
   // Angebot.Gesamtpreis mitupdaten
