@@ -225,7 +225,7 @@ export async function POST(
     const update: Record<string, unknown> = {
       Preis_Lieferung: lieferGesamt.toFixed(2),
       Preis_Aufbau: aufbau && aufbauSumme > 0 ? aufbauSumme.toFixed(2) : "0.00",
-      Aufbau_gewuenscht: aufbau,
+      Aufbau_gewuenscht: aufbau ? "Ja" : "Nein",
       ...(resolvedAdr ? { Lieferadresse: resolvedAdr.display } : {}),
       ...(noteAppend ? { Notizen: newNotizen } : {}),
     };

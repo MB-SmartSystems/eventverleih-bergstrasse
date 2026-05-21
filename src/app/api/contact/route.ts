@@ -339,7 +339,7 @@ export async function POST(req: NextRequest) {
       Standort_Bestaetigt: false,
       Helfer_Bestaetigt: false,
       ...(lieferadresseStr ? { Lieferadresse: lieferadresseStr } : {}),
-      ...(payload.aufbau_komplett && aufbauSumme > 0 ? { Aufbau_gewuenscht: true, Preis_Aufbau: aufbauSumme.toFixed(2) } : {}),
+      ...(payload.aufbau_komplett && aufbauSumme > 0 ? { Aufbau_gewuenscht: "Ja", Preis_Aufbau: aufbauSumme.toFixed(2) } : {}),
       ...(lieferGesamt > 0 ? { Preis_Lieferung: lieferGesamt.toFixed(2) } : {}),
       // Preise nur setzen wenn Cart-Items zugeordnet wurden
       ...(matched.length > 0
