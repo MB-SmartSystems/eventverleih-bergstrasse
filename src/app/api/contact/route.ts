@@ -104,6 +104,7 @@ function normalize(s: string): string {
     .toLowerCase()
     .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
     .replace(/×/g, "x") // Storefront-Catalog nutzt Unicode-Multiplikation, Baserow ASCII
+    .replace(/[—–−]/g, "-") // Em/En-Dash → Hyphen ("Gewicht — Metallplatte" matcht "Gewicht-Metallplatte")
     .replace(/[()[\]{}]/g, " ") // Klammern → Spaces, damit "Hochzeitsbogen (inkl. Abdeckung)" matcht
     .replace(/\s+/g, " ")
     .trim();

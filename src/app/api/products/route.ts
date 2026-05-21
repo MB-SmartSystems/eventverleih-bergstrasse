@@ -4,12 +4,14 @@ import { listAllRows, TABLES } from '@/lib/baserow/client';
 
 export const dynamic = 'force-dynamic';
 
-// Same normalization as in /api/contact/matchArtikel — keep in sync.
+// Same normalization as in /api/contact/matchArtikel + Sortiment.tsx — keep in sync.
+// Em/En-Dash → ASCII-Hyphen, damit "Gewicht — Metallplatte" matcht "Gewicht-Metallplatte".
 function normalize(s: string): string {
   return s
     .toLowerCase()
     .replace(/[äöüß]/g, (c) => ({ ä: 'a', ö: 'o', ü: 'u', ß: 'ss' }[c] || c))
     .replace(/×/g, 'x')
+    .replace(/[—–−]/g, '-')
     .replace(/[()[\]{}]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();

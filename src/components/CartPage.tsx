@@ -12,6 +12,7 @@ function normalize(s: string): string {
     .toLowerCase()
     .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
     .replace(/×/g, "x")
+    .replace(/[—–−]/g, "-")
     .replace(/[()[\]{}]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
