@@ -6,9 +6,14 @@ import DateRangeSheet from "./DateRangeSheet";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export default function StickyDateBar() {
-  const { rangeVon, rangeBis } = useCart();
+  const { rangeVon, rangeBis, clearRange } = useCart();
   const [visible, setVisible] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
+
+  const handleOpenSheet = () => {
+    if (rangeVon && rangeBis) clearRange();
+    setSheetOpen(true);
+  };
 
   useEffect(() => {
     const el = document.getElementById("start");
@@ -58,7 +63,7 @@ export default function StickyDateBar() {
           </div>
           <button
             type="button"
-            onClick={() => setSheetOpen(true)}
+            onClick={handleOpenSheet}
             className="px-3 py-1.5 rounded-md border border-gold-500/40 text-gold-400 text-sm hover:bg-gold-500/10 transition-colors whitespace-nowrap"
           >
             {hasRange ? "ändern" : "wählen"}

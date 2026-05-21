@@ -84,7 +84,7 @@ export async function generateMagicLinkForEmail(email: string, baseUrl: string):
   const kunde = kunden.results.find((k) => (k.Email || "").toLowerCase() === target);
   if (!kunde) return null;
   const token = await ensureMemberToken(kunde.id);
-  return `${baseUrl}/mein-bereich/login?token=${token}`;
+  return `${baseUrl}/api/member/auto-login?token=${token}`;
 }
 
 /**
@@ -94,7 +94,9 @@ export async function generateMagicLinkForEmail(email: string, baseUrl: string):
 export async function memberAutoLoginUrl(kundeId: number, baseUrl?: string): Promise<string> {
   const base = baseUrl || "https://eventverleih-bergstrasse.de";
   const token = await ensureMemberToken(kundeId);
-  return `${base}/mein-bereich/login?token=${token}`;
+  // Direkt auf den Route-Handler: setzt Cookie + redirected. Vermeidet Doppel-Redirect
+  // ueber die /mein-bereich/login-Page (die nur Fallback fuer alte Mail-Links ist).
+  return `${base}/api/member/auto-login?token=${token}`;
 }
 
 /**

@@ -54,8 +54,17 @@ export default function CartPage() {
     rangeBis,
     clearRange,
     hydrated,
-    isAufbau,
-    toggleAufbau,
+    aufbauKomplett,
+    setAufbauKomplett,
+    lieferungGewuenscht,
+    abholungGewuenscht,
+    setLieferungGewuenscht,
+    setAbholungGewuenscht,
+    lieferStrasse,
+    lieferHausnr,
+    setLieferAdresse,
+    distanceKm,
+    setDistanceKm,
   } = useCart();
 
   const [products, setProducts] = useState<RentalProduct[]>([]);
@@ -104,7 +113,6 @@ export default function CartPage() {
       const aufbau = product?.aufbauEur ?? null;
       const mietsumme = mietpreis !== null ? mietpreis * item.quantity : null;
       const kautionsumme = kaution !== null ? kaution * item.quantity : 0;
-      const aufbauAktiv = isAufbau(item.name) && aufbau !== null && aufbau > 0;
       return {
         item,
         product,
@@ -113,21 +121,71 @@ export default function CartPage() {
         aufbau,
         mietsumme,
         kautionsumme,
-        aufbauAktiv,
-        aufbauSumme: aufbauAktiv ? aufbau! : 0,
+        // Aufbau-Summe pro Item (×anzahl), wird zur Cart-Gesamtsumme aufaddiert
+        // wenn der globale aufbauKomplett-Toggle aktiv ist.
+        aufbauSummeProItem: aufbau !== null && aufbau > 0 ? aufbau * item.quantity : 0,
         aufAnfrage: mietpreis === null,
-        // Wenn Baserow-Match fehlt aber Catalog-Price existiert: Kaution/Aufbau erscheinen
-        // im Angebot statt im Live-Rechner. Kunde merkt sich das ueber den Hinweis unten.
         pricingPartial: product === null || product?.mietpreisEur === null,
       };
     });
-  }, [items, products, isAufbau]);
+  }, [items, products]);
 
   const totalMiete = itemPricing.reduce((s, p) => s + (p.mietsumme ?? 0), 0);
   const totalKaution = itemPricing.reduce((s, p) => s + p.kautionsumme, 0);
-  const totalAufbau = itemPricing.reduce((s, p) => s + p.aufbauSumme, 0);
-  const totalGesamt = totalMiete + totalKaution + totalAufbau;
+  const aufbauSumme = itemPricing.reduce((s, p) => s + p.aufbauSummeProItem, 0);
+  const totalAufbau = aufbauKomplett ? aufbauSumme : 0;
+
+  // Liefer-Preise: 2 €/km pro Service-Operation
+  const lieferpreis = lieferungGewuenscht && distanceKm !== null ? distanceKm * 2 : 0;
+  const abholpreis = abholungGewuenscht && distanceKm !== null ? distanceKm * 2 : 0;
+
+  const totalGesamt = totalMiete + totalKaution + totalAufbau + lieferpreis + abholpreis;
   const aufAnfrageCount = itemPricing.filter((p) => p.aufAnfrage).length;
+  const aufbauVerfuegbar = aufbauSumme > 0;
+  const lieferAktiv = lieferungGewuenscht || abholungGewuenscht;
+  const lieferAdresseKomplett =
+    lieferStrasse.trim().length > 1 &&
+    lieferHausnr.trim().length > 0 &&
+    /^\d{4,5}$/.test(plz);
+
+  // Auto-Distance-Lookup wenn Adresse komplett UND Lieferung/Abholung aktiv UND noch kein Cache
+  const [distanceLoading, setDistanceLoading] = useState(false);
+  const [distanceError, setDistanceError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!lieferAktiv || !lieferAdresseKomplett || distanceKm !== null) return;
+    let cancelled = false;
+    setDistanceLoading(true);
+    setDistanceError(null);
+    fetch("/api/distance", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        strasse: lieferStrasse,
+        hausnr: lieferHausnr,
+        plz,
+        ort: "",
+      }),
+    })
+      .then((r) => r.json())
+      .then((d: { km?: number; gefunden?: boolean; details?: string }) => {
+        if (cancelled) return;
+        if (d.gefunden && typeof d.km === "number" && d.km > 0) {
+          setDistanceKm(d.km);
+        } else {
+          setDistanceError(d.details || "Adresse nicht gefunden");
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDistanceError("Strecken-Abruf fehlgeschlagen");
+      })
+      .finally(() => {
+        if (!cancelled) setDistanceLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lieferAktiv, lieferAdresseKomplett, lieferStrasse, lieferHausnr, plz, distanceKm, setDistanceKm]);
 
   const canSubmit = agreed && hasRange && items.length > 0 && !submitting;
 
@@ -155,11 +213,24 @@ export default function CartPage() {
       return;
     }
 
-    // Nachricht: Cart-Liste + Aufbau-Markierungen + Frei-Text
-    const cartLines = items.map((i) => {
-      const aufbau = isAufbau(i.name) ? " [mit Aufbau]" : "";
-      return `${i.quantity}x ${i.name} (${i.price})${aufbau}`;
-    });
+    // Nachricht: Cart-Liste + Aufbau + Lieferung/Abholung-Markierungen + Frei-Text
+    const cartLines = items.map((i) => `${i.quantity}x ${i.name} (${i.price})`);
+    if (aufbauKomplett && aufbauVerfuegbar) {
+      cartLines.push(`+ Aufbau-Service (Komplettpaket, +${formatEur(aufbauSumme)})`);
+    }
+    if (lieferungGewuenscht) {
+      cartLines.push(
+        `+ Lieferung zum Event${distanceKm !== null ? ` (${distanceKm} km, ${formatEur(lieferpreis)})` : " (Preis im Angebot)"}`,
+      );
+    }
+    if (abholungGewuenscht) {
+      cartLines.push(
+        `+ Abholung nach Event${distanceKm !== null ? ` (${distanceKm} km, ${formatEur(abholpreis)})` : " (Preis im Angebot)"}`,
+      );
+    }
+    if (lieferAktiv && lieferStrasse) {
+      cartLines.push(`Event-Adresse: ${lieferStrasse} ${lieferHausnr}, ${plz}`);
+    }
     const cartText = cartLines.join("\n");
     const userNotiz = notiz.trim();
     const nachricht = userNotiz
@@ -179,11 +250,18 @@ export default function CartPage() {
           email: email.trim(),
           telefon: telefon.trim() || undefined,
           adresse_plz: plz,
+          adresse_strasse: lieferAktiv ? lieferStrasse.trim() : undefined,
           event_datum_von: rangeVon!,
           event_datum_bis: rangeBis!,
           nachricht,
           agb_akzeptiert: agreed,
           cart_items: items.map((i) => ({ name: i.name, quantity: i.quantity })),
+          aufbau_komplett: aufbauKomplett && aufbauVerfuegbar,
+          lieferung_gewuenscht: lieferungGewuenscht,
+          abholung_gewuenscht: abholungGewuenscht,
+          liefer_strasse: lieferAktiv ? lieferStrasse.trim() : undefined,
+          liefer_hausnr: lieferAktiv ? lieferHausnr.trim() : undefined,
+          distance_km: distanceKm,
         }),
       });
       if (!res.ok) {
@@ -293,10 +371,16 @@ export default function CartPage() {
                 {hasRange && (
                   <button
                     type="button"
-                    onClick={() => setDateSheetOpen(true)}
+                    onClick={() => {
+                      // Range erst clearen, dann Sheet oeffnen → User waehlt Start + Ende neu.
+                      // Sonst: react-day-picker-Range-Mode setzt nur "nahesten" Endpunkt
+                      // beim Klick, der Start ist nicht mehr erreichbar.
+                      clearRange();
+                      setDateSheetOpen(true);
+                    }}
                     className="text-gold-400 text-sm hover:text-gold-300 underline"
                   >
-                    ändern
+                    Zeitraum neu wählen
                   </button>
                 )}
               </div>
@@ -331,7 +415,7 @@ export default function CartPage() {
                 Artikel ({totalItems})
               </h2>
               <ul className="space-y-3">
-                {itemPricing.map(({ item, mietpreis, mietsumme, aufbau, aufbauAktiv, kaution, aufAnfrage }) => (
+                {itemPricing.map(({ item, mietsumme, kaution, aufAnfrage }) => (
                   <li
                     key={item.name}
                     className="border-b border-white/5 pb-3 last:border-b-0 last:pb-0"
@@ -380,21 +464,6 @@ export default function CartPage() {
                       </div>
                     </div>
 
-                    {/* Aufbau-Toggle (nur wenn Aufbau-Pauschale > 0) */}
-                    {aufbau !== null && aufbau > 0 && (
-                      <label className="mt-2.5 inline-flex items-center gap-2 cursor-pointer text-sm text-gray-300">
-                        <input
-                          type="checkbox"
-                          checked={aufbauAktiv}
-                          onChange={() => toggleAufbau(item.name)}
-                          className="w-4 h-4 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50"
-                        />
-                        <span>
-                          mit Aufbau (<span className="text-gold-400 font-medium">+ {formatEur(aufbau)}</span>)
-                        </span>
-                      </label>
-                    )}
-
                     {/* Sub-total */}
                     {mietsumme !== null && (
                       <div className="mt-1.5 text-right text-sm text-gold-400 font-medium">
@@ -417,6 +486,116 @@ export default function CartPage() {
                 >
                   + Weitere Artikel hinzufügen
                 </Link>
+              </div>
+
+              {/* Aufbau-Komplettpaket-Toggle (nur wenn mind. ein Item Aufbau-Pauschale hat) */}
+              {aufbauVerfuegbar && (
+                <label className="mt-5 flex items-start gap-3 cursor-pointer p-4 rounded-lg bg-white/5 border border-white/10 hover:border-gold-500/30 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={aufbauKomplett}
+                    onChange={(e) => setAufbauKomplett(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50 flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="text-white font-medium text-sm">
+                      Aufbau-Service hinzubuchen (<span className="text-gold-400">+ {formatEur(aufbauSumme)}</span>)
+                    </div>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Wir bauen alle Artikel vor Ort für Sie auf. Pauschale für die gesamte Bestellung,
+                      keine extra Berechnung pro Artikel.
+                    </p>
+                  </div>
+                </label>
+              )}
+
+              {/* Lieferung + Abholung */}
+              <div className="mt-5 space-y-2">
+                <label className="flex items-start gap-3 cursor-pointer p-4 rounded-lg bg-white/5 border border-white/10 hover:border-gold-500/30 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={lieferungGewuenscht}
+                    onChange={(e) => setLieferungGewuenscht(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50 flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="text-white font-medium text-sm">
+                      Lieferung zum Event
+                      {distanceKm !== null && lieferungGewuenscht && (
+                        <span className="text-gold-400"> (+ {formatEur(lieferpreis)})</span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Wir bringen die Artikel zu Ihrer Event-Adresse. 2 € pro Kilometer (einfache Strecke).
+                    </p>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer p-4 rounded-lg bg-white/5 border border-white/10 hover:border-gold-500/30 transition-colors">
+                  <input
+                    type="checkbox"
+                    checked={abholungGewuenscht}
+                    onChange={(e) => setAbholungGewuenscht(e.target.checked)}
+                    className="mt-0.5 w-5 h-5 rounded border-white/20 bg-white/5 text-gold-500 focus:ring-gold-500/50 flex-shrink-0"
+                  />
+                  <div className="flex-1">
+                    <div className="text-white font-medium text-sm">
+                      Abholung nach Event
+                      {distanceKm !== null && abholungGewuenscht && (
+                        <span className="text-gold-400"> (+ {formatEur(abholpreis)})</span>
+                      )}
+                    </div>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Wir holen die Artikel nach Ihrem Event wieder ab. 2 € pro Kilometer (einfache Strecke).
+                    </p>
+                  </div>
+                </label>
+
+                {/* Liefer-Adress-Felder (sichtbar wenn eines der beiden aktiv) */}
+                {lieferAktiv && (
+                  <div className="p-4 rounded-lg bg-white/5 border border-white/10 space-y-3">
+                    <div className="text-sm text-gray-300 font-medium">Event-Adresse</div>
+                    <div className="grid grid-cols-[1fr_120px] gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Straße *</label>
+                        <input
+                          type="text"
+                          value={lieferStrasse}
+                          onChange={(e) => setLieferAdresse(e.target.value, lieferHausnr)}
+                          placeholder="z.B. Musterstraße"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-400 mb-1">Hausnr. *</label>
+                        <input
+                          type="text"
+                          value={lieferHausnr}
+                          onChange={(e) => setLieferAdresse(lieferStrasse, e.target.value)}
+                          placeholder="42a"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white placeholder-gray-500 text-sm focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      PLZ erfassen wir weiter unten im Kontakt-Formular. Wir berechnen die Strecke automatisch.
+                    </p>
+
+                    {distanceLoading && (
+                      <p className="text-xs text-gray-400">Strecke wird berechnet …</p>
+                    )}
+                    {distanceKm !== null && !distanceLoading && (
+                      <p className="text-xs text-gold-400">
+                        Strecke: {distanceKm.toLocaleString("de-DE", { maximumFractionDigits: 1 })} km
+                        (einfache Strecke ab Alsbach-Hähnlein)
+                      </p>
+                    )}
+                    {distanceError && !distanceLoading && (
+                      <p className="text-xs text-amber-300">
+                        {distanceError}. Wir berechnen den Liefer-Preis manuell im Angebot.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -609,6 +788,18 @@ export default function CartPage() {
                   <div className="flex items-baseline justify-between">
                     <dt className="text-gray-400">Aufbau-Pauschale</dt>
                     <dd className="text-white font-medium">{formatEur(totalAufbau)}</dd>
+                  </div>
+                )}
+                {lieferpreis > 0 && (
+                  <div className="flex items-baseline justify-between">
+                    <dt className="text-gray-400">Lieferung ({distanceKm} km)</dt>
+                    <dd className="text-white font-medium">{formatEur(lieferpreis)}</dd>
+                  </div>
+                )}
+                {abholpreis > 0 && (
+                  <div className="flex items-baseline justify-between">
+                    <dt className="text-gray-400">Abholung ({distanceKm} km)</dt>
+                    <dd className="text-white font-medium">{formatEur(abholpreis)}</dd>
                   </div>
                 )}
                 <div className="border-t border-white/10 pt-2 mt-2 flex items-baseline justify-between">

@@ -7,7 +7,7 @@ import AvailabilityCounter from "./AvailabilityCounter";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export default function HeroBookingPanel() {
-  const { rangeVon, rangeBis } = useCart();
+  const { rangeVon, rangeBis, clearRange } = useCart();
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const hasFullRange = Boolean(rangeVon && rangeBis);
@@ -15,6 +15,15 @@ export default function HeroBookingPanel() {
   const handleScrollToSortiment = () => {
     const el = document.getElementById("sortiment");
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleOpenSheet = () => {
+    // Wenn schon eine Range gesetzt war, vorher clearen. Sonst hat
+    // react-day-picker-Range-Mode mit existing Range das Verhalten,
+    // dass ein Klick nur den naehesten Endpunkt verschiebt — und der
+    // User kann den Start nicht mehr aendern.
+    if (hasFullRange) clearRange();
+    setSheetOpen(true);
   };
 
   const buttonLabel = hasFullRange
@@ -40,7 +49,7 @@ export default function HeroBookingPanel() {
 
         <button
           type="button"
-          onClick={() => setSheetOpen(true)}
+          onClick={handleOpenSheet}
           className="w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-gold-500/40 transition-colors group focus:outline-none focus-visible:ring-2 focus-visible:ring-gold-500"
           aria-haspopup="dialog"
         >

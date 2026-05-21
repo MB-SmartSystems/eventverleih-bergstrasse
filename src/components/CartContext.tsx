@@ -25,9 +25,18 @@ interface CartContextType {
   drawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
-  aufbauItems: string[];
-  toggleAufbau: (name: string) => void;
-  isAufbau: (name: string) => boolean;
+  aufbauKomplett: boolean;
+  setAufbauKomplett: (v: boolean) => void;
+  // Lieferung / Abholung
+  lieferungGewuenscht: boolean;
+  abholungGewuenscht: boolean;
+  setLieferungGewuenscht: (v: boolean) => void;
+  setAbholungGewuenscht: (v: boolean) => void;
+  lieferStrasse: string;
+  lieferHausnr: string;
+  setLieferAdresse: (strasse: string, hausnr: string) => void;
+  distanceKm: number | null;
+  setDistanceKm: (v: number | null) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -37,7 +46,12 @@ interface PersistedState {
   items: CartItem[];
   rangeVon: string | null;
   rangeBis: string | null;
-  aufbauItems: string[];
+  aufbauKomplett: boolean;
+  lieferungGewuenscht: boolean;
+  abholungGewuenscht: boolean;
+  lieferStrasse: string;
+  lieferHausnr: string;
+  distanceKm: number | null;
 }
 
 function isIsoDate(s: unknown): s is string {
@@ -45,7 +59,17 @@ function isIsoDate(s: unknown): s is string {
 }
 
 function loadInitial(): PersistedState {
-  const empty: PersistedState = { items: [], rangeVon: null, rangeBis: null, aufbauItems: [] };
+  const empty: PersistedState = {
+    items: [],
+    rangeVon: null,
+    rangeBis: null,
+    aufbauKomplett: false,
+    lieferungGewuenscht: false,
+    abholungGewuenscht: false,
+    lieferStrasse: "",
+    lieferHausnr: "",
+    distanceKm: null,
+  };
   if (typeof window === "undefined") return empty;
 
   let urlVon: string | null = null;
@@ -65,11 +89,11 @@ function loadInitial(): PersistedState {
   let storedItems: CartItem[] = [];
   let storedVon: string | null = null;
   let storedBis: string | null = null;
-  let storedAufbau: string[] = [];
+  let storedAufbau = false;
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as Partial<PersistedState>;
+      const parsed = JSON.parse(raw) as Partial<PersistedState> & { aufbauItems?: unknown };
       if (Array.isArray(parsed.items)) {
         storedItems = parsed.items.filter(
           (i): i is CartItem =>
@@ -84,9 +108,18 @@ function loadInitial(): PersistedState {
         storedVon = parsed.rangeVon;
         storedBis = parsed.rangeBis;
       }
-      if (Array.isArray(parsed.aufbauItems)) {
-        storedAufbau = parsed.aufbauItems.filter((s): s is string => typeof s === "string");
+      if (typeof parsed.aufbauKomplett === "boolean") {
+        storedAufbau = parsed.aufbauKomplett;
+      } else if (Array.isArray(parsed.aufbauItems) && parsed.aufbauItems.length > 0) {
+        // Legacy-Migration: alter Per-Item-Toggle-State → wenn mind. ein Item Aufbau hatte,
+        // wird der neue Komplettpaket-Toggle aktiviert. Sonst kein Aufbau.
+        storedAufbau = true;
       }
+      if (typeof parsed.lieferungGewuenscht === "boolean") empty.lieferungGewuenscht = parsed.lieferungGewuenscht;
+      if (typeof parsed.abholungGewuenscht === "boolean") empty.abholungGewuenscht = parsed.abholungGewuenscht;
+      if (typeof parsed.lieferStrasse === "string") empty.lieferStrasse = parsed.lieferStrasse;
+      if (typeof parsed.lieferHausnr === "string") empty.lieferHausnr = parsed.lieferHausnr;
+      if (typeof parsed.distanceKm === "number" && parsed.distanceKm > 0) empty.distanceKm = parsed.distanceKm;
     }
   } catch {
     // ignore
@@ -96,7 +129,12 @@ function loadInitial(): PersistedState {
     items: storedItems,
     rangeVon: urlVon ?? storedVon,
     rangeBis: urlBis ?? storedBis,
-    aufbauItems: storedAufbau,
+    aufbauKomplett: storedAufbau,
+    lieferungGewuenscht: empty.lieferungGewuenscht,
+    abholungGewuenscht: empty.abholungGewuenscht,
+    lieferStrasse: empty.lieferStrasse,
+    lieferHausnr: empty.lieferHausnr,
+    distanceKm: empty.distanceKm,
   };
 }
 
@@ -106,18 +144,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [rangeBis, setRangeBis] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [aufbauItems, setAufbauItems] = useState<string[]>([]);
+  const [aufbauKomplett, setAufbauKomplett] = useState(false);
+  const [lieferungGewuenscht, setLieferungGewuenscht] = useState(false);
+  const [abholungGewuenscht, setAbholungGewuenscht] = useState(false);
+  const [lieferStrasse, setLieferStrasse] = useState("");
+  const [lieferHausnr, setLieferHausnr] = useState("");
+  const [distanceKm, setDistanceKm] = useState<number | null>(null);
+
+  const setLieferAdresse = (strasse: string, hausnr: string) => {
+    setLieferStrasse(strasse);
+    setLieferHausnr(hausnr);
+    // Adresse hat sich geaendert → Distance neu berechnen lassen
+    setDistanceKm(null);
+  };
 
   const openDrawer = () => setDrawerOpen(true);
   const closeDrawer = () => setDrawerOpen(false);
-
-  const toggleAufbau = (name: string) => {
-    setAufbauItems((prev) =>
-      prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name],
-    );
-  };
-
-  const isAufbau = (name: string) => aufbauItems.includes(name);
 
   // Hydration: lade aus localStorage + URL nach Mount
   useEffect(() => {
@@ -125,7 +167,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems(init.items);
     setRangeVon(init.rangeVon);
     setRangeBis(init.rangeBis);
-    setAufbauItems(init.aufbauItems);
+    setAufbauKomplett(init.aufbauKomplett);
+    setLieferungGewuenscht(init.lieferungGewuenscht);
+    setAbholungGewuenscht(init.abholungGewuenscht);
+    setLieferStrasse(init.lieferStrasse);
+    setLieferHausnr(init.lieferHausnr);
+    setDistanceKm(init.distanceKm);
     setHydrated(true);
   }, []);
 
@@ -135,22 +182,39 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ items, rangeVon, rangeBis, aufbauItems }),
+        JSON.stringify({
+          items,
+          rangeVon,
+          rangeBis,
+          aufbauKomplett,
+          lieferungGewuenscht,
+          abholungGewuenscht,
+          lieferStrasse,
+          lieferHausnr,
+          distanceKm,
+        }),
       );
     } catch {
       // ignore quota errors
     }
-  }, [items, rangeVon, rangeBis, aufbauItems, hydrated]);
+  }, [
+    items,
+    rangeVon,
+    rangeBis,
+    aufbauKomplett,
+    lieferungGewuenscht,
+    abholungGewuenscht,
+    lieferStrasse,
+    lieferHausnr,
+    distanceKm,
+    hydrated,
+  ]);
 
-  // Cleanup: Aufbau-Toggles fuer Items entfernen die nicht mehr im Cart sind
+  // Wenn Cart leer wird, Aufbau-Toggle zurueck (kein verwaister State)
   useEffect(() => {
     if (!hydrated) return;
-    setAufbauItems((prev) => {
-      const names = new Set(items.map((i) => i.name));
-      const filtered = prev.filter((n) => names.has(n));
-      return filtered.length === prev.length ? prev : filtered;
-    });
-  }, [items, hydrated]);
+    if (items.length === 0 && aufbauKomplett) setAufbauKomplett(false);
+  }, [items, aufbauKomplett, hydrated]);
 
   // URL-Sync (Deep-Link bleibt aktuell)
   useEffect(() => {
@@ -272,9 +336,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
         drawerOpen,
         openDrawer,
         closeDrawer,
-        aufbauItems,
-        toggleAufbau,
-        isAufbau,
+        aufbauKomplett,
+        setAufbauKomplett,
+        lieferungGewuenscht,
+        abholungGewuenscht,
+        setLieferungGewuenscht,
+        setAbholungGewuenscht,
+        lieferStrasse,
+        lieferHausnr,
+        setLieferAdresse,
+        distanceKm,
+        setDistanceKm,
       }}
     >
       {children}

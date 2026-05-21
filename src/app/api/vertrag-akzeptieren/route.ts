@@ -53,6 +53,7 @@ async function handle(
   try {
     const angebotList = await listRows<{
       id: number;
+      Angebotsnummer: string;
       Status: { value: string } | null;
       Buchung_Link: Array<{ id: number; value: string }>;
       Kunde_Link: Array<{ id: number; value: string }>;
@@ -220,15 +221,18 @@ async function handle(
       // Hole Stripe-Anzahlungs-Link aus Buchung falls schon generiert
       const stripeLink = (buchungFresh as { Stripe_Anzahlung_Link?: string | null })
         .Stripe_Anzahlung_Link || null;
+      const bankblock = `   Kontoinhaber: Manuel Buettner
+   IBAN: DE84 5001 0517 5420 4742 10
+   BIC:  INGDDEFFXXX
+   Bank: ING-DiBa AG
+   PayPal: manuelbuettner@web.de`;
       const stripeBlock = stripeLink
         ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
    ${stripeLink}
 
-Alternativ klassisch:
-   IBAN: DE84 5001 0517 5420 4742 10
-   PayPal: manuelbuettner@web.de`
-        : `   IBAN: DE84 5001 0517 5420 4742 10
-   PayPal: manuelbuettner@web.de`;
+Alternativ klassisch per Ueberweisung:
+${bankblock}`
+        : bankblock;
 
       // Auto-Login-Link fuer Mein-Bereich
       let meinBereichUrl = "";
@@ -244,7 +248,7 @@ vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
 
 WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestaetigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
 ${stripeBlock}
-Verwendungszweck: bitte Ihre Angebotsnummer angeben.
+Verwendungszweck: ${angebot.Angebotsnummer}
 
 Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder PayPal.
 

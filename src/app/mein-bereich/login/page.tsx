@@ -1,12 +1,12 @@
 /**
- * /mein-bereich/login?token=XYZ
+ * /mein-bereich/login?token=XYZ   — fallback fuer alte Mail-Links
+ * /mein-bereich/login?reason=invalid — Re-Send-Form fuer abgelaufene Tokens
  *
- * Magic-Link-Endpoint: prueft Token, setzt Cookie, redirected zum Dashboard.
- * Bei ungueltigem/abgelaufenem Token → Hinweis-Seite mit Re-Send-Form.
+ * Cookie-Set passiert NICHT mehr hier (Server-Component-Page kann keine Cookies
+ * setzen in Next.js 14.2). Mit Token-Param leiten wir an den Route-Handler
+ * /api/member/auto-login weiter, der den Cookie korrekt setzt.
  */
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { verifyMemberToken, MEMBER_COOKIE_NAME, TOKEN_TTL_DAYS } from "@/lib/eventverleih/member-auth";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -18,24 +18,13 @@ export default async function MemberLoginPage({
 }) {
   const params = await searchParams;
   const token = params.token || "";
+  const reason = params.reason || "";
 
+  // Token vorhanden → Route-Handler uebernimmt (Cookie + Redirect).
   if (token) {
-    const kunde = await verifyMemberToken(token);
-    if (kunde) {
-      // Cookie setzen + redirect
-      const c = await cookies();
-      c.set(MEMBER_COOKIE_NAME, token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "lax",
-        maxAge: TOKEN_TTL_DAYS * 86400,
-        path: "/",
-      });
-      redirect("/mein-bereich");
-    }
+    redirect(`/api/member/auto-login?token=${encodeURIComponent(token)}`);
   }
 
-  // Token-Eingabe oder ungueltig → Re-Send-Form
   return (
     <main className="min-h-screen bg-navy-900 text-white py-20 px-4">
       <div className="max-w-md mx-auto">
@@ -43,7 +32,7 @@ export default async function MemberLoginPage({
           ← Zurück zur Startseite
         </Link>
         <h1 className="font-display text-3xl font-bold mt-8 mb-4">Mein Bereich</h1>
-        {token && (
+        {reason === "invalid" && (
           <div className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
             Der Login-Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.
           </div>

@@ -44,6 +44,13 @@ interface ContactPayload {
   nachricht: string;
   agb_akzeptiert: boolean;
   cart_items?: CartItemPayload[];
+  // Phase 8.5: Aufbau-Komplettpaket + Lieferung/Abholung
+  aufbau_komplett?: boolean;
+  lieferung_gewuenscht?: boolean;
+  abholung_gewuenscht?: boolean;
+  liefer_strasse?: string;
+  liefer_hausnr?: string;
+  distance_km?: number | null;
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -241,6 +248,23 @@ export async function POST(req: NextRequest) {
     }
     const mietsumme = matched.reduce((s, m) => s + m.position_summe, 0);
     const kautionSumme = matched.reduce((s, m) => s + m.kaution_pro_stueck * m.anzahl, 0);
+    const aufbauSumme = payload.aufbau_komplett
+      ? matched.reduce((s, m) => s + m.aufbau_pauschale * m.anzahl, 0)
+      : 0;
+
+    // Lieferung + Abholung: 2 €/km pro Service
+    const distKm = typeof payload.distance_km === "number" && payload.distance_km > 0 ? payload.distance_km : 0;
+    const lieferpreis = payload.lieferung_gewuenscht && distKm > 0 ? distKm * 2 : 0;
+    const abholpreis = payload.abholung_gewuenscht && distKm > 0 ? distKm * 2 : 0;
+    const lieferGesamt = lieferpreis + abholpreis;
+
+    // Lieferadresse als Text fuer Baserow
+    const lieferStrasse = (payload.liefer_strasse || "").trim();
+    const lieferHausnr = (payload.liefer_hausnr || "").trim();
+    const lieferAktiv = payload.lieferung_gewuenscht || payload.abholung_gewuenscht;
+    const lieferadresseStr = lieferAktiv && lieferStrasse
+      ? `${lieferStrasse} ${lieferHausnr}, ${payload.adresse_plz || ""}`.trim()
+      : null;
 
     // === Safety-Net: Verfuegbarkeits-Check fuer alle gematchten Artikel
     // Falls inzwischen jemand anderes hart-reserviert hat (Stripe-Anzahlung), lehnen wir die
@@ -277,13 +301,36 @@ export async function POST(req: NextRequest) {
 
     // === Schritt 4: Buchung anlegen mit aggregierten Preisen
     const sharedToken = randomUUID();
+    // Anzahlung 30 % auf Mietsumme + Aufbau + Lieferung (NICHT Kaution).
+    const anzahlungBasis = mietsumme + aufbauSumme + lieferGesamt;
+    const anzahlungSoll = anzahlungBasis * 0.3;
+    const restzahlungSoll = anzahlungBasis - anzahlungSoll;
+    const lieferDetails: string[] = [];
+    if (payload.aufbau_komplett && aufbauSumme > 0) {
+      lieferDetails.push(`Aufbau-Service: ${aufbauSumme.toFixed(2)} EUR`);
+    }
+    if (payload.lieferung_gewuenscht) {
+      lieferDetails.push(`Lieferung gewuenscht (${distKm} km, ${lieferpreis.toFixed(2)} EUR)`);
+    }
+    if (payload.abholung_gewuenscht) {
+      lieferDetails.push(`Abholung gewuenscht (${distKm} km, ${abholpreis.toFixed(2)} EUR)`);
+    }
+    if (lieferadresseStr) {
+      lieferDetails.push(`Event-Adresse: ${lieferadresseStr}`);
+    }
+    const notizenBlock = [
+      `Anfrage-Text:\n${payload.nachricht}`,
+      lieferDetails.length > 0 ? `\nZusatzleistungen:\n${lieferDetails.join("\n")}` : "",
+      unmatched.length ? `\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : "",
+    ].join("");
+
     const buchung = await createRow<BuchungRow>(TABLES.Buchungen, {
       Status: "Anfrage",
       Status_Erweitert: "Anfrage",
-      Standort_Typ: "Privatgrund_Kunde",
+      Standort_Typ: lieferAktiv ? "Privatgrund_Kunde" : "Privatgrund_Kunde",
       Event_datum_von: payload.event_datum_von,
       Event_datum_bis: payload.event_datum_bis,
-      Notizen: `Anfrage-Text:\n${payload.nachricht}${unmatched.length ? `\n\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : ""}`,
+      Notizen: notizenBlock,
       Kunde_Link: [kundeId],
       Token_Angebot: sharedToken,
       Token_Vertrag: sharedToken,
@@ -291,14 +338,17 @@ export async function POST(req: NextRequest) {
       Wind_Warn_Pruefung: "nicht_geprueft",
       Standort_Bestaetigt: false,
       Helfer_Bestaetigt: false,
+      ...(lieferadresseStr ? { Lieferadresse: lieferadresseStr } : {}),
+      ...(payload.aufbau_komplett && aufbauSumme > 0 ? { Aufbau_gewuenscht: true, Preis_Aufbau: aufbauSumme.toFixed(2) } : {}),
+      ...(lieferGesamt > 0 ? { Preis_Lieferung: lieferGesamt.toFixed(2) } : {}),
       // Preise nur setzen wenn Cart-Items zugeordnet wurden
       ...(matched.length > 0
         ? {
             Preis_Artikel: mietsumme.toFixed(2),
-            Anzahlung_Soll_Eur: (mietsumme * 0.3).toFixed(2),
-            Restzahlung_Soll_Eur: (mietsumme * 0.7).toFixed(2),
+            Anzahlung_Soll_Eur: anzahlungSoll.toFixed(2),
+            Restzahlung_Soll_Eur: restzahlungSoll.toFixed(2),
             Kaution_Soll_Eur: kautionSumme.toFixed(2),
-            Gesamt: (mietsumme + kautionSumme).toFixed(2),
+            Gesamt: (anzahlungBasis + kautionSumme).toFixed(2),
           }
         : {}),
     });
@@ -436,8 +486,10 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
             cart_summary: cartSummary,
             preise_berechnet: matched.length > 0,
             mietsumme: mietsumme.toFixed(2),
-            anzahlung: (mietsumme * 0.3).toFixed(2),
+            anzahlung: anzahlungSoll.toFixed(2),
             kaution: kautionSumme.toFixed(2),
+            aufbau: aufbauSumme.toFixed(2),
+            lieferung: lieferGesamt.toFixed(2),
             angebot_url: publicUrl,
           }),
           signal: AbortSignal.timeout(5000),

@@ -196,6 +196,48 @@ export async function cancelKaution(paymentIntentId: string) {
 }
 
 /**
+ * Deaktiviert alle aktiven Payment-Links fuer eine Buchung + Payment-Type. Bestehende Link-URL
+ * gibt dem Kunden dann eine "no longer available"-Page. Brauchen wir nach Buchungs-Update um
+ * stale Links mit altem Betrag aus dem Verkehr zu ziehen.
+ * Match via metadata.buchung_id + metadata.payment_type. Fail-soft.
+ */
+export async function deactivatePaymentLinksFor(
+  buchungId: number,
+  paymentType: PaymentType,
+): Promise<number> {
+  try {
+    const stripe = getStripe();
+    let deactivated = 0;
+    let starting_after: string | undefined;
+    // Pagination — sollte selten >100 sein, Safety-Cap 5 Seiten
+    for (let i = 0; i < 5; i++) {
+      const page = await stripe.paymentLinks.list({
+        active: true,
+        limit: 100,
+        ...(starting_after ? { starting_after } : {}),
+      });
+      for (const link of page.data) {
+        const m = link.metadata || {};
+        if (m.buchung_id === String(buchungId) && m.payment_type === paymentType) {
+          try {
+            await stripe.paymentLinks.update(link.id, { active: false });
+            deactivated++;
+          } catch (e) {
+            console.error("[stripe] deactivate", link.id, e);
+          }
+        }
+      }
+      if (!page.has_more) break;
+      starting_after = page.data[page.data.length - 1]?.id;
+    }
+    return deactivated;
+  } catch (e) {
+    console.error("[stripe] deactivatePaymentLinksFor fehlgeschlagen:", buchungId, paymentType, e);
+    return 0;
+  }
+}
+
+/**
  * Refund auf eine bereits abgebuchte Anzahlung/Restzahlung — fuer Storno-Workflow.
  */
 export async function refundPayment(paymentIntentId: string, amountEur?: number) {
