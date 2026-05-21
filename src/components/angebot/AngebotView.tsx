@@ -184,10 +184,16 @@ export default function AngebotView(props: AngebotViewProps) {
                       <td className="py-2 text-right font-medium">{fmtEur(preisArtikel)}</td>
                     </tr>
                     {parseFloat(preisLieferung) > 0 && (
-                      <tr className="border-b border-white/10">
-                        <td className="py-2">Lieferung</td>
-                        <td className="py-2 text-right">{fmtEur(preisLieferung)}</td>
-                      </tr>
+                      <>
+                        <tr className="border-b border-white/10">
+                          <td className="py-2">Lieferung</td>
+                          <td className="py-2 text-right">{fmtEur((parseFloat(preisLieferung) / 2).toFixed(2))}</td>
+                        </tr>
+                        <tr className="border-b border-white/10">
+                          <td className="py-2">Abholung</td>
+                          <td className="py-2 text-right">{fmtEur((parseFloat(preisLieferung) / 2).toFixed(2))}</td>
+                        </tr>
+                      </>
                     )}
                     {parseFloat(preisAufbau) > 0 && (
                       <tr className="border-b border-white/10">
