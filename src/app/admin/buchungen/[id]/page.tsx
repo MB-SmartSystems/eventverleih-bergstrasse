@@ -19,6 +19,7 @@ import UebergabeDialog from "./UebergabeDialog";
 import RuecknahmeDialog from "./RuecknahmeDialog";
 import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
+import KautionMailPanel from "./KautionMailPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 
 export const dynamic = "force-dynamic";
@@ -71,6 +72,7 @@ type BuchungRow = {
   Stripe_Kaution_PaymentIntent: string | null;
   Stripe_Anzahlung_Link: string | null;
   Stripe_Restzahlung_Link: string | null;
+  Stripe_Kaution_Link: string | null;
   Uebergabe_Adresse: string | null;
 };
 
@@ -506,6 +508,14 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             restzahlungLink={buchung.Stripe_Restzahlung_Link}
             anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
             restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
+          />
+
+          {/* Kaution-Hold-Versand (vor Uebergabe) */}
+          <KautionMailPanel
+            buchungId={buchung.id}
+            kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
+            kautionLink={buchung.Stripe_Kaution_Link}
+            kautionHinterlegtAm={buchung.Kaution_Hinterlegt_am}
           />
 
           {/* Status-Timeline */}
