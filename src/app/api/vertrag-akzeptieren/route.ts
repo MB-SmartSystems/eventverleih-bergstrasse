@@ -69,6 +69,7 @@ async function handle(
       Token_Public: string;
       Snapshot_JSON: string | null;
       Snapshot_Version: string | null;
+      Akzept_Version: string | null;
     }>(TABLES.Angebote, { search: token, size: 5 });
 
     const angebot = angebotList.results.find((a) => a.Token_Public === token);
@@ -114,7 +115,19 @@ async function handle(
     // Akzept-Snapshot aus dem NEUEN Live-State neu bauen (statt eingefrorenen Snapshot
     // zu kopieren), damit das rechtsverbindliche Dokument widerspiegelt was Kunde
     // tatsaechlich akzeptiert hat.
-    const hasDecline = !!(declineFlags?.lieferung || declineFlags?.abholung || declineFlags?.aufbau);
+    //
+    // GATE: Nur bei first-time accept ODER re-accept einer neuen Version anwenden.
+    // Sonst koennte ein Kunde nach erster Akzept-Bestaetigung erneut POST mit
+    // decline_*=true schicken und Preise nachtraeglich reduzieren (P1-Risk).
+    const wasAlreadyAccepted = angebot.Status?.value === "Akzeptiert";
+    const angebotSnapshotV = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+    const angebotAkzeptV = parseInt(angebot.Akzept_Version ?? "0", 10) || 0;
+    const isReAcceptingNewVersion =
+      angebotSnapshotV > 0 && angebotAkzeptV > 0 && angebotSnapshotV > angebotAkzeptV;
+    const declineAllowed = !wasAlreadyAccepted || isReAcceptingNewVersion;
+    const hasDecline =
+      declineAllowed &&
+      !!(declineFlags?.lieferung || declineFlags?.abholung || declineFlags?.aufbau);
     if (hasDecline) {
       const pricePatch: Record<string, string> = {};
       if (declineFlags?.lieferung) pricePatch.Preis_Lieferung = "0.00";
@@ -133,7 +146,7 @@ async function handle(
     }
 
     // Updates IMMER laufen lassen — Baserow ist idempotent bei gleichem Wert (no-op-Write).
-    const alreadyAccepted = angebot.Status?.value === "Akzeptiert";
+    const alreadyAccepted = wasAlreadyAccepted;
     const angebotUpdate: Record<string, unknown> = {
       Status: "Akzeptiert",
       ...(alreadyAccepted ? {} : { Akzeptiert_am: new Date().toISOString() }),
