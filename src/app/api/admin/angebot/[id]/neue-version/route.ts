@@ -43,6 +43,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Event_datum_bis: string | null;
       Preis_Artikel: string | null;
       Preis_Lieferung: string | null;
+      Preis_Abholung: string | null;
       Preis_Aufbau: string | null;
       Preis_Abbau: string | null;
       Anzahlung_Soll_Eur: string | null;

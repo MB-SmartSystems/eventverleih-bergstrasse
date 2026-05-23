@@ -37,6 +37,7 @@ export interface AngebotSnapshot {
   positionen: SnapshotPosition[];
   preis_artikel: number;
   preis_lieferung: number;
+  preis_abholung: number;
   preis_aufbau: number;
   preis_abbau: number;
   anzahlung_soll_eur: number;
@@ -50,6 +51,7 @@ type BuchungLite = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Anzahlung_Soll_Eur: string | null;
@@ -137,6 +139,7 @@ export async function buildSnapshot(opts: {
     positionen,
     preis_artikel: num(opts.buchung.Preis_Artikel),
     preis_lieferung: num(opts.buchung.Preis_Lieferung),
+    preis_abholung: num(opts.buchung.Preis_Abholung),
     preis_aufbau: num(opts.buchung.Preis_Aufbau),
     preis_abbau: num(opts.buchung.Preis_Abbau),
     anzahlung_soll_eur: num(opts.buchung.Anzahlung_Soll_Eur),
@@ -186,6 +189,9 @@ export async function diffAgainstLive(
   }
   if (Math.abs(snapshot.preis_lieferung - num(liveBuchung.Preis_Lieferung)) > 0.005) {
     diffs.push(`Lieferung: ${snapshot.preis_lieferung.toFixed(2)} € → ${num(liveBuchung.Preis_Lieferung).toFixed(2)} €`);
+  }
+  if (Math.abs((snapshot.preis_abholung ?? 0) - num(liveBuchung.Preis_Abholung)) > 0.005) {
+    diffs.push(`Abholung: ${(snapshot.preis_abholung ?? 0).toFixed(2)} € → ${num(liveBuchung.Preis_Abholung).toFixed(2)} €`);
   }
   if (Math.abs(snapshot.preis_aufbau - num(liveBuchung.Preis_Aufbau)) > 0.005) {
     diffs.push(`Aufbau: ${snapshot.preis_aufbau.toFixed(2)} € → ${num(liveBuchung.Preis_Aufbau).toFixed(2)} €`);

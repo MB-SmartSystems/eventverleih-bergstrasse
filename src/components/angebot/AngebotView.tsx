@@ -43,6 +43,7 @@ export interface AngebotViewProps {
   }>;
   preisArtikel: string;
   preisLieferung: string;
+  preisAbholung: string;
   preisAufbau: string;
   anzahlungSoll: string;
   restzahlungSoll: string;
@@ -53,6 +54,7 @@ export interface AngebotViewProps {
   stripeKomplettzahlungLink: string | null;
   preisArtikelLive: string;
   preisLieferungLive: string;
+  preisAbholungLive: string;
   preisAufbauLive: string;
   kundeForAccept: {
     Vorname: string;
@@ -81,6 +83,7 @@ export default function AngebotView(props: AngebotViewProps) {
     displayPositions,
     preisArtikel,
     preisLieferung,
+    preisAbholung,
     preisAufbau,
     anzahlungSoll,
     restzahlungSoll,
@@ -91,6 +94,7 @@ export default function AngebotView(props: AngebotViewProps) {
     stripeKomplettzahlungLink,
     preisArtikelLive,
     preisLieferungLive,
+    preisAbholungLive,
     preisAufbauLive,
     kundeForAccept,
     previewVersion,
@@ -184,16 +188,16 @@ export default function AngebotView(props: AngebotViewProps) {
                       <td className="py-2 text-right font-medium">{fmtEur(preisArtikel)}</td>
                     </tr>
                     {parseFloat(preisLieferung) > 0 && (
-                      <>
-                        <tr className="border-b border-white/10">
-                          <td className="py-2">Lieferung</td>
-                          <td className="py-2 text-right">{fmtEur((parseFloat(preisLieferung) / 2).toFixed(2))}</td>
-                        </tr>
-                        <tr className="border-b border-white/10">
-                          <td className="py-2">Abholung</td>
-                          <td className="py-2 text-right">{fmtEur((parseFloat(preisLieferung) / 2).toFixed(2))}</td>
-                        </tr>
-                      </>
+                      <tr className="border-b border-white/10">
+                        <td className="py-2">Lieferung</td>
+                        <td className="py-2 text-right">{fmtEur(preisLieferung)}</td>
+                      </tr>
+                    )}
+                    {parseFloat(preisAbholung) > 0 && (
+                      <tr className="border-b border-white/10">
+                        <td className="py-2">Abholung</td>
+                        <td className="py-2 text-right">{fmtEur(preisAbholung)}</td>
+                      </tr>
                     )}
                     {parseFloat(preisAufbau) > 0 && (
                       <tr className="border-b border-white/10">
@@ -232,7 +236,7 @@ export default function AngebotView(props: AngebotViewProps) {
               </div>
             )}
 
-            {hasPrices && parseFloat(preisLieferung) === 0 && (
+            {hasPrices && parseFloat(preisLieferung) === 0 && parseFloat(preisAbholung) === 0 && (
               <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10 text-sm">
                 <p className="text-white font-semibold">Leistungsumfang: Abholung am Treffpunkt</p>
                 <p className="text-gray-400 mt-1">
@@ -245,12 +249,24 @@ export default function AngebotView(props: AngebotViewProps) {
               </div>
             )}
 
-            {hasPrices && parseFloat(preisLieferung) > 0 && (
+            {hasPrices && (parseFloat(preisLieferung) > 0 || parseFloat(preisAbholung) > 0) && (
               <div className="mt-4 p-4 rounded-lg bg-white/5 border border-white/10 text-sm">
-                <p className="text-white font-semibold">Leistungsumfang: Lieferung{parseFloat(preisAufbau) > 0 ? " inkl. Aufbau" : ""}</p>
+                <p className="text-white font-semibold">
+                  Leistungsumfang:{" "}
+                  {parseFloat(preisLieferung) > 0 && parseFloat(preisAbholung) > 0
+                    ? "Lieferung und Abholung"
+                    : parseFloat(preisLieferung) > 0
+                      ? "Lieferung (Selbstrückgabe am Treffpunkt)"
+                      : "Selbstanlieferung am Treffpunkt + Abholung durch uns"}
+                  {parseFloat(preisAufbau) > 0 ? " inkl. Aufbau" : ""}
+                </p>
                 <p className="text-gray-400 mt-1">
-                  Wir liefern die Artikel zum vereinbarten Termin an Ihre Adresse{parseFloat(preisAufbau) > 0 ? " und bauen sie auf" : ""}.
-                  Rückholung nach dem Event ist im Liefer-Preis enthalten.
+                  {parseFloat(preisLieferung) > 0
+                    ? `Wir liefern die Artikel zum vereinbarten Termin an Ihre Adresse${parseFloat(preisAufbau) > 0 ? " und bauen sie auf" : ""}.`
+                    : `Sie übergeben die Artikel beim Treffpunkt Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein.`}{" "}
+                  {parseFloat(preisAbholung) > 0
+                    ? "Wir holen die Artikel nach dem Event bei Ihnen ab."
+                    : "Die Rückgabe erfolgt durch Sie selbst am Treffpunkt."}
                 </p>
               </div>
             )}
@@ -329,6 +345,7 @@ export default function AngebotView(props: AngebotViewProps) {
                             {fmtEur(
                               (parseFloat(preisArtikelLive || "0") +
                                 parseFloat(preisLieferungLive || "0") +
+                                parseFloat(preisAbholungLive || "0") +
                                 parseFloat(preisAufbauLive || "0"))
                                 .toFixed(2)
                             )}

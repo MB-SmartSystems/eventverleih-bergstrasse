@@ -36,6 +36,7 @@ type BuchungRow = {
   Helfer_Bestaetigt: boolean;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution: string | null;
@@ -431,8 +432,9 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
           {(() => {
             const preisArtikel = parseFloat(buchung.Preis_Artikel ?? "0") || 0;
             const preisLieferung = parseFloat(buchung.Preis_Lieferung ?? "0") || 0;
+            const preisAbholung = parseFloat(buchung.Preis_Abholung ?? "0") || 0;
             const preisAufbau = parseFloat(buchung.Preis_Aufbau ?? "0") || 0;
-            const gesamt = preisArtikel + preisLieferung + preisAufbau;
+            const gesamt = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
             const zahlungen: Array<{ datum: string; typ: string; betrag: number; methode: string }> = (() => {
               try {
                 if (!buchung.Zahlungen_JSON) return [];

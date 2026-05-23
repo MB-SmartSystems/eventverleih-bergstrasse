@@ -5,7 +5,7 @@
  *
  * Ablauf:
  *  1. Lädt Buchung + Kunde + Positionen
- *  2. Berechnet Gesamtsumme (Artikel + Lieferung + Aufbau + Abbau, OHNE Kaution)
+ *  2. Berechnet Gesamtsumme (Artikel + Lieferung + Abholung + Aufbau + Abbau, OHNE Kaution)
  *  3. Generiert Rechnungsnummer RG-YYYY-NNNN
  *  4. Erstellt Public-Token (UUIDv4)
  *  5. Legt Rechnung-Row in Baserow an (Status=Gesendet, Typ=Komplett)
@@ -28,6 +28,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution_Soll_Eur: string | null;
@@ -100,6 +101,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const summe =
       num(buchung.Preis_Artikel) +
       num(buchung.Preis_Lieferung) +
+      num(buchung.Preis_Abholung) +
       num(buchung.Preis_Aufbau) +
       num(buchung.Preis_Abbau);
     if (summe <= 0) {
@@ -151,6 +153,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         event_datum_bis: buchung.Event_datum_bis,
         preis_artikel_eur: num(buchung.Preis_Artikel),
         preis_lieferung_eur: num(buchung.Preis_Lieferung),
+        preis_abholung_eur: num(buchung.Preis_Abholung),
         preis_aufbau_eur: num(buchung.Preis_Aufbau),
         preis_abbau_eur: num(buchung.Preis_Abbau),
         kaution_soll_eur: num(buchung.Kaution_Soll_Eur),

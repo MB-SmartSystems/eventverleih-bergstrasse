@@ -340,7 +340,8 @@ export async function POST(req: NextRequest) {
       Helfer_Bestaetigt: false,
       ...(lieferadresseStr ? { Lieferadresse: lieferadresseStr } : {}),
       ...(payload.aufbau_komplett && aufbauSumme > 0 ? { Aufbau_gewuenscht: "Ja", Preis_Aufbau: aufbauSumme.toFixed(2) } : {}),
-      ...(lieferGesamt > 0 ? { Preis_Lieferung: lieferGesamt.toFixed(2) } : {}),
+      ...(lieferpreis > 0 ? { Preis_Lieferung: lieferpreis.toFixed(2) } : {}),
+      ...(abholpreis > 0 ? { Preis_Abholung: abholpreis.toFixed(2) } : {}),
       // Preise nur setzen wenn Cart-Items zugeordnet wurden
       ...(matched.length > 0
         ? {

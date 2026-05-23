@@ -14,7 +14,7 @@
  * amount_eur optional — Default:
  *   anzahlung → Anzahlung_Soll_Eur
  *   restzahlung → Restzahlung_Soll_Eur
- *   komplettzahlung → Preis_Artikel + Preis_Lieferung + Preis_Aufbau (Gesamt ohne Kaution)
+ *   komplettzahlung → Preis_Artikel + Preis_Lieferung + Preis_Abholung + Preis_Aufbau (Gesamt ohne Kaution)
  *   kaution → Kaution_Soll_Eur
  */
 import { NextRequest, NextResponse } from "next/server";
@@ -48,6 +48,7 @@ export async function POST(
       Kaution_Soll_Eur: number | null;
       Preis_Artikel: string | number | null;
       Preis_Lieferung: string | number | null;
+      Preis_Abholung: string | number | null;
       Preis_Aufbau: string | number | null;
       Kunde_Link: Array<{ id: number; value: string }> | null;
       Event_datum_von: string | null;
@@ -66,9 +67,10 @@ export async function POST(
     else if (type === "restzahlung") defaultAmount = parseDec(buchung.Restzahlung_Soll_Eur);
     else if (type === "kaution") defaultAmount = parseDec(buchung.Kaution_Soll_Eur);
     else if (type === "komplettzahlung") {
-      // Komplettzahlung = Mietsumme + Lieferung + Aufbau (ohne Kaution)
+      // Komplettzahlung = Mietsumme + Lieferung + Abholung + Aufbau (ohne Kaution)
       defaultAmount = parseDec(buchung.Preis_Artikel) +
                       parseDec(buchung.Preis_Lieferung) +
+                      parseDec(buchung.Preis_Abholung) +
                       parseDec(buchung.Preis_Aufbau);
     }
 

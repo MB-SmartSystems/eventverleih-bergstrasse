@@ -10,7 +10,7 @@
  * Erstattung = bereits_bezahlt - Stornogebuehr.
  * Bei negativer Erstattung muss der Kunde nachzahlen.
  *
- * Mietsumme = Preis_Artikel + Preis_Lieferung + Preis_Aufbau (OHNE Kaution).
+ * Mietsumme = Preis_Artikel + Preis_Lieferung + Preis_Abholung + Preis_Aufbau (OHNE Kaution).
  * Kaution wird separat behandelt (bei Storno vor Uebergabe = nie eingezogen, voll zurueck).
  */
 

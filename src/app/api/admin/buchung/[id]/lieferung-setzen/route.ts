@@ -196,7 +196,6 @@ export async function POST(
     // Liefer-Preis berechnen
     const lieferpreis = lieferung && distKm > 0 ? distKm * 2 : 0;
     const abholpreis = abholung && distKm > 0 ? distKm * 2 : 0;
-    const lieferGesamt = lieferpreis + abholpreis;
 
     // Aufbau-Preis
     let aufbauSumme = 0;
@@ -223,7 +222,8 @@ export async function POST(
     const newNotizen = (buchung.Notizen || "") + noteAppend;
 
     const update: Record<string, unknown> = {
-      Preis_Lieferung: lieferGesamt.toFixed(2),
+      Preis_Lieferung: lieferpreis.toFixed(2),
+      Preis_Abholung: abholpreis.toFixed(2),
       Preis_Aufbau: aufbau && aufbauSumme > 0 ? aufbauSumme.toFixed(2) : "0.00",
       Aufbau_gewuenscht: aufbau ? "Ja" : "Nein",
       ...(resolvedAdr ? { Lieferadresse: resolvedAdr.display } : {}),
@@ -236,7 +236,8 @@ export async function POST(
 
     return NextResponse.json({
       ok: true,
-      preis_lieferung: lieferGesamt,
+      preis_lieferung: lieferpreis,
+      preis_abholung: abholpreis,
       preis_aufbau: aufbau ? aufbauSumme : 0,
       distance_km: distKm,
       lieferadresse: resolvedAdr?.display ?? null,

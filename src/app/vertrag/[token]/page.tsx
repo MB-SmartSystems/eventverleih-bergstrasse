@@ -35,6 +35,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Anzahlung_Soll_Eur: string | null;
@@ -126,6 +127,7 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
   const displayEventBis = snap?.event_datum_bis ?? buchung.Event_datum_bis;
   const displayPreisArtikel = snap ? String(snap.preis_artikel) : buchung.Preis_Artikel;
   const displayPreisLieferung = snap ? String(snap.preis_lieferung) : buchung.Preis_Lieferung;
+  const displayPreisAbholung = snap ? String(snap.preis_abholung ?? 0) : buchung.Preis_Abholung;
   const displayPreisAufbau = snap ? String(snap.preis_aufbau) : buchung.Preis_Aufbau;
   const displayAnzahlungSoll = snap ? String(snap.anzahlung_soll_eur) : buchung.Anzahlung_Soll_Eur;
   const displayRestzahlungSoll = snap ? String(snap.restzahlung_soll_eur) : buchung.Restzahlung_Soll_Eur;
@@ -296,6 +298,12 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
                 <tr className="border-b border-gray-300">
                   <td className="py-2">Lieferung</td>
                   <td className="py-2 text-right font-mono">{fmtEur(displayPreisLieferung)}</td>
+                </tr>
+              )}
+              {displayPreisAbholung && parseFloat(displayPreisAbholung) > 0 && (
+                <tr className="border-b border-gray-300">
+                  <td className="py-2">Abholung</td>
+                  <td className="py-2 text-right font-mono">{fmtEur(displayPreisAbholung)}</td>
                 </tr>
               )}
               {displayPreisAufbau && parseFloat(displayPreisAufbau) > 0 && (

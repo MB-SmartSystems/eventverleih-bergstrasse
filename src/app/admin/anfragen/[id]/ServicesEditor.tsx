@@ -119,7 +119,7 @@ export default function ServicesEditor({
       }
       setSaveMsg({
         kind: "ok",
-        text: `Gespeichert: Lieferung ${fmtEur(data.preis_lieferung as number)}, Aufbau ${fmtEur(data.preis_aufbau as number)}. Anzahlung neu berechnet.`,
+        text: `Gespeichert: Lieferung ${fmtEur(data.preis_lieferung as number)}, Abholung ${fmtEur(data.preis_abholung as number)}, Aufbau ${fmtEur(data.preis_aufbau as number)}. Anzahlung neu berechnet.`,
       });
       router.refresh();
     } catch (e) {

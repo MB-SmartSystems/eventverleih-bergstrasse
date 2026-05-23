@@ -34,6 +34,7 @@ type AngebotRow = {
 type BuchungFresh = {
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Anzahlung_Soll_Eur: string | null;
   Anzahlung_Bezahlt_am: string | null;
@@ -77,12 +78,13 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
     if (artikelId) kaution += anz * (kautionMap.get(artikelId) ?? 0);
   }
 
-  // Lieferung + Aufbau bleiben aus dem Pre-State erhalten (recalc setzt nur Artikel).
+  // Lieferung + Abholung + Aufbau bleiben aus dem Pre-State erhalten (recalc setzt nur Artikel).
   // Anzahlung/Gesamt berücksichtigen sie aber, damit Stripe-Links und Sidebar konsistent
   // mit dem Cart-Flow sind.
   const lieferung = num(preState?.Preis_Lieferung);
+  const abholung = num(preState?.Preis_Abholung);
   const aufbau = num(preState?.Preis_Aufbau);
-  const anzahlungBasis = mietsumme + lieferung + aufbau;
+  const anzahlungBasis = mietsumme + lieferung + abholung + aufbau;
   const anzahlung = Math.round(anzahlungBasis * 0.3 * 100) / 100;
   const restzahlung = Math.round((anzahlungBasis - anzahlung) * 100) / 100;
 
@@ -127,10 +129,11 @@ async function refreshStripeLinks(
   const oldAnzahlung = num(pre.Anzahlung_Soll_Eur);
   const oldPreisArtikel = num(pre.Preis_Artikel);
   const oldLieferung = num(pre.Preis_Lieferung);
+  const oldAbholung = num(pre.Preis_Abholung);
   const oldAufbau = num(pre.Preis_Aufbau);
-  const oldKomplett = oldPreisArtikel + oldLieferung + oldAufbau;
-  // Neuer Komplett = neuer Preis_Artikel + bestehende Liefer-/Aufbau-Werte (recalc setzt nur Artikel)
-  const newKomplett = next.preisArtikel + oldLieferung + oldAufbau;
+  const oldKomplett = oldPreisArtikel + oldLieferung + oldAbholung + oldAufbau;
+  // Neuer Komplett = neuer Preis_Artikel + bestehende Liefer-/Abhol-/Aufbau-Werte (recalc setzt nur Artikel)
+  const newKomplett = next.preisArtikel + oldLieferung + oldAbholung + oldAufbau;
 
   const kundeName = pre.Kunde_Link?.[0]?.value || "Kunde";
   const eventDatum = pre.Event_datum_von || "";

@@ -127,6 +127,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Event_datum_bis: string | null;
       Preis_Artikel: string | null;
       Preis_Lieferung: string | null;
+      Preis_Abholung: string | null;
       Preis_Aufbau: string | null;
       Preis_Abbau: string | null;
       Anzahlung_Soll_Eur: string | null;
@@ -215,6 +216,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             Event_datum_bis: buchung.Event_datum_bis ?? null,
             Preis_Artikel: buchung.Preis_Artikel,
             Preis_Lieferung: buchung.Preis_Lieferung ?? null,
+            Preis_Abholung: buchung.Preis_Abholung ?? null,
             Preis_Aufbau: buchung.Preis_Aufbau ?? null,
             Preis_Abbau: buchung.Preis_Abbau ?? null,
             Anzahlung_Soll_Eur: buchung.Anzahlung_Soll_Eur,
@@ -293,8 +295,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       try {
         const preisArtikel = parseFloat(buchung.Preis_Artikel || "0") || 0;
         const preisLieferung = parseFloat(buchung.Preis_Lieferung || "0") || 0;
+        const preisAbholung = parseFloat(buchung.Preis_Abholung || "0") || 0;
         const preisAufbau = parseFloat(buchung.Preis_Aufbau || "0") || 0;
-        const komplett = preisArtikel + preisLieferung + preisAufbau;
+        const komplett = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
         const alreadyLinkedK = (buchung.Stripe_Komplettzahlung_Link || "").trim().length > 0;
         if (komplett > 0 && !alreadyLinkedK) {
           const desc = `Komplettzahlung Buchung #${buchungId} — Event ${buchung.Event_datum_von || ""}`;

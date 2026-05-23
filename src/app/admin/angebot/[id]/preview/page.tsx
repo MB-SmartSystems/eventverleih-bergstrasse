@@ -33,6 +33,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Anzahlung_Soll_Eur: string | null;
@@ -102,6 +103,7 @@ export default async function AngebotPreviewPage({
   const anrede = `${snapshot.kunde.vorname} ${snapshot.kunde.nachname}`;
   const preisArtikel = snapshot.preis_artikel.toString();
   const preisLieferung = snapshot.preis_lieferung.toString();
+  const preisAbholung = (snapshot.preis_abholung ?? 0).toString();
   const preisAufbau = snapshot.preis_aufbau.toString();
   const anzahlungSoll = snapshot.anzahlung_soll_eur.toString();
   const restzahlungSoll = snapshot.restzahlung_soll_eur.toString();
@@ -130,6 +132,7 @@ export default async function AngebotPreviewPage({
       displayPositions={displayPositions}
       preisArtikel={preisArtikel}
       preisLieferung={preisLieferung}
+      preisAbholung={preisAbholung}
       preisAufbau={preisAufbau}
       anzahlungSoll={anzahlungSoll}
       restzahlungSoll={restzahlungSoll}
@@ -140,6 +143,7 @@ export default async function AngebotPreviewPage({
       stripeKomplettzahlungLink={buchung.Stripe_Komplettzahlung_Link}
       preisArtikelLive={buchung.Preis_Artikel ?? "0"}
       preisLieferungLive={buchung.Preis_Lieferung ?? "0"}
+      preisAbholungLive={buchung.Preis_Abholung ?? "0"}
       preisAufbauLive={buchung.Preis_Aufbau ?? "0"}
       kundeForAccept={{
         Vorname: kunde.Vorname ?? "",

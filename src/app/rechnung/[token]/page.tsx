@@ -47,6 +47,7 @@ interface RechnungSnapshot {
     event_datum_bis: string | null;
     preis_artikel_eur: number;
     preis_lieferung_eur: number;
+    preis_abholung_eur?: number;
     preis_aufbau_eur: number;
     preis_abbau_eur: number;
     kaution_soll_eur: number;
@@ -75,6 +76,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution_Soll_Eur: string | null;
@@ -157,6 +159,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
         Event_datum_bis: snapshot.buchung.event_datum_bis,
         Preis_Artikel: String(snapshot.buchung.preis_artikel_eur),
         Preis_Lieferung: String(snapshot.buchung.preis_lieferung_eur),
+        Preis_Abholung: String(snapshot.buchung.preis_abholung_eur ?? 0),
         Preis_Aufbau: String(snapshot.buchung.preis_aufbau_eur),
         Preis_Abbau: String(snapshot.buchung.preis_abbau_eur),
         Kaution_Soll_Eur: String(snapshot.buchung.kaution_soll_eur),
@@ -190,6 +193,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const kaution = num(buchung.Kaution_Soll_Eur);
   const zusatz = [
     { label: "Lieferpauschale", value: num(buchung.Preis_Lieferung) },
+    { label: "Abholpauschale", value: num(buchung.Preis_Abholung) },
     { label: "Aufbau", value: num(buchung.Preis_Aufbau) },
     { label: "Abbau", value: num(buchung.Preis_Abbau) },
   ].filter((z) => z.value > 0);

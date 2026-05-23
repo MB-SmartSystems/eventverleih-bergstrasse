@@ -22,6 +22,7 @@ interface BuchungData {
   Event_datum_bis: string | null;
   Preis_Artikel: string | number | null;
   Preis_Lieferung: string | number | null;
+  Preis_Abholung: string | number | null;
   Preis_Aufbau: string | number | null;
   Zahlungen_JSON: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     // Mietsumme + bereits bezahlt
-    const mietsumme = parseDec(buchung.Preis_Artikel) + parseDec(buchung.Preis_Lieferung) + parseDec(buchung.Preis_Aufbau);
+    const mietsumme = parseDec(buchung.Preis_Artikel) + parseDec(buchung.Preis_Lieferung) + parseDec(buchung.Preis_Abholung) + parseDec(buchung.Preis_Aufbau);
     let bezahlt = 0;
     try {
       if (buchung.Zahlungen_JSON) {

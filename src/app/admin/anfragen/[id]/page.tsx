@@ -45,6 +45,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Anzahlung_Soll_Eur: string | null;
@@ -175,11 +176,9 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
     initialAbholung = /Abholung gewuenscht/.test(lastBlock);
     initialAufbau = /Aufbau-Service/.test(lastBlock);
   } else {
-    // Kein Service-Update-Block → aus Preis-Feldern raten. Bei Mehrdeutigkeit: beide aktiv.
-    if (parseFloat(buchung.Preis_Lieferung ?? "0") > 0) {
-      initialLieferung = true;
-      initialAbholung = true;
-    }
+    // Kein Service-Update-Block → aus Preis-Feldern. Lieferung+Abholung jetzt getrennt.
+    if (parseFloat(buchung.Preis_Lieferung ?? "0") > 0) initialLieferung = true;
+    if (parseFloat(buchung.Preis_Abholung ?? "0") > 0) initialAbholung = true;
     if (parseFloat(buchung.Preis_Aufbau ?? "0") > 0) initialAufbau = true;
   }
 
@@ -201,6 +200,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
           Event_datum_bis: buchung.Event_datum_bis,
           Preis_Artikel: buchung.Preis_Artikel,
           Preis_Lieferung: buchung.Preis_Lieferung,
+          Preis_Abholung: buchung.Preis_Abholung,
           Preis_Aufbau: buchung.Preis_Aufbau,
           Preis_Abbau: buchung.Preis_Abbau,
           Anzahlung_Soll_Eur: buchung.Anzahlung_Soll_Eur,

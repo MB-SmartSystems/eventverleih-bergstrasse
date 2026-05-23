@@ -22,6 +22,7 @@ interface BuchungRow {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Anzahlung_Soll_Eur: string | null;
   Restzahlung_Soll_Eur: string | null;
@@ -183,8 +184,9 @@ function BuchungCard({ buchung, variant }: { buchung: BuchungRow; variant: "akti
   const zeitraum = `${fmtDate(buchung.Event_datum_von)} – ${fmtDate(buchung.Event_datum_bis)}`;
   const preisArtikel = parseFloat(buchung.Preis_Artikel || "0") || 0;
   const preisLieferung = parseFloat(buchung.Preis_Lieferung || "0") || 0;
+  const preisAbholung = parseFloat(buchung.Preis_Abholung || "0") || 0;
   const preisAufbau = parseFloat(buchung.Preis_Aufbau || "0") || 0;
-  const gesamt = preisArtikel + preisLieferung + preisAufbau;
+  const gesamt = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
 
   // Zahlungen-Summe aus JSON
   let bezahlt = 0;

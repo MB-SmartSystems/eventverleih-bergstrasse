@@ -36,6 +36,7 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Preis_Artikel: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution: string | null;
@@ -134,6 +135,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
   // Anzeige-Preise aus Snapshot (eingefroren) oder Live
   const preisArtikel = snapshot ? snapshot.preis_artikel.toString() : (buchung.Preis_Artikel ?? "0");
   const preisLieferung = snapshot ? snapshot.preis_lieferung.toString() : (buchung.Preis_Lieferung ?? "0");
+  const preisAbholung = snapshot ? (snapshot.preis_abholung ?? 0).toString() : (buchung.Preis_Abholung ?? "0");
   const preisAufbau = snapshot ? snapshot.preis_aufbau.toString() : (buchung.Preis_Aufbau ?? "0");
   const anzahlungSoll = snapshot ? snapshot.anzahlung_soll_eur.toString() : (buchung.Anzahlung_Soll_Eur ?? "0");
   const restzahlungSoll = snapshot ? snapshot.restzahlung_soll_eur.toString() : (buchung.Restzahlung_Soll_Eur ?? "0");
@@ -167,6 +169,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
       displayPositions={displayPositions}
       preisArtikel={preisArtikel}
       preisLieferung={preisLieferung}
+      preisAbholung={preisAbholung}
       preisAufbau={preisAufbau}
       anzahlungSoll={anzahlungSoll}
       restzahlungSoll={restzahlungSoll}
@@ -177,6 +180,7 @@ export default async function AngebotPage({ params }: { params: Promise<{ token:
       stripeKomplettzahlungLink={buchung.Stripe_Komplettzahlung_Link}
       preisArtikelLive={buchung.Preis_Artikel ?? "0"}
       preisLieferungLive={buchung.Preis_Lieferung ?? "0"}
+      preisAbholungLive={buchung.Preis_Abholung ?? "0"}
       preisAufbauLive={buchung.Preis_Aufbau ?? "0"}
       kundeForAccept={{
         Vorname: kunde.Vorname ?? "",
