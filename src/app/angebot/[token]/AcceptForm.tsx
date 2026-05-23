@@ -12,7 +12,21 @@ type Kunde = {
   Adresse_Ort: string;
 };
 
-export default function AcceptForm({ token, kunde }: { token: string; kunde: Kunde }) {
+interface DeclineFlags {
+  lieferung: boolean;
+  abholung: boolean;
+  aufbau: boolean;
+}
+
+export default function AcceptForm({
+  token,
+  kunde,
+  declineFlags,
+}: {
+  token: string;
+  kunde: Kunde;
+  declineFlags?: DeclineFlags;
+}) {
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
@@ -47,6 +61,9 @@ export default function AcceptForm({ token, kunde }: { token: string; kunde: Kun
           adresse_strasse: strasse.trim(),
           adresse_plz: plz.trim(),
           adresse_ort: ort.trim(),
+          ...(declineFlags?.lieferung ? { decline_lieferung: true } : {}),
+          ...(declineFlags?.abholung ? { decline_abholung: true } : {}),
+          ...(declineFlags?.aufbau ? { decline_aufbau: true } : {}),
         }),
         redirect: "manual",
       });

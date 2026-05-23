@@ -17,6 +17,8 @@ import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/cl
 import { checkConflicts } from "@/lib/eventverleih/conflicts";
 import { queueConflictHinweisMail } from "@/lib/eventverleih/conflict-mails";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { recalcBuchung } from "@/lib/buchung-recalc";
+import { buildSnapshot } from "@/lib/angebot-snapshot";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -41,10 +43,17 @@ type KundePatch = {
   Adresse_Ort?: string;
 };
 
+type DeclineFlags = {
+  lieferung?: boolean;
+  abholung?: boolean;
+  aufbau?: boolean;
+};
+
 async function handle(
   token: string,
   origin: string,
-  kundenDaten?: KundePatch
+  kundenDaten?: KundePatch,
+  declineFlags?: DeclineFlags,
 ): Promise<NextResponse> {
   if (!token || typeof token !== "string" || token.length < 8) {
     return NextResponse.json({ error: "invalid token" }, { status: 400 });
@@ -100,14 +109,89 @@ async function handle(
       }
     }
 
+    // Service-Abwahl: Kunde hat im Angebot Lieferung/Abholung/Aufbau abgewaehlt.
+    // Reihenfolge: erst Preise nullen, dann recalc (Anzahlung + Stripe-Links), dann
+    // Akzept-Snapshot aus dem NEUEN Live-State neu bauen (statt eingefrorenen Snapshot
+    // zu kopieren), damit das rechtsverbindliche Dokument widerspiegelt was Kunde
+    // tatsaechlich akzeptiert hat.
+    const hasDecline = !!(declineFlags?.lieferung || declineFlags?.abholung || declineFlags?.aufbau);
+    if (hasDecline) {
+      const pricePatch: Record<string, string> = {};
+      if (declineFlags?.lieferung) pricePatch.Preis_Lieferung = "0.00";
+      if (declineFlags?.abholung) pricePatch.Preis_Abholung = "0.00";
+      if (declineFlags?.aufbau) {
+        pricePatch.Preis_Aufbau = "0.00";
+        pricePatch.Aufbau_gewuenscht = "Nein";
+      }
+      try {
+        await updateRow(TABLES.Buchungen, buchungId, pricePatch);
+        await recalcBuchung(buchungId);
+      } catch (e) {
+        console.error("[vertrag-akzeptieren] Service-Decline-Apply fehlgeschlagen:", e);
+        // Nicht-fatal — Akzept laeuft weiter, Snapshot kann inkonsistent sein.
+      }
+    }
+
     // Updates IMMER laufen lassen — Baserow ist idempotent bei gleichem Wert (no-op-Write).
     const alreadyAccepted = angebot.Status?.value === "Akzeptiert";
     const angebotUpdate: Record<string, unknown> = {
       Status: "Akzeptiert",
       ...(alreadyAccepted ? {} : { Akzeptiert_am: new Date().toISOString() }),
     };
-    // Akzept-Snapshot speichern: was Kunde rechtsverbindlich akzeptiert hat
-    if (angebot.Snapshot_JSON) {
+    // Akzept-Snapshot speichern: was Kunde rechtsverbindlich akzeptiert hat.
+    // Bei Service-Decline: aus aktuellem Live-State neu bauen. Sonst: eingefrorenen Snapshot kopieren.
+    if (hasDecline) {
+      try {
+        type BuchungFull = {
+          Event_datum_von: string | null;
+          Event_datum_bis: string | null;
+          Preis_Artikel: string | null;
+          Preis_Lieferung: string | null;
+          Preis_Abholung: string | null;
+          Preis_Aufbau: string | null;
+          Preis_Abbau: string | null;
+          Anzahlung_Soll_Eur: string | null;
+          Restzahlung_Soll_Eur: string | null;
+          Kaution_Soll_Eur: string | null;
+          Lieferadresse: string | null;
+        };
+        type KundeFull = {
+          Vorname: string;
+          Nachname: string;
+          Firma: string;
+          Email: string;
+          Telefon: string;
+          Adresse_Strasse: string;
+          Adresse_PLZ: string;
+          Adresse_Ort: string;
+        };
+        const [buchungFull, kundeFull] = await Promise.all([
+          getRow<BuchungFull>(TABLES.Buchungen, buchungId),
+          getRow<KundeFull>(TABLES.Kunden, kundeId),
+        ]);
+        const newVersion = (parseInt(angebot.Snapshot_Version ?? "0", 10) || 0) + 1;
+        const rebuilt = await buildSnapshot({
+          version: newVersion,
+          buchungId,
+          buchung: buchungFull,
+          kunde: kundeFull,
+        });
+        const rebuiltJson = JSON.stringify(rebuilt);
+        angebotUpdate.Snapshot_JSON = rebuiltJson;
+        angebotUpdate.Snapshot_Version = newVersion;
+        angebotUpdate.Snapshot_Erstellt_am = rebuilt.erstellt_am;
+        angebotUpdate.Akzept_Snapshot_JSON = rebuiltJson;
+        angebotUpdate.Akzept_Version = newVersion;
+      } catch (e) {
+        console.error("[vertrag-akzeptieren] Snapshot-Rebuild nach Decline fehlgeschlagen:", e);
+        // Fallback: alten Snapshot einfrieren — besser als nichts.
+        if (angebot.Snapshot_JSON) {
+          angebotUpdate.Akzept_Snapshot_JSON = angebot.Snapshot_JSON;
+          const v = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+          if (v > 0) angebotUpdate.Akzept_Version = v;
+        }
+      }
+    } else if (angebot.Snapshot_JSON) {
       angebotUpdate.Akzept_Snapshot_JSON = angebot.Snapshot_JSON;
       const v = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
       if (v > 0) angebotUpdate.Akzept_Version = v;
@@ -307,6 +391,7 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
 export async function POST(req: NextRequest) {
   let token = "";
   let kundenDaten: KundePatch | undefined;
+  let declineFlags: DeclineFlags | undefined;
   const ct = req.headers.get("content-type") || "";
   if (ct.includes("application/json")) {
     const body = await req.json().catch(() => ({}));
@@ -317,6 +402,11 @@ export async function POST(req: NextRequest) {
       Adresse_PLZ: typeof body.adresse_plz === "string" ? body.adresse_plz : undefined,
       Adresse_Ort: typeof body.adresse_ort === "string" ? body.adresse_ort : undefined,
     };
+    declineFlags = {
+      lieferung: body.decline_lieferung === true,
+      abholung: body.decline_abholung === true,
+      aufbau: body.decline_aufbau === true,
+    };
   } else {
     const fd = await req.formData();
     token = String(fd.get("token") || "");
@@ -326,6 +416,11 @@ export async function POST(req: NextRequest) {
       Adresse_PLZ: fd.get("adresse_plz") ? String(fd.get("adresse_plz")) : undefined,
       Adresse_Ort: fd.get("adresse_ort") ? String(fd.get("adresse_ort")) : undefined,
     };
+    declineFlags = {
+      lieferung: fd.get("decline_lieferung") === "true",
+      abholung: fd.get("decline_abholung") === "true",
+      aufbau: fd.get("decline_aufbau") === "true",
+    };
   }
-  return handle(token, req.nextUrl.origin, kundenDaten);
+  return handle(token, req.nextUrl.origin, kundenDaten, declineFlags);
 }
