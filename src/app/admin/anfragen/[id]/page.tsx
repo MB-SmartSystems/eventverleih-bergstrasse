@@ -176,9 +176,20 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
     initialAbholung = /Abholung gewuenscht/.test(lastBlock);
     initialAufbau = /Aufbau-Service/.test(lastBlock);
   } else {
-    // Kein Service-Update-Block → aus Preis-Feldern. Lieferung+Abholung jetzt getrennt.
-    if (parseFloat(buchung.Preis_Lieferung ?? "0") > 0) initialLieferung = true;
-    if (parseFloat(buchung.Preis_Abholung ?? "0") > 0) initialAbholung = true;
+    // Kein Service-Update-Block → aus Preis-Feldern. Legacy-Buchungen (vor Storage-Split
+    // 2026-05-22) speicherten Hin+Rueck kombiniert in Preis_Lieferung mit Preis_Abholung=0.
+    // Bei dieser Ambiguität: beide aktiv defaulten, sonst kann ein versehentlicher Save
+    // die Abholung silent abschalten und das Halbieren-Resultat ueberschreiben.
+    const lief = parseFloat(buchung.Preis_Lieferung ?? "0");
+    const abh = parseFloat(buchung.Preis_Abholung ?? "0");
+    if (lief > 0 && abh === 0) {
+      // Legacy-Ambiguität → beide aktiv
+      initialLieferung = true;
+      initialAbholung = true;
+    } else {
+      if (lief > 0) initialLieferung = true;
+      if (abh > 0) initialAbholung = true;
+    }
     if (parseFloat(buchung.Preis_Aufbau ?? "0") > 0) initialAufbau = true;
   }
 
