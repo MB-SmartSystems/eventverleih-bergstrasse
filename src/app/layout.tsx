@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { CartProvider } from "@/components/CartContext";
 import CartDrawer from "@/components/CartDrawer";
+import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
   title: "Eventverleih Bergstraße — Zelte & Eventausstattung für Ihre Feste",
@@ -42,6 +43,7 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body>
+        <Analytics />
         <CartProvider>
           {children}
           <CartDrawer />
