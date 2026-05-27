@@ -127,8 +127,6 @@ export function renderProtokollHtml(ctx: ProtokollContext): string {
   .ok { color: #157347; }
   .fotos { display: flex; flex-wrap: wrap; gap: 8px; }
   .fotos img { width: 150px; height: 110px; object-fit: cover; border: 1px solid #ccc; border-radius: 4px; }
-  .sign { display: flex; gap: 40px; margin-top: 48px; }
-  .sign div { flex: 1; border-top: 1px solid #333; padding-top: 6px; font-size: 11px; color: #555; }
   .foot { margin-top: 32px; font-size: 10px; color: #999; border-top: 1px solid #eee; padding-top: 8px; }
   @page { size: A4; margin: 16mm; }
 </style></head>
@@ -150,13 +148,8 @@ export function renderProtokollHtml(ctx: ProtokollContext): string {
   ${ruecknahmeSection}
   ${kautionSection}
 
-  <div class="sign">
-    <div>Ort, Datum · Unterschrift Vermieter</div>
-    <div>Ort, Datum · Unterschrift Mieter</div>
-  </div>
-
   <div class="foot">
-    Erstellt am ${esc(ctx.erstelltAm)} · ${esc(ctx.firma.name)} · ${esc(ctx.firma.email)}
+    Digitale Dokumentation · erstellt am ${esc(ctx.erstelltAm)} · ${esc(ctx.firma.name)} · ${esc(ctx.firma.email)}
   </div>
 </body></html>`;
 }

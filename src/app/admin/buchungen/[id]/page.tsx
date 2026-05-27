@@ -697,7 +697,7 @@ Vertrag
             <section className="p-5 rounded-xl bg-warm-surface border border-warm-border flex items-center justify-between gap-3 flex-wrap">
               <div>
                 <h2 className="text-lg font-semibold text-warm-text">Protokoll</h2>
-                <p className="text-sm text-warm-muted">Übergabe-/Rücknahmedokumentation (Checkliste, Fotos, Schäden, Kaution).</p>
+                <p className="text-sm text-warm-muted">Digitale Übergabe-/Rücknahmedokumentation (Checkliste, Fotos, Schäden, Kaution).</p>
               </div>
               <a
                 href={`/protokoll/${buchung.id}/print`}
@@ -705,7 +705,7 @@ Vertrag
                 rel="noopener"
                 className="px-4 py-2 rounded-lg border border-warm-border text-warm-text text-sm font-medium hover:bg-warm-bg/60 whitespace-nowrap"
               >
-                Protokoll als PDF (Strg+P)
+                Protokoll ansehen
               </a>
             </section>
           )}
