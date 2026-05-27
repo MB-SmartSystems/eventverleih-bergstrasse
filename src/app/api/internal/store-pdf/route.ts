@@ -9,7 +9,7 @@
  * PDF_URL). Der bestehende Rechnungs-MAIL-Workflow bleibt davon unberuehrt —
  * dieser Pfad dient nur der Ablage zum spaeteren Download.
  *
- * Auth: Header `x-internal-secret` === CRON_SECRET (bereits in Vercel gesetzt).
+ * Auth: Header `x-internal-secret` === STORE_PDF_SECRET (Vercel-Env, geteilt mit n8n).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { put } from "@vercel/blob";
@@ -25,7 +25,7 @@ const TABLE_MAP: Record<string, { tableId: number; prefix: string }> = {
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get("x-internal-secret") || "";
-  const expected = process.env.CRON_SECRET;
+  const expected = process.env.STORE_PDF_SECRET;
   if (!expected || secret !== expected) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
