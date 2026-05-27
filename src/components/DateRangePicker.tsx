@@ -60,25 +60,38 @@ export default function DateRangePicker({
   const disabledMatcher =
     variant === "public" ? { before: tomorrow } : undefined;
 
-  function handleSelect(next: DateRange | undefined) {
-    if (!next || !next.from) {
+  // Eigene Zwei-Klick-Logik (unabhaengig von react-day-picker v10, das bei EINEM Klick
+  // via addToRange schon eine komplette {from,to}-Range liefert → Sheet schloss sofort).
+  // 1. Klick = "von" (Kalender bleibt offen), 2. Klick = "bis". Reihenfolge wird normalisiert.
+  // `triggerDate` (2. onSelect-Arg) ist der tatsaechlich geklickte Tag.
+  function handleSelect(_next: DateRange | undefined, triggerDate?: Date) {
+    if (!triggerDate) {
       setError(null);
       onChange(null, null);
       return;
     }
-    if (next.from && next.to) {
-      const days = rangeDays(dateToIso(next.from), dateToIso(next.to));
-      if (days > MAX_RANGE_DAYS) {
-        setError(`Maximal ${MAX_RANGE_DAYS} Tage Mietdauer.`);
-        onChange(dateToIso(next.from), null);
-        return;
-      }
+    const clickedIso = dateToIso(triggerDate);
+
+    // 1. Klick (oder Neustart nach bereits kompletter Range): nur "von" setzen.
+    if (!rangeVon || (rangeVon && rangeBis)) {
       setError(null);
-      onChange(dateToIso(next.from), dateToIso(next.to));
+      onChange(clickedIso, null);
+      return;
+    }
+
+    // 2. Klick: "bis" setzen, ggf. von/bis tauschen wenn rueckwaerts geklickt.
+    let von = rangeVon;
+    let bis = clickedIso;
+    if (isoToDate(bis).getTime() < isoToDate(von).getTime()) {
+      [von, bis] = [bis, von];
+    }
+    if (rangeDays(von, bis) > MAX_RANGE_DAYS) {
+      setError(`Maximal ${MAX_RANGE_DAYS} Tage Mietdauer.`);
+      onChange(von, null); // "bis" verwerfen, "von" behalten — Kalender bleibt offen
       return;
     }
     setError(null);
-    onChange(dateToIso(next.from), null);
+    onChange(von, bis);
   }
 
   const isPublic = variant === "public";
