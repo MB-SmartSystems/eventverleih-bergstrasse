@@ -4,6 +4,10 @@
     {
       "path": "/api/cron/restzahlung-reminder",
       "schedule": "30 7 * * *"
+    },
+    {
+      "path": "/api/cron/kaution-reminder",
+      "schedule": "0 8 * * *"
     }
   ]
 }
