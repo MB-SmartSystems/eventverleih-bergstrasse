@@ -14,6 +14,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
+import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { checkConflicts } from "@/lib/eventverleih/conflicts";
 import { queueConflictHinweisMail } from "@/lib/eventverleih/conflict-mails";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
@@ -218,6 +219,14 @@ async function handle(
       Event_datum_von: string | null;
       Event_datum_bis: string | null;
       Stripe_Anzahlung_Link: string | null;
+      Stripe_Komplettzahlung_Link: string | null;
+      Anzahlung_Soll_Eur: string | number | null;
+      Anzahlung_Bezahlt_am: string | null;
+      Restzahlung_Bezahlt_am: string | null;
+      Preis_Artikel: string | number | null;
+      Preis_Lieferung: string | number | null;
+      Preis_Abholung: string | number | null;
+      Preis_Aufbau: string | number | null;
     }>(TABLES.Buchungen, buchungId);
     const earlyStati = new Set([
       "Anfrage",
@@ -315,17 +324,79 @@ async function handle(
       const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstrasse";
       const vertragsUrl = `${origin}/vertrag/${token}`;
 
-      // Hole Stripe-Anzahlungs-Link aus Buchung falls schon generiert
-      const stripeLink = (buchungFresh as { Stripe_Anzahlung_Link?: string | null })
-        .Stripe_Anzahlung_Link || null;
+      // Kundenname fuer persoenliche Anrede + Stripe-Link-Beschreibung
+      let kundeName = "";
+      try {
+        const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
+        kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim();
+      } catch (e) {
+        console.error("[vertrag-akzeptieren] Kunde-Name-Lookup fehlgeschlagen:", e);
+      }
+
+      // Stripe-Zahllinks bei Bestaetigung automatisch erzeugen (fail-soft):
+      // Anzahlung + Komplettzahlung, falls noch nicht vorhanden, Betrag > 0 und noch nichts bezahlt.
+      // Stripe-Fehler duerfen den Accept nicht brechen — Mail faellt dann auf Bankblock zurueck.
+      const num = (v: string | number | null | undefined): number => {
+        if (v === null || v === undefined) return 0;
+        if (typeof v === "number") return v;
+        const n = parseFloat(String(v));
+        return isNaN(n) ? 0 : n;
+      };
+      const anzahlungSoll = num(buchungFresh.Anzahlung_Soll_Eur);
+      const komplettBetrag =
+        num(buchungFresh.Preis_Artikel) +
+        num(buchungFresh.Preis_Lieferung) +
+        num(buchungFresh.Preis_Abholung) +
+        num(buchungFresh.Preis_Aufbau);
+      const nichtsBezahlt = !buchungFresh.Anzahlung_Bezahlt_am && !buchungFresh.Restzahlung_Bezahlt_am;
+
+      let stripeLink = (buchungFresh.Stripe_Anzahlung_Link || "").trim() || null;
+      let komplettLink = (buchungFresh.Stripe_Komplettzahlung_Link || "").trim() || null;
+
+      if (!stripeLink && anzahlungSoll > 0 && !buchungFresh.Anzahlung_Bezahlt_am) {
+        try {
+          const l = await createPaymentLink({
+            buchungId,
+            paymentType: "anzahlung",
+            amountEur: anzahlungSoll,
+            kundeName: kundeName || "Kunde",
+            description: `Anzahlung Buchung #${buchungId} — Event ${buchungFresh.Event_datum_von || ""}`,
+          });
+          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Anzahlung_Link: l.link_url });
+          stripeLink = l.link_url;
+        } catch (e) {
+          console.error("[vertrag-akzeptieren] Anzahlungs-Link-Erzeugung fehlgeschlagen:", e);
+        }
+      }
+      if (!komplettLink && komplettBetrag > 0 && nichtsBezahlt) {
+        try {
+          const l = await createPaymentLink({
+            buchungId,
+            paymentType: "komplettzahlung",
+            amountEur: komplettBetrag,
+            kundeName: kundeName || "Kunde",
+            description: `Komplettzahlung Buchung #${buchungId} — Event ${buchungFresh.Event_datum_von || ""}`,
+          });
+          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Komplettzahlung_Link: l.link_url });
+          komplettLink = l.link_url;
+        } catch (e) {
+          console.error("[vertrag-akzeptieren] Komplettzahlungs-Link-Erzeugung fehlgeschlagen:", e);
+        }
+      }
+
       const bankblock = `   Kontoinhaber: Manuel Buettner
    IBAN: DE84 5001 0517 5420 4742 10
    BIC:  INGDDEFFXXX
-   Bank: ING-DiBa AG
-   PayPal: manuelbuettner@web.de`;
+   Bank: ING-DiBa AG`;
+      const komplettZeile = komplettLink
+        ? `
+
+Oder direkt komplett zahlen (dann ist alles erledigt):
+   ${komplettLink}`
+        : "";
       const stripeBlock = stripeLink
         ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
-   ${stripeLink}
+   ${stripeLink}${komplettZeile}
 
 Alternativ klassisch per Ueberweisung:
 ${bankblock}`
@@ -339,7 +410,8 @@ ${bankblock}`
         console.error("[vertrag-akzeptieren] memberAutoLoginUrl fehlgeschlagen:", e);
       }
 
-      const body = `Hallo,
+      const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
+      const body = `${anrede}
 
 vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
 
@@ -347,7 +419,7 @@ WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbi
 ${stripeBlock}
 Verwendungszweck: ${angebot.Angebotsnummer}
 
-Restzahlung und Kaution folgen bei Uebergabe - gerne bar, per Ueberweisung oder PayPal.
+Restzahlung und Kaution folgen bei Uebergabe - gerne bar oder per Ueberweisung.
 
 Etwa 7 Tage vor dem Event melde ich mich fuer die finale Abstimmung von Uebergabe-Ort und -Zeit.
 
