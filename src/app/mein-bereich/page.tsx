@@ -202,6 +202,7 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
   const preisAbholung = parseFloat(buchung.Preis_Abholung || "0") || 0;
   const preisAufbau = parseFloat(buchung.Preis_Aufbau || "0") || 0;
   const gesamt = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
+  const kautionSoll = parseFloat(buchung.Kaution_Soll_Eur || "0") || 0;
 
   // Zahlungen-Summe aus JSON
   let bezahlt = 0;
@@ -248,6 +249,20 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
           <div><div className="text-warm-muted">Gesamt</div><div className="text-white font-medium mt-0.5">{fmtEur(gesamt)}</div></div>
           <div><div className="text-warm-muted">Bezahlt</div><div className={`font-medium mt-0.5 ${bezahlt >= gesamt ? "text-green-300" : "text-white"}`}>{fmtEur(bezahlt)}</div></div>
           <div><div className="text-warm-muted">Offen</div><div className={`font-medium mt-0.5 ${offen === 0 ? "text-green-300" : "text-amber-300"}`}>{fmtEur(offen)}</div></div>
+        </div>
+      )}
+
+      {/* Kautions-Status */}
+      {kautionSoll > 0 && status !== "Storniert" && status !== "No_Show" && (
+        <div className="text-xs mb-3 flex items-center gap-2 flex-wrap">
+          <span className="text-gray-500">Kaution:</span>
+          {buchung.Kaution_Rueckzahlung_am ? (
+            <span className="text-green-300">{fmtEur(buchung.Kaution_Soll_Eur)} zurückerstattet ({fmtDate(buchung.Kaution_Rueckzahlung_am)})</span>
+          ) : buchung.Kaution_Hinterlegt_am ? (
+            <span className="text-blue-200">{fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt — Freigabe nach Rückgabe &amp; Prüfung</span>
+          ) : (
+            <span className="text-gray-400">{fmtEur(buchung.Kaution_Soll_Eur)} — wird vor der Übergabe per Link hinterlegt</span>
+          )}
         </div>
       )}
 

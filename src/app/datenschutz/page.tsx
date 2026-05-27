@@ -19,7 +19,7 @@ export default function Datenschutz() {
             <h2>1. Allgemeine Hinweise</h2>
             <p>
               Wir behandeln Ihre personenbezogenen Daten vertraulich und entsprechend
-              den gesetzlichen Datenschutzvorschriften (DSGVO, BDSG, TTDSG) sowie dieser
+              den gesetzlichen Datenschutzvorschriften (DSGVO, BDSG, TDDDG) sowie dieser
               Datenschutzerklärung.
             </p>
 
@@ -63,8 +63,8 @@ export default function Datenschutz() {
               Diese Website setzt ausschließlich technisch notwendige Cookies, die für
               den Betrieb der Website erforderlich sind (z.B. Warenkorb-Session,
               Admin-Login). Ein cookiebasiertes Tracking oder Marketing findet nicht statt. Eine
-              Einwilligung nach § 25 Abs. 1 TTDSG ist daher nicht erforderlich
-              (§ 25 Abs. 2 Nr. 2 TTDSG).
+              Einwilligung nach § 25 Abs. 1 TDDDG ist daher nicht erforderlich
+              (§ 25 Abs. 2 Nr. 2 TDDDG).
             </p>
 
             <h3>Reichweitenmessung mit Umami</h3>
@@ -117,7 +117,24 @@ export default function Datenschutz() {
               wünschen.
             </p>
 
-            <h2>7. Ihre Rechte</h2>
+            <h2>7. Zahlungsabwicklung (Stripe)</h2>
+            <p>
+              Für Online-Zahlungen (Anzahlung, Restzahlung, Kaution) nutzen wir den
+              Zahlungsdienstleister Stripe (Stripe Payments Europe, Ltd., 1 Grand Canal
+              Street Lower, Grand Canal Dock, Dublin, Irland). Geben Sie eine Zahlung auf,
+              werden die dafür erforderlichen Daten (u.a. Name, Betrag, Zahlungsmittel,
+              Buchungsbezug) an Stripe übermittelt und dort verarbeitet. Ihre vollständigen
+              Zahlungsdaten (z.B. Kartennummer) werden ausschließlich von Stripe
+              verarbeitet — wir erhalten sie nicht.
+            </p>
+            <p>
+              <strong>Rechtsgrundlage:</strong> Art. 6 Abs. 1 lit. b DSGVO
+              (Vertragserfüllung). Soweit Daten in die USA übermittelt werden, ist die
+              Stripe-Konzernmutter nach dem EU-US Data Privacy Framework (DPF) zertifiziert;
+              zusätzlich bestehen Standardvertragsklauseln.
+            </p>
+
+            <h2>8. Ihre Rechte</h2>
             <p>Sie haben nach DSGVO jederzeit das Recht auf:</p>
             <ul className="list-disc pl-6 space-y-1">
               <li>Auskunft (Art. 15), Berichtigung (Art. 16), Löschung (Art. 17)</li>
@@ -134,7 +151,7 @@ export default function Datenschutz() {
               .
             </p>
 
-            <h2>8. Beschwerderecht</h2>
+            <h2>9. Beschwerderecht</h2>
             <p>
               Sie haben das Recht, sich bei einer Datenschutz-Aufsichtsbehörde zu
               beschweren. Zuständig für uns:
@@ -147,13 +164,13 @@ export default function Datenschutz() {
               </a>
             </p>
 
-            <h2>9. Automatisierte Entscheidungsfindung</h2>
+            <h2>10. Automatisierte Entscheidungsfindung</h2>
             <p>
               Wir setzen keine automatisierte Entscheidungsfindung oder Profiling im
               Sinne von Art. 22 DSGVO ein.
             </p>
 
-            <p className="text-sm text-gray-500 mt-12">Stand: April 2026</p>
+            <p className="text-sm text-gray-500 mt-12">Stand: Mai 2026</p>
           </div>
         </div>
       </main>
