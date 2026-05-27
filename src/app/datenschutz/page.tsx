@@ -62,9 +62,20 @@ export default function Datenschutz() {
             <p>
               Diese Website setzt ausschließlich technisch notwendige Cookies, die für
               den Betrieb der Website erforderlich sind (z.B. Warenkorb-Session,
-              Admin-Login). Es findet kein Tracking und keine Analyse statt. Eine
+              Admin-Login). Ein cookiebasiertes Tracking oder Marketing findet nicht statt. Eine
               Einwilligung nach § 25 Abs. 1 TTDSG ist daher nicht erforderlich
               (§ 25 Abs. 2 Nr. 2 TTDSG).
+            </p>
+
+            <h3>Reichweitenmessung mit Umami</h3>
+            <p>
+              Zur statistischen Auswertung der Websitenutzung setzen wir Umami ein – ein cookieloses,
+              datensparsames Web-Analyse-Tool, das auf eigener Infrastruktur in der EU betrieben wird
+              (analytics.mb-smartsystems.de). Erfasst werden anonymisierte Nutzungsdaten (z.B. aufgerufene
+              Seiten, ungefähre Herkunft, Gerätetyp, Referrer) ohne Cookies und ohne Bildung
+              personenbezogener Nutzerprofile. Es werden keine Daten an Dritte verkauft. Rechtsgrundlage
+              ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer bedarfsgerechten Gestaltung
+              der Website).
             </p>
 
             <h2>5. Kontaktformular und Anfragen</h2>
