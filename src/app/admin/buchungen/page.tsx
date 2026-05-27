@@ -19,6 +19,9 @@ type BuchungRow = {
   Event_datum_bis: string | null;
   Status_Erweitert: { value: string } | null;
   Preis_Artikel: string | null;
+  Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
+  Preis_Aufbau: string | null;
   Gesamt: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
@@ -121,7 +124,7 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                 <th className="px-4 py-2.5">Event</th>
                 <th className="px-4 py-2.5">Kunde</th>
                 <th className="px-4 py-2.5">Status</th>
-                <th className="px-4 py-2.5 text-right">Mietsumme</th>
+                <th className="px-4 py-2.5 text-right">Gesamt</th>
               </tr>
             </thead>
             <tbody>
@@ -164,7 +167,14 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-warm-text">
-                      {fmtEur(b.Preis_Artikel)}
+                      {fmtEur(
+                        (
+                          (parseFloat(b.Preis_Artikel || "0") || 0) +
+                          (parseFloat(b.Preis_Lieferung || "0") || 0) +
+                          (parseFloat(b.Preis_Abholung || "0") || 0) +
+                          (parseFloat(b.Preis_Aufbau || "0") || 0)
+                        ).toFixed(2),
+                      )}
                     </td>
                   </tr>
                 );

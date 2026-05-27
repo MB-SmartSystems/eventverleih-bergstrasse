@@ -355,8 +355,39 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             <table className="w-full text-sm">
               <tbody>
                 <tr>
-                  <td className="py-1 text-gray-400">Mietsumme</td>
+                  <td className="py-1 text-gray-400">Mietsumme (Artikel)</td>
                   <td className="text-right font-mono text-white">{fmtEur(buchung.Preis_Artikel)}</td>
+                </tr>
+                {(parseFloat(buchung.Preis_Lieferung || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1 text-gray-400">Lieferung</td>
+                    <td className="text-right font-mono text-white">{fmtEur(buchung.Preis_Lieferung)}</td>
+                  </tr>
+                )}
+                {(parseFloat(buchung.Preis_Abholung || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1 text-gray-400">Abholung</td>
+                    <td className="text-right font-mono text-white">{fmtEur(buchung.Preis_Abholung)}</td>
+                  </tr>
+                )}
+                {(parseFloat(buchung.Preis_Aufbau || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1 text-gray-400">Aufbau</td>
+                    <td className="text-right font-mono text-white">{fmtEur(buchung.Preis_Aufbau)}</td>
+                  </tr>
+                )}
+                <tr className="border-t border-white/10 font-semibold">
+                  <td className="py-1 text-white">Gesamt</td>
+                  <td className="text-right font-mono text-white">
+                    {fmtEur(
+                      (
+                        (parseFloat(buchung.Preis_Artikel || "0") || 0) +
+                        (parseFloat(buchung.Preis_Lieferung || "0") || 0) +
+                        (parseFloat(buchung.Preis_Abholung || "0") || 0) +
+                        (parseFloat(buchung.Preis_Aufbau || "0") || 0)
+                      ).toFixed(2),
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-1 text-gray-400">Anzahlung 30 %</td>

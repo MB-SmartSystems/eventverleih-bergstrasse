@@ -256,6 +256,30 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
                 </tbody>
               </table>
             )}
+            {/* Gebuchte Services — sichtbar direkt unter der Artikelliste */}
+            {(() => {
+              const services = [
+                { label: "Lieferung", val: parseFloat(buchung.Preis_Lieferung || "0") || 0 },
+                { label: "Abholung", val: parseFloat(buchung.Preis_Abholung || "0") || 0 },
+                { label: "Aufbau-Service", val: parseFloat(buchung.Preis_Aufbau || "0") || 0 },
+              ].filter((s) => s.val > 0);
+              if (services.length === 0) return null;
+              return (
+                <div className="mt-4 pt-3 border-t border-warm-border">
+                  <p className="text-xs uppercase tracking-wide text-warm-muted mb-2">Zusätzlich gebucht</p>
+                  <table className="w-full text-sm">
+                    <tbody>
+                      {services.map((s) => (
+                        <tr key={s.label} className="border-b border-warm-border/50 last:border-0">
+                          <td className="py-2 text-warm-text">{s.label}</td>
+                          <td className="text-right text-warm-text font-medium">{fmtEur(s.val.toFixed(2))}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              );
+            })()}
           </section>
 
           {/* Notizen */}
