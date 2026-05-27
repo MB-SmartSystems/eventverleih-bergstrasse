@@ -17,6 +17,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { updateRow, createRow, TABLES } from "@/lib/baserow/client";
+import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -75,6 +76,7 @@ export async function POST(
       console.error("[uebergabe audit-log]", e);
     }
 
+    invalidateAvailabilityCache();
     return NextResponse.json({ ok: true });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
