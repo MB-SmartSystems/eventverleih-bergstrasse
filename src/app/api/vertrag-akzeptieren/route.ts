@@ -7,16 +7,12 @@
  *   1. Sucht Angebot-Row via Token_Public
  *   2. Updated Angebote.Status = Akzeptiert, Akzeptiert_am = now, Akzept_Snapshot freezen
  *   3. Updated Buchungen.Status_Erweitert = "Bestaetigt" (Hart-Block, Reserviert erst nach Anzahlung)
- *   4. Konflikt-Detection: pruefe parallele Buchungen mit gemeinsamen Artikeln im Zeitraum
- *      → bei Treffer: Konflikt_Mit_Buchung_ID setzen, Hinweis-Mail an alle Beteiligten
- *   5. Erstellt MailQueue-Eintrag fuer Vertrag-Bestaetigungs-Mail (Approval=Pending)
- *   6. Redirect zur Angebots-Seite (Status zeigt jetzt "akzeptiert")
+ *   4. Erstellt MailQueue-Eintrag fuer Vertrag-Bestaetigungs-Mail (Approval=Pending)
+ *   5. Redirect zur Angebots-Seite (Status zeigt jetzt "akzeptiert")
  */
 import { NextRequest, NextResponse } from "next/server";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
-import { checkConflicts } from "@/lib/eventverleih/conflicts";
-import { queueConflictHinweisMail } from "@/lib/eventverleih/conflict-mails";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { recalcBuchung } from "@/lib/buchung-recalc";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
@@ -250,70 +246,6 @@ async function handle(
         token_prefix: token.slice(0, 8),
       });
 
-      // Konflikt-Detection: parallele Buchungen mit gemeinsamen Artikeln im Zeitraum?
-      try {
-        const conflicts = await checkConflicts(buchungId);
-        if (conflicts.length > 0) {
-          // Verlinke ersten Konflikt am Ziel-Datensatz (Hauptkonflikt)
-          await updateRow(TABLES.Buchungen, buchungId, {
-            Konflikt_Mit_Buchung_ID: [conflicts[0].buchung_id],
-          });
-          await logAudit(buchungId, "Konflikt_erkannt", {
-            konflikt_mit: conflicts.map((c) => ({
-              buchung_id: c.buchung_id,
-              status: c.status,
-              kunde: c.kunde_name,
-              shared_artikel: c.shared_artikel_namen,
-            })),
-          });
-
-          // Sammle Kunden-Daten der Ziel-Buchung fuer Hinweis-Mail
-          const targetKundeName = (await getRow<{ Name: string }>(TABLES.Kunden, kundeId))?.Name || "Kunde";
-          const targetVon = buchungFresh.Event_datum_von || "";
-          const targetBis = buchungFresh.Event_datum_bis || "";
-
-          // Hinweis-Mail an Ziel-Kunden mit Liste aller Konflikt-Artikel
-          const allArtikelNamen = Array.from(
-            new Set(conflicts.flatMap((c) => c.shared_artikel_namen)),
-          );
-          await queueConflictHinweisMail({
-            buchungId,
-            kundeId,
-            kundeName: targetKundeName,
-            datumVon: targetVon,
-            datumBis: targetBis,
-            artikelNamen: allArtikelNamen,
-          });
-
-          // Hinweis-Mail an jeden konkurrierenden Kunden
-          for (const c of conflicts) {
-            const cBuchung = await getRow<{
-              Kunde_Link: Array<{ id: number; value: string }> | null;
-              Event_datum_von: string | null;
-              Event_datum_bis: string | null;
-            }>(TABLES.Buchungen, c.buchung_id);
-            const cKundeId = cBuchung.Kunde_Link?.[0]?.id;
-            const cKundeName = cBuchung.Kunde_Link?.[0]?.value || "Kunde";
-            if (cKundeId) {
-              await queueConflictHinweisMail({
-                buchungId: c.buchung_id,
-                kundeId: cKundeId,
-                kundeName: cKundeName,
-                datumVon: cBuchung.Event_datum_von || c.datum_von,
-                datumBis: cBuchung.Event_datum_bis || c.datum_bis,
-                artikelNamen: c.shared_artikel_namen,
-              });
-              // Verlinke umgekehrt auch beim Konkurrenten (falls noch nicht gesetzt)
-              await updateRow(TABLES.Buchungen, c.buchung_id, {
-                Konflikt_Mit_Buchung_ID: [buchungId],
-              });
-            }
-          }
-        }
-      } catch (e) {
-        console.error("[vertrag-akzeptieren] Konflikt-Check fehlgeschlagen:", e);
-        // Nicht-fatal — Akzept soll trotzdem durchlaufen
-      }
     }
     // Sonst: Buchung ist bereits weiter im Workflow — keine Regression erlauben.
 
