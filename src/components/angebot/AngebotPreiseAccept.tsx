@@ -214,9 +214,13 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
                   onToggle={() => setIncludeAufbau((v) => !v)}
                 />
               )}
-              <tr className="border-b-2 border-gold-500/30 font-semibold">
-                <td className="py-3">Anzahlung bei Bestätigung (30 %)</td>
-                <td className="py-3 text-right">{fmtEur(effAnzahlung)}</td>
+              <tr className="border-t-2 border-gold-500/30 font-semibold text-white">
+                <td className="py-3">Gesamt</td>
+                <td className="py-3 text-right">{fmtEur(effSumme)}</td>
+              </tr>
+              <tr className="border-b border-white/10">
+                <td className="py-2">Anzahlung bei Bestätigung (30 %)</td>
+                <td className="py-2 text-right">{fmtEur(effAnzahlung)}</td>
               </tr>
               <tr className="border-b border-white/10">
                 <td className="py-2">Restzahlung bei Übergabe (70 %)</td>

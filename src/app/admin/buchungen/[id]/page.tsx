@@ -301,8 +301,39 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             <table className="w-full text-sm">
               <tbody>
                 <tr>
-                  <td className="py-1.5 text-warm-muted">Mietsumme</td>
+                  <td className="py-1.5 text-warm-muted">Mietsumme (Artikel)</td>
                   <td className="text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Artikel)}</td>
+                </tr>
+                {(parseFloat(buchung.Preis_Lieferung || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1.5 text-warm-muted">Lieferung</td>
+                    <td className="text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Lieferung)}</td>
+                  </tr>
+                )}
+                {(parseFloat(buchung.Preis_Abholung || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1.5 text-warm-muted">Abholung</td>
+                    <td className="text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Abholung)}</td>
+                  </tr>
+                )}
+                {(parseFloat(buchung.Preis_Aufbau || "0") || 0) > 0 && (
+                  <tr>
+                    <td className="py-1.5 text-warm-muted">Aufbau</td>
+                    <td className="text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Aufbau)}</td>
+                  </tr>
+                )}
+                <tr className="border-t border-warm-border font-semibold">
+                  <td className="py-1.5 text-warm-text">Gesamt</td>
+                  <td className="text-right font-mono text-warm-text">
+                    {fmtEur(
+                      (
+                        (parseFloat(buchung.Preis_Artikel || "0") || 0) +
+                        (parseFloat(buchung.Preis_Lieferung || "0") || 0) +
+                        (parseFloat(buchung.Preis_Abholung || "0") || 0) +
+                        (parseFloat(buchung.Preis_Aufbau || "0") || 0)
+                      ).toFixed(2),
+                    )}
+                  </td>
                 </tr>
                 <tr>
                   <td className="py-1.5 text-warm-muted">Anzahlung (30 %)</td>

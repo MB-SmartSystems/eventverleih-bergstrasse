@@ -312,7 +312,20 @@ export default async function VertragPage({ params }: { params: Promise<{ token:
                   <td className="py-2 text-right font-mono">{fmtEur(displayPreisAufbau)}</td>
                 </tr>
               )}
-              <tr className="border-b-2 border-gray-900 font-semibold">
+              <tr className="border-t-2 border-gray-900 font-semibold">
+                <td className="py-2">Gesamt</td>
+                <td className="py-2 text-right font-mono">
+                  {fmtEur(
+                    (
+                      (parseFloat(displayPreisArtikel || "0") || 0) +
+                      (parseFloat(displayPreisLieferung || "0") || 0) +
+                      (parseFloat(displayPreisAbholung || "0") || 0) +
+                      (parseFloat(displayPreisAufbau || "0") || 0)
+                    ).toFixed(2),
+                  )}
+                </td>
+              </tr>
+              <tr className="border-b border-gray-300">
                 <td className="py-2">Anzahlung bei Bestätigung (30 %)</td>
                 <td className="py-2 text-right font-mono">{fmtEur(displayAnzahlungSoll)}</td>
               </tr>
