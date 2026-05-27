@@ -12,6 +12,7 @@
  * Alle Listen begrenzt auf 5 Items + Counter "+N weitere".
  */
 import { listAllRows, TABLES } from "@/lib/baserow/client";
+import { listOpenStockConflicts } from "./conflicts";
 
 export interface InboxItem {
   id: number;
@@ -29,8 +30,16 @@ export interface QuadrantData {
   sum_eur?: number;
 }
 
+export interface KonfliktItem {
+  buchungId: number;
+  title: string;
+  subtitle: string;
+  link: string;
+}
+
 export interface InboxData {
   mailqueue_pending: number;
+  konflikte: KonfliktItem[];
   gerade_bestaetigt: QuadrantData;
   heute_zu_tun: QuadrantData;
   ueberfaellig: QuadrantData;
@@ -113,10 +122,11 @@ function fmtDate(s: string | null): string {
 }
 
 export async function loadInboxData(): Promise<InboxData> {
-  const [buchungenRes, mailqueueRes, angeboteRes] = await Promise.all([
+  const [buchungenRes, mailqueueRes, angeboteRes, stockConflicts] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
     listAllRows<MailQueueRow>(TABLES.MailQueue),
     listAllRows<AngebotRow>(TABLES.Angebote),
+    listOpenStockConflicts(),
   ]);
   const buchungen = buchungenRes.results;
   const mailqueue = mailqueueRes.results;
@@ -373,8 +383,17 @@ export async function loadInboxData(): Promise<InboxData> {
     return aHr - bHr;
   });
 
+  // ----- KONFLIKTE (Mengen-Engpass, Entscheidung noetig) -----
+  const konflikte: KonfliktItem[] = stockConflicts.map((g) => ({
+    buchungId: g.buchungen[0].id,
+    title: `${g.artikel_name}: ${g.nachgefragt} gebucht, nur ${g.bestand} verfügbar`,
+    subtitle: `${g.buchungen.map((b) => `${b.kunde_name} (${b.anzahl})`).join(" + ")} — Termin ${fmtDate(g.datum_von)}`,
+    link: `/admin/buchungen/${g.buchungen[0].id}`,
+  }));
+
   return {
     mailqueue_pending,
+    konflikte,
     gerade_bestaetigt: {
       total: geradeBestaetigtItems.length,
       items: geradeBestaetigtItems.slice(0, 5),

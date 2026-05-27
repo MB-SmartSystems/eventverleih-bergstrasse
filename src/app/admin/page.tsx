@@ -95,6 +95,36 @@ export default async function AdminInboxHome() {
 
   return (
     <div className="space-y-4 max-w-6xl">
+      {/* Konflikt-Banner (Mengen-Engpass unter bezahlten Reservierungen — Entscheidung noetig) */}
+      {data.konflikte.length > 0 && (
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3">
+          <div className="font-display font-semibold text-red-900 mb-1">
+            {data.konflikte.length === 1
+              ? "Konflikt – Entscheidung nötig"
+              : `${data.konflikte.length} Konflikte – Entscheidung nötig`}
+          </div>
+          <p className="text-xs text-red-800 mb-2">
+            Mehrere bezahlte Reservierungen teilen sich knappen Bestand. Entscheide: Artikel
+            nachkaufen (auf „bestellbar" setzen) oder eine Buchung stornieren — der Storno-Button
+            auf der Buchung löst den Refund aus.
+          </p>
+          <div className="space-y-0.5">
+            {data.konflikte.map((k, i) => (
+              <Link
+                key={`${k.buchungId}-${i}`}
+                href={k.link}
+                className="block px-3 py-2 -mx-3 rounded-lg hover:bg-red-100/60 transition-colors group"
+              >
+                <div className="text-sm font-medium text-red-900 group-hover:text-red-700">
+                  {k.title}
+                </div>
+                <div className="text-xs text-red-700">{k.subtitle}</div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Gerade-Bestaetigt-Banner (frisch akzeptierte Anfragen, letzte 48h) */}
       {data.gerade_bestaetigt.total > 0 && (
         <div className="rounded-xl border border-green-300 bg-green-50 px-4 py-3">
