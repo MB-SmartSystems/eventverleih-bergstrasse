@@ -26,7 +26,7 @@ interface ActionBody {
   anmerkung?: string;
 }
 
-const SIGNATURE = `\n\nMit freundlichen Gruessen\nManuel Buettner\n\nEventverleih Bergstrasse\nSchlesierstrasse 19a, 64665 Alsbach-Haehnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
+const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 function buildAngebotsMail(opts: {
   vorname: string;
@@ -41,53 +41,54 @@ function buildAngebotsMail(opts: {
 }): { subject: string; body: string } {
   const greeting = `Hallo ${opts.vorname} ${opts.nachname}`;
   const anmerkungBlock = opts.anmerkung
-    ? `\n*Persoenliche Anmerkung von Manuel:*\n${opts.anmerkung}\n`
+    ? `\n*Persönliche Anmerkung von Manuel:*\n${opts.anmerkung}\n`
     : "";
   const memberBlock = opts.meinBereichUrl
     ? `\n\nMein Bereich (alle Buchungen + Zahlungen + Rechnungen einsehen):\n${opts.meinBereichUrl}`
     : "";
   return {
-    subject: "Ihr Angebot von Eventverleih Bergstrasse",
+    subject: "Ihr Angebot von Eventverleih Bergstraße",
     body: `${greeting},
 ${anmerkungBlock}
-vielen Dank fuer Ihre Anfrage. Hier ist Ihr Angebot:
+vielen Dank für Ihre Anfrage. Hier ist Ihr Angebot:
 
-*Preisuebersicht:*
+*Preisübersicht:*
 Mietsumme: ${opts.preisArtikel} EUR
-Anzahlung bei Bestaetigung (30 %): ${opts.anzahlung} EUR
-Restzahlung bei Uebergabe (70 %): ${opts.restzahlung} EUR
-Kaution (nach Rueckgabe vollstaendig erstattet): ${opts.kaution} EUR
+Anzahlung bei Bestätigung (30 %): ${opts.anzahlung} EUR
+Restzahlung bei Übergabe (70 %): ${opts.restzahlung} EUR
+Kaution (nach Rückgabe vollständig erstattet): ${opts.kaution} EUR
 
-Sie koennen das Angebot online ansehen und mit einem Klick bestaetigen:
+Sie können das Angebot online ansehen und mit einem Klick bestätigen:
 ${opts.angebotUrl}
 
-Das Angebot ist 14 Tage gueltig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
+Das Angebot ist 14 Tage gültig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
   };
 }
 
 function buildRueckrufMail(opts: { vorname: string; nachname: string }): { subject: string; body: string } {
   return {
-    subject: "Ihre Anfrage bei Eventverleih Bergstrasse - kurze Rueckfrage",
+    subject: "Ihre Anfrage bei Eventverleih Bergstraße - kurze Rückfrage",
     body: `Hallo ${opts.vorname} ${opts.nachname},
 
-vielen Dank fuer Ihre Anfrage. Damit ich Ihnen ein passendes Angebot machen kann, moechte ich gerne kurz mit Ihnen sprechen - meist sind 3-5 Minuten ausreichend, um alle Details zu klaeren.
+vielen Dank für Ihre Anfrage. Damit ich Ihnen ein passendes Angebot machen kann, möchte ich gerne kurz mit Ihnen sprechen - meist sind 3-5 Minuten ausreichend, um alle Details zu klären.
 
-Koennen wir kurz telefonieren? Sie erreichen mich werktags am besten unter +49 156 79521124 (auch WhatsApp).
+Können wir kurz telefonieren? Sie erreichen mich werktags am besten unter +49 156 79521124 (auch WhatsApp).
 
-Alternativ rufe ich Sie zurueck - lassen Sie mich einfach wissen, wann es Ihnen passt.${SIGNATURE}`,
+Alternativ rufe ich Sie zurück - lassen Sie mich einfach wissen, wann es Ihnen passt.${SIGNATURE}`,
   };
 }
 
-function buildAblehnenMail(opts: { vorname: string; nachname: string }): { subject: string; body: string } {
+function buildAblehnenMail(opts: { vorname: string; nachname: string; grund?: string }): { subject: string; body: string } {
+  const grundBlock = opts.grund && opts.grund.trim() ? `\n\n${opts.grund.trim()}` : "";
   return {
-    subject: "Ihre Anfrage bei Eventverleih Bergstrasse",
+    subject: "Ihre Anfrage bei Eventverleih Bergstraße",
     body: `Hallo ${opts.vorname} ${opts.nachname},
 
-vielen Dank fuer Ihre Anfrage. Leider kann ich Ihnen kein Angebot fuer diesen Termin machen.
+vielen Dank für Ihre Anfrage. Leider kann ich Ihnen kein Angebot für diesen Termin machen.${grundBlock}
 
-Falls Sie noch andere Termine in Erwaegung ziehen oder Fragen haben, melden Sie sich gerne - vielleicht finden wir doch eine Loesung. Sie erreichen mich werktags am besten unter +49 156 79521124 (auch WhatsApp).
+Falls Sie noch andere Termine in Erwägung ziehen oder Fragen haben, melden Sie sich gerne - vielleicht finden wir doch eine Lösung. Sie erreichen mich werktags am besten unter +49 156 79521124 (auch WhatsApp).
 
-Ich wuensche Ihnen viel Erfolg bei Ihrer Feier und stehe fuer zukuenftige Anfragen jederzeit zur Verfuegung.${SIGNATURE}`,
+Ich wünsche Ihnen viel Erfolg bei Ihrer Feier und stehe für zukünftige Anfragen jederzeit zur Verfügung.${SIGNATURE}`,
   };
 }
 
@@ -197,7 +198,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       templateKey = "rueckruf_vorschlag";
     } else {
       // ablehnen
-      mail = buildAblehnenMail({ vorname: kunde.Vorname, nachname: kunde.Nachname });
+      mail = buildAblehnenMail({ vorname: kunde.Vorname, nachname: kunde.Nachname, grund: body.anmerkung });
       newStatus = "Abgelehnt";
       templateKey = "anfrage_abgelehnt";
     }
@@ -246,7 +247,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
     if (newStatus === "Abgelehnt") {
       updateData.Abgelehnt_am = new Date().toISOString();
-      updateData.Abgelehnt_Grund = "Manuel-Entscheidung im Dashboard";
+      updateData.Abgelehnt_Grund = body.anmerkung?.trim() || "Manuel-Entscheidung im Dashboard";
     }
     await updateRow(TABLES.Angebote, angebotId, updateData);
 

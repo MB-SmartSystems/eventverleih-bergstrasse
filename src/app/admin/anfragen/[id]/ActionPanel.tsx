@@ -9,6 +9,8 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
   const [error, setError] = useState("");
   const [showAnmerkungInput, setShowAnmerkungInput] = useState(false);
   const [anmerkung, setAnmerkung] = useState("");
+  const [showAblehnenInput, setShowAblehnenInput] = useState(false);
+  const [ablehnenGrund, setAblehnenGrund] = useState("");
 
   async function exec(action: Action, anmerkungText?: string) {
     if (submitting) return;
@@ -91,13 +93,32 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
         </button>
 
         <button
-          onClick={() => exec("ablehnen")}
+          onClick={() => setShowAblehnenInput(!showAblehnenInput)}
           disabled={submitting}
           className="w-full py-3 px-4 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-200 text-sm font-medium transition-all disabled:opacity-50 text-left flex items-center gap-3"
         >
           <span>✗</span>
-          <span>Ablehnen (höfliche Absage)</span>
+          <span>Ablehnen (höfliche Absage){showAblehnenInput ? " — Formular ausblenden" : ""}</span>
         </button>
+
+        {showAblehnenInput && (
+          <div className="p-3 rounded-lg bg-black/30 border border-red-500/20 space-y-2">
+            <textarea
+              value={ablehnenGrund}
+              onChange={(e) => setAblehnenGrund(e.target.value)}
+              rows={3}
+              placeholder="Grund (optional, wird in die Absage-Mail eingefügt) — z.B. „Urlaubsbedingt können wir die Anfrage leider nicht annehmen.“"
+              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none"
+            />
+            <button
+              onClick={() => exec("ablehnen", ablehnenGrund)}
+              disabled={submitting}
+              className="w-full py-2 rounded bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-all disabled:opacity-50"
+            >
+              Absage senden
+            </button>
+          </div>
+        )}
 
         {submitting && <div className="text-xs text-gray-500 text-center mt-2">Aktion wird ausgeführt …</div>}
       </div>
