@@ -167,7 +167,7 @@ export default async function MeinBereichPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     {r.PDF_URL && (
                       <a href={r.PDF_URL} target="_blank" rel="noopener" className="text-xs text-gold-400 hover:text-gold-500 whitespace-nowrap">
-                        📄 PDF
+                        PDF
                       </a>
                     )}
                     <Link href={`/rechnung/${r.Token_Public}`} target="_blank" className="text-xs text-gold-400 hover:text-gold-500 whitespace-nowrap">
@@ -178,7 +178,7 @@ export default async function MeinBereichPage() {
               ))}
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              Laden Sie Ihre Rechnungen über „📄 PDF" direkt herunter. Falls noch kein PDF
+              Laden Sie Ihre Rechnungen über „PDF" direkt herunter. Falls noch kein PDF
               hinterlegt ist, öffnet „Ansehen" die Druckansicht (Strg+P / Cmd+P zum Speichern).
             </p>
           </div>
@@ -282,7 +282,7 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
               </Link>
               {angebotPdfUrl && (
                 <a href={angebotPdfUrl} target="_blank" rel="noopener" className="text-sm text-gold-400 hover:text-gold-500">
-                  📄 Als PDF herunterladen
+                  Als PDF herunterladen
                 </a>
               )}
             </div>

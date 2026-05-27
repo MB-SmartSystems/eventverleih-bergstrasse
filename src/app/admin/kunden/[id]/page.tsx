@@ -110,12 +110,12 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
             <div className="space-y-1.5 text-sm">
               {kunde.Email && (
                 <a href={`mailto:${kunde.Email}`} className="text-warm-muted hover:text-accent block">
-                  📧 {kunde.Email}
+                  {kunde.Email}
                 </a>
               )}
               {kunde.Telefon && (
                 <a href={`tel:${kunde.Telefon}`} className="text-warm-muted hover:text-accent block">
-                  📞 {kunde.Telefon}
+                  {kunde.Telefon}
                 </a>
               )}
               {kunde.WhatsApp && (
@@ -125,7 +125,7 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
                   rel="noreferrer"
                   className="text-warm-muted hover:text-accent block"
                 >
-                  💬 {kunde.WhatsApp}
+                  {kunde.WhatsApp}
                 </a>
               )}
               {kunde.Adresse_Strasse && (

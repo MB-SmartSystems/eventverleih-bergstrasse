@@ -60,7 +60,6 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
           disabled={submitting}
           className="w-full py-3 px-4 rounded-lg bg-gold-500/10 hover:bg-gold-500/20 border border-gold-500/30 text-gold-200 text-sm font-medium transition-all disabled:opacity-50 text-left flex items-center gap-3"
         >
-          <span>📝</span>
           <span>Mit Anmerkung freigeben{showAnmerkungInput ? " — Formular ausblenden" : ""}</span>
         </button>
 
@@ -88,7 +87,6 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
           disabled={submitting}
           className="w-full py-3 px-4 rounded-lg bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-200 text-sm font-medium transition-all disabled:opacity-50 text-left flex items-center gap-3"
         >
-          <span>📞</span>
           <span>Rückruf vorschlagen</span>
         </button>
 

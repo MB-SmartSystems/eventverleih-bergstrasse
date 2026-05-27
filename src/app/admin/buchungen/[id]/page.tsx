@@ -12,7 +12,6 @@ import BuchungStatusPanel from "./BuchungStatusPanel";
 import BuchungChecklist from "./BuchungChecklist";
 import TerminePanel from "./TerminePanel";
 import KautionErstattenPanel from "./KautionErstattenPanel";
-import BuchungTimeline from "./BuchungTimeline";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
@@ -191,7 +190,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
               rel="noreferrer"
               className="text-xs px-3 py-2 rounded bg-warm-surface border border-warm-border hover:bg-accent-50"
             >
-              🔗 Angebot
+Angebot
             </a>
           )}
           {buchung.Token_Vertrag && (
@@ -201,7 +200,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
               rel="noreferrer"
               className="text-xs px-3 py-2 rounded bg-warm-surface border border-warm-border hover:bg-accent-50"
             >
-              🔗 Vertrag
+Vertrag
             </a>
           )}
         </div>
@@ -335,37 +334,68 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             <h2 className="text-lg font-semibold text-warm-text mb-3">Schriftverkehr ({mails.length})</h2>
             {mails.length === 0 ? (
               <p className="text-sm text-warm-muted">Noch keine E-Mails zu dieser Buchung.</p>
-            ) : (
-              <div className="space-y-2">
-                {mails.map((m) => {
-                  const st =
-                    typeof m.Approval_Status === "object" && m.Approval_Status
-                      ? m.Approval_Status.value
-                      : (m.Approval_Status as string | null);
-                  const statusText = m.Sent_am
-                    ? `✓ gesendet ${fmtDate(m.Sent_am)}`
-                    : st === "Auto_Reply" || st === "Approved"
-                      ? "wird versendet…"
-                      : st || "offen";
-                  return (
-                    <details key={m.id} className="rounded-lg border border-warm-border bg-warm-bg/40">
-                      <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
-                        <span className="text-sm text-warm-text font-medium">{m.Subject || "(kein Betreff)"}</span>
-                        <span className="text-xs text-warm-muted whitespace-nowrap">{statusText}</span>
+            ) : (() => {
+              const renderMail = (m: (typeof mails)[number]) => {
+                const st =
+                  typeof m.Approval_Status === "object" && m.Approval_Status
+                    ? m.Approval_Status.value
+                    : (m.Approval_Status as string | null);
+                const statusText = m.Sent_am
+                  ? `✓ gesendet ${fmtDate(m.Sent_am)}`
+                  : st === "Auto_Reply" || st === "Approved"
+                    ? "wird versendet…"
+                    : st || "offen";
+                return (
+                  <details key={m.id} className="rounded-lg border border-warm-border bg-warm-bg/40">
+                    <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-sm text-warm-text font-medium">{m.Subject || "(kein Betreff)"}</span>
+                      <span className="text-xs text-warm-muted whitespace-nowrap">{statusText}</span>
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 border-t border-warm-border">
+                      <pre className="whitespace-pre-wrap break-words text-xs text-warm-muted font-sans leading-relaxed">{m.Body || "(kein Inhalt)"}</pre>
+                    </div>
+                  </details>
+                );
+              };
+              return (
+                <div className="space-y-2">
+                  {mails.slice(0, 5).map(renderMail)}
+                  {mails.length > 5 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-sm text-warm-muted hover:text-warm-text px-1 py-1">
+                        Alle {mails.length} E-Mails anzeigen
                       </summary>
-                      <div className="px-3 pb-3 pt-1 border-t border-warm-border">
-                        <pre className="whitespace-pre-wrap break-words text-xs text-warm-muted font-sans leading-relaxed">{m.Body || "(kein Inhalt)"}</pre>
-                      </div>
+                      <div className="space-y-2 mt-2">{mails.slice(5).map(renderMail)}</div>
                     </details>
-                  );
-                })}
-              </div>
-            )}
+                  )}
+                </div>
+              );
+            })()}
           </section>
         </div>
 
         <div className="space-y-6">
-          {/* Zahlungen */}
+          {/* Zahlungen (Preis-Breakdown + Bezahlt/Offen + Historie zusammengeführt) */}
+          {(() => {
+            const gesamt =
+              (parseFloat(buchung.Preis_Artikel ?? "0") || 0) +
+              (parseFloat(buchung.Preis_Lieferung ?? "0") || 0) +
+              (parseFloat(buchung.Preis_Abholung ?? "0") || 0) +
+              (parseFloat(buchung.Preis_Aufbau ?? "0") || 0);
+            const zahlungen: Array<{ datum: string; typ: string; betrag: number; methode: string }> = (() => {
+              try {
+                if (!buchung.Zahlungen_JSON) return [];
+                const p = JSON.parse(buchung.Zahlungen_JSON);
+                return Array.isArray(p) ? p : [];
+              } catch {
+                return [];
+              }
+            })();
+            const bezahlt = zahlungen
+              .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
+              .reduce((s, z) => s + z.betrag, 0);
+            const offen = Math.max(0, gesamt - bezahlt);
+            return (
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
             <h2 className="text-lg font-semibold text-warm-text mb-3">Zahlungen</h2>
             <table className="w-full text-sm">
@@ -437,7 +467,32 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
                 </tr>
               </tbody>
             </table>
+            <div className="grid grid-cols-2 gap-3 text-center border-t border-warm-border mt-3 pt-3">
+              <div>
+                <div className="text-xs uppercase tracking-wider text-warm-muted">Bezahlt</div>
+                <div className={`text-lg font-semibold mt-1 ${bezahlt >= gesamt ? "text-green-700" : "text-warm-text"}`}>{bezahlt.toFixed(2)} €</div>
+              </div>
+              <div>
+                <div className="text-xs uppercase tracking-wider text-warm-muted">Offen</div>
+                <div className={`text-lg font-semibold mt-1 ${offen === 0 ? "text-green-700" : "text-amber-700"}`}>{offen.toFixed(2)} €</div>
+              </div>
+            </div>
+            {zahlungen.length > 0 && (
+              <div className="text-xs text-warm-muted border-t border-warm-border pt-2 mt-3 space-y-1">
+                {zahlungen.map((z, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-warm-text">{new Date(z.datum).toLocaleDateString("de-DE")}</span>
+                    <span className="capitalize">{z.typ}</span>
+                    <span>·</span>
+                    <span>{z.methode}</span>
+                    <span className="ml-auto font-medium">{z.betrag.toFixed(2)} €</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
+            );
+          })()}
 
           {/* Checkliste — UI-Helfer fuer Manuel */}
           {(() => {
@@ -537,62 +592,6 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             );
           })()}
 
-          {/* Zahlungs-Saldo (Gesamt | Bezahlt | Offen) */}
-          {(() => {
-            const preisArtikel = parseFloat(buchung.Preis_Artikel ?? "0") || 0;
-            const preisLieferung = parseFloat(buchung.Preis_Lieferung ?? "0") || 0;
-            const preisAbholung = parseFloat(buchung.Preis_Abholung ?? "0") || 0;
-            const preisAufbau = parseFloat(buchung.Preis_Aufbau ?? "0") || 0;
-            const gesamt = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
-            const zahlungen: Array<{ datum: string; typ: string; betrag: number; methode: string }> = (() => {
-              try {
-                if (!buchung.Zahlungen_JSON) return [];
-                const p = JSON.parse(buchung.Zahlungen_JSON);
-                return Array.isArray(p) ? p : [];
-              } catch { return []; }
-            })();
-            const bezahlt = zahlungen
-              .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
-              .reduce((s, z) => s + z.betrag, 0);
-            const offen = Math.max(0, gesamt - bezahlt);
-            return (
-              <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
-                <h2 className="text-lg font-semibold text-warm-text">Zahlungs-Stand</h2>
-                <div className="grid grid-cols-3 gap-3 text-center">
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-warm-muted">Gesamt</div>
-                    <div className="text-xl font-semibold text-warm-text mt-1">{gesamt.toFixed(2)} €</div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-warm-muted">Bezahlt</div>
-                    <div className={`text-xl font-semibold mt-1 ${bezahlt >= gesamt ? "text-green-700" : "text-warm-text"}`}>
-                      {bezahlt.toFixed(2)} €
-                    </div>
-                  </div>
-                  <div>
-                    <div className="text-xs uppercase tracking-wider text-warm-muted">Offen</div>
-                    <div className={`text-xl font-semibold mt-1 ${offen === 0 ? "text-green-700" : "text-amber-700"}`}>
-                      {offen.toFixed(2)} €
-                    </div>
-                  </div>
-                </div>
-                {zahlungen.length > 0 && (
-                  <div className="text-xs text-warm-muted border-t border-warm-border pt-2 space-y-1">
-                    {zahlungen.map((z, i) => (
-                      <div key={i} className="flex items-center gap-2">
-                        <span className="text-warm-text">{new Date(z.datum).toLocaleDateString("de-DE")}</span>
-                        <span className="capitalize">{z.typ}</span>
-                        <span>·</span>
-                        <span>{z.methode}</span>
-                        <span className="ml-auto font-medium">{z.betrag.toFixed(2)} €</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
-            );
-          })()}
-
           {/* Zahlungseingang erfassen */}
           <ZahlungsPanel
             buchungId={buchung.id}
@@ -630,13 +629,6 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             kautionHinterlegtAm={buchung.Kaution_Hinterlegt_am}
           />
 
-          {/* Status-Timeline */}
-          <BuchungTimeline
-            buchung={buchung}
-            angebot={angebot}
-            rechnungen={rechnungen}
-          />
-
           {/* Termine (Uebergabe + Rueckgabe) — wird in Google Calendar synct wenn ENV gesetzt */}
           <TerminePanel
             buchungId={buchung.id}
@@ -658,8 +650,15 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             />
           )}
 
-          {/* Status-Aktionen */}
-          <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
+          {/* Status-Aktionen — eingeklappt (Status wird normalerweise automatisch gesetzt) */}
+          <details>
+            <summary className="cursor-pointer text-sm text-warm-muted hover:text-warm-text px-1 py-2">
+              Status manuell setzen (Notfall)
+            </summary>
+            <div className="mt-2">
+              <BuchungStatusPanel buchungId={buchung.id} currentStatus={status} />
+            </div>
+          </details>
 
           {/* Übergabe / Rückgabe / Storno — context-abhängig */}
           {(status === "Reserviert" || status === "Bestaetigt") && (
@@ -728,14 +727,19 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             alreadyHasRechnung={rechnungen.length > 0}
           />
 
-          {/* Meta */}
-          <section className="p-5 rounded-xl bg-warm-surface border border-warm-border text-xs space-y-1 text-warm-muted">
-            <div>Quelle: {buchung.Buchung_Quelle?.value ?? "—"}</div>
-            <div>Standort: {buchung.Standort_Typ?.value?.replace(/_/g, " ") ?? "—"}</div>
-            {buchung.Aufbau_gewuenscht?.value === "Ja" && <div>✓ Aufbau gewünscht</div>}
-            {buchung.Abbau_gewuenscht?.value === "Ja" && <div>✓ Abbau gewünscht</div>}
-            {buchung.Lieferadresse && <div>Lieferung: {buchung.Lieferadresse}</div>}
-          </section>
+          {/* Meta — eingeklappt (Details bei Bedarf) */}
+          <details className="rounded-xl bg-warm-surface border border-warm-border">
+            <summary className="cursor-pointer px-5 py-3 text-sm text-warm-muted hover:text-warm-text">
+              Details (Quelle, Standort, Aufbau)
+            </summary>
+            <div className="px-5 pb-5 text-xs space-y-1 text-warm-muted">
+              <div>Quelle: {buchung.Buchung_Quelle?.value ?? "—"}</div>
+              <div>Standort: {buchung.Standort_Typ?.value?.replace(/_/g, " ") ?? "—"}</div>
+              {buchung.Aufbau_gewuenscht?.value === "Ja" && <div>✓ Aufbau gewünscht</div>}
+              {buchung.Abbau_gewuenscht?.value === "Ja" && <div>✓ Abbau gewünscht</div>}
+              {buchung.Lieferadresse && <div>Lieferung: {buchung.Lieferadresse}</div>}
+            </div>
+          </details>
         </div>
       </div>
     </div>

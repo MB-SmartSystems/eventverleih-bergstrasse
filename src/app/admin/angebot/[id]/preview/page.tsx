@@ -5,7 +5,7 @@
  * aktuellen Live-Daten der verlinkten Buchung + Kunde + Positionen — ohne
  * Snapshot_JSON in Baserow zu schreiben und ohne MailQueue-Eintrag. Rendert
  * dieselbe Komponente wie /angebot/[token], damit Manuel pixelgleich sieht,
- * was der Kunde nach Klick auf "📧 Neue Version senden" angezeigt bekommt.
+ * was der Kunde nach Klick auf "Neue Version senden" angezeigt bekommt.
  *
  * Auth: Admin-Cookie (gleicher Mechanismus wie alle anderen /admin/-Routes).
  */

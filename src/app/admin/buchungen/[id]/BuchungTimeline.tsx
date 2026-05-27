@@ -71,25 +71,25 @@ export default function BuchungTimeline({ buchung, angebot, rechnungen }: Timeli
   const items: TimelineItem[] = [];
 
   if (angebot?.Anfragedatum) {
-    items.push({ ts: tsOf(angebot.Anfragedatum), datum: fmtDe(angebot.Anfragedatum), label: "Anfrage eingegangen", done: true, icon: "📥", tone: "blue" });
+    items.push({ ts: tsOf(angebot.Anfragedatum), datum: fmtDe(angebot.Anfragedatum), label: "Anfrage eingegangen", done: true, icon: "", tone: "blue" });
   }
   if (angebot?.Angebotsdatum) {
-    items.push({ ts: tsOf(angebot.Angebotsdatum), datum: fmtDe(angebot.Angebotsdatum), label: "Angebot versendet", done: true, icon: "📧", tone: "blue" });
+    items.push({ ts: tsOf(angebot.Angebotsdatum), datum: fmtDe(angebot.Angebotsdatum), label: "Angebot versendet", done: true, icon: "", tone: "blue" });
   }
   if (angebot?.Akzeptiert_am) {
     items.push({ ts: tsOf(angebot.Akzeptiert_am), datum: fmtDeTime(angebot.Akzeptiert_am), label: "Kunde hat Angebot bestaetigt", done: true, icon: "✓", tone: "green" });
   }
   if (buchung.Anzahlung_Bezahlt_am) {
-    items.push({ ts: tsOf(buchung.Anzahlung_Bezahlt_am), datum: fmtDe(buchung.Anzahlung_Bezahlt_am), label: "Anzahlung eingegangen — Reservierung verbindlich", done: true, icon: "💰", tone: "green" });
+    items.push({ ts: tsOf(buchung.Anzahlung_Bezahlt_am), datum: fmtDe(buchung.Anzahlung_Bezahlt_am), label: "Anzahlung eingegangen — Reservierung verbindlich", done: true, icon: "", tone: "green" });
   }
   if (buchung.Restzahlung_Bezahlt_am) {
-    items.push({ ts: tsOf(buchung.Restzahlung_Bezahlt_am), datum: fmtDe(buchung.Restzahlung_Bezahlt_am), label: "Restzahlung eingegangen", done: true, icon: "💰", tone: "green" });
+    items.push({ ts: tsOf(buchung.Restzahlung_Bezahlt_am), datum: fmtDe(buchung.Restzahlung_Bezahlt_am), label: "Restzahlung eingegangen", done: true, icon: "", tone: "green" });
   }
   if (buchung.Kaution_Hinterlegt_am) {
-    items.push({ ts: tsOf(buchung.Kaution_Hinterlegt_am), datum: fmtDe(buchung.Kaution_Hinterlegt_am), label: "Kaution hinterlegt", done: true, icon: "🔒", tone: "blue" });
+    items.push({ ts: tsOf(buchung.Kaution_Hinterlegt_am), datum: fmtDe(buchung.Kaution_Hinterlegt_am), label: "Kaution hinterlegt", done: true, icon: "", tone: "blue" });
   }
   if (buchung.Uebergabe_Termin) {
-    items.push({ ts: tsOf(buchung.Uebergabe_Termin), datum: fmtDeTime(buchung.Uebergabe_Termin), label: "Uebergabe-Termin", done: ["Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status), icon: "📦", tone: "blue" });
+    items.push({ ts: tsOf(buchung.Uebergabe_Termin), datum: fmtDeTime(buchung.Uebergabe_Termin), label: "Uebergabe-Termin", done: ["Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status), icon: "", tone: "blue" });
   }
   if (buchung.Uebergabe_Datum) {
     items.push({ ts: tsOf(buchung.Uebergabe_Datum), datum: fmtDe(buchung.Uebergabe_Datum), label: "Uebergabe durchgefuehrt", done: true, icon: "✓", tone: "green" });
@@ -97,21 +97,21 @@ export default function BuchungTimeline({ buchung, angebot, rechnungen }: Timeli
   if (buchung.Event_datum_von) {
     const t = tsOf(buchung.Event_datum_von);
     const inPast = t < Date.now();
-    items.push({ ts: t, datum: fmtDe(buchung.Event_datum_von) + " – " + fmtDe(buchung.Event_datum_bis), label: "Event", done: inPast, icon: "🎉", tone: inPast ? "gray" : "amber" });
+    items.push({ ts: t, datum: fmtDe(buchung.Event_datum_von) + " – " + fmtDe(buchung.Event_datum_bis), label: "Event", done: inPast, icon: "", tone: inPast ? "gray" : "amber" });
   }
   if (buchung.Ruecknahme_Datum) {
-    items.push({ ts: tsOf(buchung.Ruecknahme_Datum), datum: fmtDe(buchung.Ruecknahme_Datum), label: "Rueckgabe durchgefuehrt", done: true, icon: "📦", tone: "green" });
+    items.push({ ts: tsOf(buchung.Ruecknahme_Datum), datum: fmtDe(buchung.Ruecknahme_Datum), label: "Rueckgabe durchgefuehrt", done: true, icon: "", tone: "green" });
   }
   if (buchung.Kaution_Prueffrist_bis && !buchung.Kaution_Rueckzahlung_am) {
-    items.push({ ts: tsOf(buchung.Kaution_Prueffrist_bis), datum: fmtDe(buchung.Kaution_Prueffrist_bis), label: "Kaution-Pruefung — Frist", done: false, icon: "🔍", tone: "amber" });
+    items.push({ ts: tsOf(buchung.Kaution_Prueffrist_bis), datum: fmtDe(buchung.Kaution_Prueffrist_bis), label: "Kaution-Pruefung — Frist", done: false, icon: "", tone: "amber" });
   }
   if (buchung.Kaution_Rueckzahlung_am) {
-    items.push({ ts: tsOf(buchung.Kaution_Rueckzahlung_am), datum: fmtDe(buchung.Kaution_Rueckzahlung_am), label: "Kaution aufgeloest", done: true, icon: "🔓", tone: "green" });
+    items.push({ ts: tsOf(buchung.Kaution_Rueckzahlung_am), datum: fmtDe(buchung.Kaution_Rueckzahlung_am), label: "Kaution aufgeloest", done: true, icon: "", tone: "green" });
   }
   if (rechnungen && rechnungen.length > 0) {
     for (const r of rechnungen) {
       if (r.Rechnungsdatum) {
-        items.push({ ts: tsOf(r.Rechnungsdatum), datum: fmtDe(r.Rechnungsdatum), label: `Rechnung ${r.Rechnungsnummer || ""} erstellt`, done: true, icon: "🧾", tone: "blue" });
+        items.push({ ts: tsOf(r.Rechnungsdatum), datum: fmtDe(r.Rechnungsdatum), label: `Rechnung ${r.Rechnungsnummer || ""} erstellt`, done: true, icon: "", tone: "blue" });
       }
     }
   }

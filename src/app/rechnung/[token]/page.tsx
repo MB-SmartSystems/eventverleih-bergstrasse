@@ -373,11 +373,11 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                 rel="noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-accent text-white text-sm hover:bg-accent-dark"
               >
-                📄 Rechnung als PDF herunterladen
+                Rechnung als PDF herunterladen
               </a>
             ) : (
               <div className="p-3 rounded-lg bg-warm-bg border border-warm-border text-sm text-warm-muted">
-                📧 Diese Rechnung wurde Ihnen mit PDF-Anhang an{" "}
+                Diese Rechnung wurde Ihnen mit PDF-Anhang an{" "}
                 <span className="text-warm-text">{kunde.Email}</span> zugesendet. Bitte prüfen Sie Ihren Posteingang
                 (ggf. Spam-Ordner).
               </div>

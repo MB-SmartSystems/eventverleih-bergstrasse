@@ -54,7 +54,7 @@ export default function EventDatumEditor({
             Artikel werden in diesem Zeitraum als belegt geführt.
           </p>
           {!initialVon && (
-            <p className="text-xs text-yellow-300 mt-1">⚠ Noch nicht gesetzt — vor Freigabe ergänzen.</p>
+            <p className="text-xs text-yellow-300 mt-1">Achtung: Noch nicht gesetzt — vor Freigabe ergänzen.</p>
           )}
         </div>
         {saved && <span className="text-xs text-green-400">✓ Gespeichert</span>}
