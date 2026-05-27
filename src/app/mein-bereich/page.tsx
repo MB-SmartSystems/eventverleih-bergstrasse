@@ -70,9 +70,10 @@ export default async function MeinBereichPage() {
   if (!kunde) redirect("/mein-bereich/login");
 
   // Lade alle Buchungen + Rechnungen des Kunden
-  const [buchungenAll, rechnungenAll] = await Promise.all([
+  const [buchungenAll, rechnungenAll, angeboteAll] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
-    listAllRows<{ id: number; Rechnungsnummer: string; Rechnungsdatum: string | null; Betrag_Gesamt: string | null; Token_Public: string; Kunde_Link: Array<{ id: number }> }>(TABLES.Rechnungen),
+    listAllRows<{ id: number; Rechnungsnummer: string; Rechnungsdatum: string | null; Betrag_Gesamt: string | null; Token_Public: string; PDF_URL: string | null; Kunde_Link: Array<{ id: number }> }>(TABLES.Rechnungen),
+    listAllRows<{ id: number; PDF_URL: string | null; Buchung_Link: Array<{ id: number }>; Kunde_Link: Array<{ id: number }> }>(TABLES.Angebote),
   ]);
   const meineBuchungen = buchungenAll.results.filter(
     (b) => b.Kunde_Link?.[0]?.id === kunde.id,
@@ -80,6 +81,15 @@ export default async function MeinBereichPage() {
   const meineRechnungen = rechnungenAll.results
     .filter((r) => r.Kunde_Link?.[0]?.id === kunde.id)
     .sort((a, b) => (b.Rechnungsdatum || "").localeCompare(a.Rechnungsdatum || ""));
+
+  // Angebots-PDF-Download je Buchung (sofern gerendert) — fuer den Download-Button in der Karte
+  const angebotPdfByBuchung = new Map<number, string>();
+  for (const a of angeboteAll.results) {
+    const aPdf = (a.PDF_URL || "").trim();
+    if (a.Kunde_Link?.[0]?.id === kunde.id && aPdf && a.Buchung_Link?.[0]?.id) {
+      angebotPdfByBuchung.set(a.Buchung_Link[0].id, aPdf);
+    }
+  }
 
   // Sortierung: aktuelle (Status nicht Abgerechnet/Storniert/No_Show) zuerst, sortiert nach Event-Datum
   const aktive = meineBuchungen.filter((b) => {
@@ -123,7 +133,7 @@ export default async function MeinBereichPage() {
             <h2 className="text-xl font-semibold mb-4">Aktuelle Buchungen</h2>
             <div className="space-y-4">
               {aktive.map((b) => (
-                <BuchungCard key={b.id} buchung={b} variant="aktiv" />
+                <BuchungCard key={b.id} buchung={b} variant="aktiv" angebotPdfUrl={angebotPdfByBuchung.get(b.id) || null} />
               ))}
             </div>
           </div>
@@ -134,7 +144,7 @@ export default async function MeinBereichPage() {
             <h2 className="text-xl font-semibold mb-4">Vergangene Buchungen</h2>
             <div className="space-y-3">
               {vergangene.map((b) => (
-                <BuchungCard key={b.id} buchung={b} variant="archiv" />
+                <BuchungCard key={b.id} buchung={b} variant="archiv" angebotPdfUrl={null} />
               ))}
             </div>
           </div>
@@ -145,26 +155,31 @@ export default async function MeinBereichPage() {
             <h2 className="text-xl font-semibold mb-4">Rechnungen</h2>
             <div className="space-y-2">
               {meineRechnungen.map((r) => (
-                <Link
+                <div
                   key={r.id}
-                  href={`/rechnung/${r.Token_Public}`}
-                  target="_blank"
-                  className="block p-4 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 hover:border-gold-500/30 transition-all flex items-center gap-4"
+                  className="p-4 rounded-lg bg-white/5 border border-white/10 flex items-center gap-4"
                 >
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <div className="font-mono text-white">{r.Rechnungsnummer}</div>
                     <div className="text-xs text-gray-400 mt-0.5">{fmtDate(r.Rechnungsdatum)}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-medium text-white">{fmtEur(r.Betrag_Gesamt)}</div>
-                    <div className="text-xs text-gold-400 mt-0.5">Ansehen / drucken ↗</div>
+                  <div className="text-sm font-medium text-white whitespace-nowrap">{fmtEur(r.Betrag_Gesamt)}</div>
+                  <div className="flex items-center gap-3 shrink-0">
+                    {r.PDF_URL && (
+                      <a href={r.PDF_URL} target="_blank" rel="noopener" className="text-xs text-gold-400 hover:text-gold-500 whitespace-nowrap">
+                        📄 PDF
+                      </a>
+                    )}
+                    <Link href={`/rechnung/${r.Token_Public}`} target="_blank" className="text-xs text-gold-400 hover:text-gold-500 whitespace-nowrap">
+                      Ansehen ↗
+                    </Link>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
             <p className="text-xs text-gray-500 mt-3">
-              Klick auf eine Rechnung öffnet die PDF-Ansicht. Über die Druck-Funktion Ihres Browsers
-              (Strg+P / Cmd+P) können Sie sie als PDF speichern.
+              Laden Sie Ihre Rechnungen über „📄 PDF" direkt herunter. Falls noch kein PDF
+              hinterlegt ist, öffnet „Ansehen" die Druckansicht (Strg+P / Cmd+P zum Speichern).
             </p>
           </div>
         )}
@@ -178,7 +193,7 @@ export default async function MeinBereichPage() {
   );
 }
 
-function BuchungCard({ buchung, variant }: { buchung: BuchungRow; variant: "aktiv" | "archiv" }) {
+function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow; variant: "aktiv" | "archiv"; angebotPdfUrl: string | null }) {
   const status = buchung.Status_Erweitert?.value || "Anfrage";
   const info = STATUS_LABEL_KUNDE[status] ?? { label: status, tone: "bg-gray-500/10 text-gray-200 border-gray-500/30", hint: "" };
   const zeitraum = `${fmtDate(buchung.Event_datum_von)} – ${fmtDate(buchung.Event_datum_bis)}`;
@@ -261,9 +276,16 @@ function BuchungCard({ buchung, variant }: { buchung: BuchungRow; variant: "akti
       {variant === "aktiv" && (
         <div className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-3 flex-wrap">
           {buchung.Token_Angebot && ["Angebot_versendet", "Bestaetigt", "Reserviert"].includes(status) ? (
-            <Link href={`/angebot/${buchung.Token_Angebot}`} className="text-sm text-gold-400 hover:text-gold-500">
-              Angebot ansehen ↗
-            </Link>
+            <div className="flex items-center gap-4 flex-wrap">
+              <Link href={`/angebot/${buchung.Token_Angebot}`} className="text-sm text-gold-400 hover:text-gold-500">
+                Angebot ansehen ↗
+              </Link>
+              {angebotPdfUrl && (
+                <a href={angebotPdfUrl} target="_blank" rel="noopener" className="text-sm text-gold-400 hover:text-gold-500">
+                  📄 Als PDF herunterladen
+                </a>
+              )}
+            </div>
           ) : <span />}
           {/* Stornieren nur bei aktiven, noch nicht abgeholten Buchungen */}
           {!["Uebergeben", "In_Miete", "Zurueckgegeben"].includes(status) && (

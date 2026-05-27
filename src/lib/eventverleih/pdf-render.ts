@@ -17,7 +17,7 @@ export async function triggerPdfRender(opts: {
 }): Promise<void> {
   const webhook = process.env.N8N_PDF_RENDER_URL;
   if (!webhook) return;
-  const pageUrl = `${SITE}/${opts.table}/${opts.token}?print=1`;
+  const pageUrl = `${SITE}/${opts.table}/${opts.token}/print`;
   try {
     await fetch(webhook, {
       method: "POST",
