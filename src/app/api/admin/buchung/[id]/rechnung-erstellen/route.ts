@@ -20,6 +20,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
+import { triggerPdfRender } from "@/lib/eventverleih/pdf-render";
 
 type BuchungRow = {
   id: number;
@@ -202,6 +203,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         console.error("n8n rechnung-pdf webhook failed", e);
       }
     }
+
+    // Render-Flow fuer den In-Portal-Download (Blob + Rechnungen.PDF_URL). Unabhaengig
+    // vom Mail-Workflow oben, fail-soft (no-op wenn N8N_PDF_RENDER_URL nicht gesetzt).
+    await triggerPdfRender({ table: "rechnung", id: created.id, token });
 
     return NextResponse.json({
       ok: true,

@@ -17,6 +17,7 @@ import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { triggerPdfRender } from "@/lib/eventverleih/pdf-render";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
@@ -334,6 +335,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Approval_Status: "Approved",
       Idempotency_Key: `A${angebotId}-${templateKey}`,
     });
+
+    // Angebots-PDF fuer den In-Portal-Download rendern lassen (Blob + Angebote.PDF_URL).
+    // Nur beim Versand, fail-soft (no-op wenn N8N_PDF_RENDER_URL nicht gesetzt).
+    if (newStatus === "Versendet") {
+      await triggerPdfRender({ table: "angebot", id: angebotId, token: angebot.Token_Public });
+    }
 
     return NextResponse.json({ ok: true, new_status: newStatus, template: templateKey });
   } catch (e) {
