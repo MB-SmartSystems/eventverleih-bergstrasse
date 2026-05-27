@@ -71,7 +71,7 @@ export default function NeuerKundeForm() {
       </div>
       <div className="pt-3 border-t border-warm-border">
         <div className="text-xs text-warm-muted mb-2">Anschrift (optional)</div>
-        <input name="adresse_strasse" placeholder="Strasse + Hausnummer" className={cls + " mb-2"} />
+        <input name="adresse_strasse" placeholder="Straße + Hausnummer" className={cls + " mb-2"} />
         <div className="grid grid-cols-3 gap-2">
           <input name="adresse_plz" placeholder="PLZ" className={cls} />
           <input name="adresse_ort" placeholder="Ort" className={cls + " col-span-2"} />

@@ -85,7 +85,7 @@ export default function StripeLinksPanel({
               className="text-xs px-2 py-1.5 rounded bg-accent-50 text-accent-dark hover:bg-accent-100 transition-colors"
               title="Link in Zwischenablage kopieren"
             >
-              {copiedKey === type ? "✓" : "📋"}
+              {copiedKey === type ? "✓" : "Kopieren"}
             </button>
             <button
               onClick={() => generateLink(type)}

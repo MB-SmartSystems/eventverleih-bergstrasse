@@ -99,12 +99,11 @@ export default async function AdminInboxHome() {
       {data.gerade_bestaetigt.total > 0 && (
         <div className="rounded-xl border border-green-300 bg-green-50 px-4 py-3">
           <div className="flex items-center gap-3 mb-2">
-            <div className="text-2xl">🎉</div>
             <div className="font-display font-semibold text-green-900">
               {data.gerade_bestaetigt.total}{" "}
               {data.gerade_bestaetigt.total === 1
-                ? "Kunde hat gerade bestaetigt"
-                : "Kunden haben gerade bestaetigt"}
+                ? "Kunde hat gerade bestätigt"
+                : "Kunden haben gerade bestätigt"}
               {" "}— Anzahlung steht aus
             </div>
           </div>
@@ -146,7 +145,6 @@ export default async function AdminInboxHome() {
           className="flex items-center justify-between gap-3 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 hover:bg-yellow-100 transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className="text-2xl">📥</div>
             <div>
               <div className="font-display font-semibold text-yellow-900">
                 Mail-Queue: {data.mailqueue_pending}{" "}

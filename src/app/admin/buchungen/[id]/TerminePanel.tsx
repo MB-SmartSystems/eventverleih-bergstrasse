@@ -60,7 +60,7 @@ export default function TerminePanel({
     <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
       <div className="flex items-baseline justify-between gap-2">
         <h2 className="text-lg font-semibold text-warm-text">Termine</h2>
-        <span className="text-xs text-warm-muted">Treffpunkt: Grillhuette Sandwiese</span>
+        <span className="text-xs text-warm-muted">Treffpunkt: Grillhütte Sandwiese</span>
       </div>
       <p className="text-xs text-warm-muted">
         Trage hier den telefonisch abgestimmten Termin ein. Bei gesetztem GCAL_EVENTVERLEIH_ID
@@ -70,7 +70,7 @@ export default function TerminePanel({
       {saved && <div className="p-2 rounded bg-green-50 border border-green-200 text-green-700 text-xs">Termine gespeichert.</div>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <div>
-          <label className="block text-xs text-warm-muted mb-1">Uebergabe-Termin</label>
+          <label className="block text-xs text-warm-muted mb-1">Übergabe-Termin</label>
           <input
             type="datetime-local"
             value={uebergabe}
@@ -82,7 +82,7 @@ export default function TerminePanel({
           )}
         </div>
         <div>
-          <label className="block text-xs text-warm-muted mb-1">Rueckgabe-Termin</label>
+          <label className="block text-xs text-warm-muted mb-1">Rückgabe-Termin</label>
           <input
             type="datetime-local"
             value={rueckgabe}

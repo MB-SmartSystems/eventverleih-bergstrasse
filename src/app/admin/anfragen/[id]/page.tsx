@@ -267,7 +267,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
           rel="noreferrer"
           className="text-sm px-4 py-2 rounded bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10"
         >
-          🔗 Kunden-Ansicht öffnen
+          Kunden-Ansicht öffnen
         </a>
       </div>
 
@@ -405,7 +405,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             </table>
             {!buchung.Preis_Artikel && (
               <p className="text-xs text-yellow-400 mt-3">
-                ⚠ Preise fehlen — in Baserow ergänzen bevor du freigibst, sonst sieht Kunde nichts.
+                Achtung: Preise fehlen — in Baserow ergänzen bevor du freigibst, sonst sieht Kunde nichts.
               </p>
             )}
           </section>

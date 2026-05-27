@@ -193,7 +193,7 @@ export default async function ElsterPage({ searchParams }: { searchParams: Promi
               {unmapped.einnahmen > 0 && (
                 <tr className="bg-yellow-50">
                   <td className="py-2 font-mono text-xs text-yellow-700">—</td>
-                  <td className="text-yellow-800">⚠ Ohne ELSTER-Zuordnung</td>
+                  <td className="text-yellow-800">Achtung: Ohne ELSTER-Zuordnung</td>
                   <td></td>
                   <td className="text-right font-mono text-yellow-800">{fmtEur(unmapped.einnahmen)}</td>
                 </tr>
@@ -230,7 +230,7 @@ export default async function ElsterPage({ searchParams }: { searchParams: Promi
               {unmapped.ausgaben > 0 && (
                 <tr className="bg-yellow-50">
                   <td className="py-2 font-mono text-xs text-yellow-700">—</td>
-                  <td className="text-yellow-800">⚠ Ohne ELSTER-Zuordnung</td>
+                  <td className="text-yellow-800">Achtung: Ohne ELSTER-Zuordnung</td>
                   <td></td>
                   <td className="text-right font-mono text-yellow-800">{fmtEur(unmapped.ausgaben)}</td>
                 </tr>

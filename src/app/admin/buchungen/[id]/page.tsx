@@ -453,54 +453,62 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             const autoItems = [
               {
                 key: "angebot_versendet",
+                phase: "Angebot",
                 label: "Angebot freigegeben + Mail raus",
                 checked: ["Angebot_versendet", "Bestaetigt", "Reserviert", "Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
               },
               {
                 key: "kunde_bestaetigt",
-                label: "Kunde hat Angebot bestaetigt",
+                phase: "Angebot",
+                label: "Kunde hat Angebot bestätigt",
                 checked: ["Bestaetigt", "Reserviert", "Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
                 meta: buchung.Akzeptiert_am ? new Date(buchung.Akzeptiert_am).toLocaleDateString("de-DE") : undefined,
               },
               {
                 key: "anzahlung",
+                phase: "Zahlung",
                 label: "Anzahlung eingegangen",
                 checked: !!buchung.Anzahlung_Bezahlt_am,
                 meta: buchung.Anzahlung_Bezahlt_am ? new Date(buchung.Anzahlung_Bezahlt_am).toLocaleDateString("de-DE") : undefined,
               },
               {
                 key: "restzahlung",
+                phase: "Zahlung",
                 label: "Restzahlung eingegangen",
                 checked: !!buchung.Restzahlung_Bezahlt_am,
                 meta: buchung.Restzahlung_Bezahlt_am ? new Date(buchung.Restzahlung_Bezahlt_am).toLocaleDateString("de-DE") : undefined,
               },
               {
                 key: "uebergabe",
-                label: "Uebergabe durchgefuehrt",
+                phase: "Übergabe",
+                label: "Übergabe durchgeführt",
                 checked: ["Uebergeben", "In_Miete", "Zurueckgegeben", "Abgerechnet"].includes(status),
               },
               {
                 key: "rueckgabe",
-                label: "Rueckgabe durchgefuehrt",
+                phase: "Rückgabe",
+                label: "Rückgabe durchgeführt",
                 checked: ["Zurueckgegeben", "Abgerechnet"].includes(status),
               },
               {
                 key: "kaution_aufgeloest",
-                label: "Kaution aufgeloest (zurueck oder einbehalten)",
+                phase: "Rückgabe",
+                label: "Kaution aufgelöst (zurück oder einbehalten)",
                 checked: !!buchung.Kaution_Rueckzahlung_am,
                 meta: buchung.Kaution_Rueckzahlung_am ? new Date(buchung.Kaution_Rueckzahlung_am).toLocaleDateString("de-DE") : undefined,
               },
               {
                 key: "abgerechnet",
+                phase: "Abrechnung",
                 label: "Rechnung erstellt + Mail raus",
                 checked: status === "Abgerechnet",
               },
             ];
 
-            // Manuelle Items
+            // Manuelle Items (Phase steuert Gruppierung in der Checkliste)
             const manualItemKeys = [
-              { key: "uebergabe_termin", label: "Uebergabe-Termin telefonisch abgestimmt" },
-              { key: "schaden_geprueft", label: "Schaeden geprueft + ggf. dokumentiert" },
+              { key: "uebergabe_termin", phase: "Übergabe", label: "Übergabe-Termin telefonisch abgestimmt" },
+              { key: "schaden_geprueft", phase: "Rückgabe", label: "Schäden geprüft + ggf. dokumentiert" },
             ];
             const manualItems = manualItemKeys.map((m) => ({
               ...m,

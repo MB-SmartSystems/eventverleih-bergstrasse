@@ -110,7 +110,7 @@ export default function ZahlungsPanel({
                 <>
                   {" "}· Bezahlt: <span className="text-green-700 font-medium">{summe.toFixed(2)} €</span>
                   {offen > 0 && <> · Offen: <span className="text-amber-700">{offen.toFixed(2)} €</span></>}
-                  {offen === 0 && summe >= soll && <span className="text-green-700"> ✓ vollstaendig</span>}
+                  {offen === 0 && summe >= soll && <span className="text-green-700"> ✓ vollständig</span>}
                 </>
               )}
             </div>
@@ -161,7 +161,7 @@ export default function ZahlungsPanel({
     <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
       <h2 className="text-lg font-semibold text-warm-text">Zahlungseingang erfassen</h2>
       <p className="text-xs text-warm-muted">
-        Trag Bar- oder Ueberweisungs-Eingaenge ein. Stripe-Eingaenge werden automatisch via
+        Trag Bar- oder Überweisungs-Eingänge ein. Stripe-Eingänge werden automatisch via
         Webhook erfasst — du musst nichts manuell setzen.
       </p>
       {error && (

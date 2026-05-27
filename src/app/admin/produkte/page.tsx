@@ -136,7 +136,7 @@ export default function ProduktePage() {
 
   async function bulkAction(action: 'hide' | 'show' | 'delete' | 'category') {
     if (selectedIds.size === 0) return;
-    if (action === 'delete' && !confirm(`${selectedIds.size} Produkt(e) wirklich loeschen?`)) return;
+    if (action === 'delete' && !confirm(`${selectedIds.size} Produkt(e) wirklich löschen?`)) return;
 
     setBulkLoading(true);
     try {
@@ -426,7 +426,7 @@ export default function ProduktePage() {
                     <button
                       onClick={() => setDeleteConfirm(product)}
                       className="p-2 bg-warm-surface/90 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Loeschen"
+                      title="Löschen"
                     >
                       <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -448,7 +448,7 @@ export default function ProduktePage() {
                     <button
                       onClick={() => togglePinned(product.id, product.pinned)}
                       className={`p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors ${product.pinned ? 'text-accent' : 'text-warm-text'}`}
-                      title={product.pinned ? 'Loesung' : 'Anpinnen'}
+                      title={product.pinned ? 'Lösen' : 'Anpinnen'}
                     >
                       <svg className="w-4 h-4" fill={product.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -510,7 +510,7 @@ export default function ProduktePage() {
                     <button
                       onClick={() => togglePinned(product.id, product.pinned)}
                       className={`p-1.5 rounded-lg transition-colors ${product.pinned ? 'bg-accent text-white' : 'bg-accent-50 text-accent-dark hover:bg-accent-light'}`}
-                      title={product.pinned ? 'Loesung' : 'Anpinnen'}
+                      title={product.pinned ? 'Lösen' : 'Anpinnen'}
                     >
                       <svg className="w-3.5 h-3.5" fill={product.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -537,7 +537,7 @@ export default function ProduktePage() {
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-warm-surface border-t border-warm-border shadow-lg lg:pl-56">
           <div className="flex items-center gap-3 px-4 py-3 overflow-x-auto">
             <span className="text-sm font-medium text-warm-text whitespace-nowrap">
-              {selectedIds.size} ausgewaehlt
+              {selectedIds.size} ausgewählt
             </span>
             <div className="h-5 w-px bg-warm-border" />
             <div className="flex items-center gap-2">
@@ -546,7 +546,7 @@ export default function ProduktePage() {
                 onChange={(e) => setBulkCategory(e.target.value)}
                 className="px-2 py-1.5 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
               >
-                <option value="">Kategorie aendern...</option>
+                <option value="">Kategorie ändern...</option>
                 {categories.map((cat) => (
                   <option key={cat.slug} value={cat.slug}>
                     {cat.icon} {cat.name}
@@ -592,7 +592,7 @@ export default function ProduktePage() {
               disabled={bulkLoading}
               className="px-3 py-1.5 rounded-lg bg-red-600 text-white text-xs font-medium hover:bg-red-700 transition-colors disabled:opacity-50 whitespace-nowrap"
             >
-              Loeschen
+              Löschen
             </button>
           </div>
         </div>
@@ -620,10 +620,10 @@ export default function ProduktePage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteConfirm(null)} />
           <div className="relative bg-warm-surface rounded-2xl shadow-xl w-full max-w-sm p-6 border border-warm-border">
             <h3 className="font-display text-lg font-semibold text-warm-text mb-2">
-              Produkt loeschen?
+              Produkt löschen?
             </h3>
             <p className="text-warm-muted text-sm mb-6">
-              &quot;{deleteConfirm.name}&quot; wirklich loeschen? Diese Aktion kann nicht rueckgaengig gemacht werden.
+              &quot;{deleteConfirm.name}&quot; wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -637,7 +637,7 @@ export default function ProduktePage() {
                 disabled={deleting}
                 className="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
               >
-                {deleting ? 'Loeschen...' : 'Loeschen'}
+                {deleting ? 'Löschen...' : 'Löschen'}
               </button>
             </div>
           </div>
@@ -653,7 +653,7 @@ export default function ProduktePage() {
               Produkte gruppieren
             </h3>
             <p className="text-warm-muted text-sm mb-4">
-              Waehle das Produkt, das den Namen und die Tags behaelt. Alle Bilder werden dort zusammengefuegt.
+              Wähle das Produkt, das den Namen und die Tags behält. Alle Bilder werden dort zusammengefügt.
             </p>
 
             <div className="grid grid-cols-2 gap-3 mb-6">

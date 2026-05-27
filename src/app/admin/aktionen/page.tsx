@@ -273,7 +273,7 @@ export default function AktionenPage() {
                 value={form.title}
                 onChange={(e) => setForm({ ...form, title: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
-                placeholder="z.B. Fruehlingsrabatt"
+                placeholder="z.B. Frühlingsrabatt"
               />
             </div>
 
@@ -319,7 +319,7 @@ export default function AktionenPage() {
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="block text-sm font-medium text-warm-text">
-                  Produkte waehlen ({form.productIds.length} ausgewaehlt)
+                  Produkte wählen ({form.productIds.length} ausgewählt)
                 </label>
                 {form.productIds.length > 0 && (
                   <button
@@ -327,7 +327,7 @@ export default function AktionenPage() {
                     onClick={() => setForm({ ...form, productIds: [] })}
                     className="text-xs text-warm-muted hover:text-red-600 transition-colors"
                   >
-                    Alle abwaehlen
+                    Alle abwählen
                   </button>
                 )}
               </div>
@@ -357,7 +357,7 @@ export default function AktionenPage() {
                     }}
                     className="px-3 py-2 rounded-lg bg-accent-50 text-accent-dark text-sm hover:bg-accent-light transition-colors whitespace-nowrap font-medium"
                   >
-                    Alle &quot;{pickerSearch}&quot; auswaehlen ({pickerFiltered.filter(p => !form.productIds.includes(p.id)).length})
+                    Alle &quot;{pickerSearch}&quot; auswählen ({pickerFiltered.filter(p => !form.productIds.includes(p.id)).length})
                   </button>
                 )}
               </div>
@@ -581,7 +581,7 @@ export default function AktionenPage() {
                     <button
                       onClick={() => setDeleteConfirm(promo)}
                       className="p-2 rounded-lg hover:bg-red-50 text-warm-muted hover:text-red-600 transition-colors"
-                      title="Loeschen"
+                      title="Löschen"
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -601,10 +601,10 @@ export default function AktionenPage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteConfirm(null)} />
           <div className="relative bg-warm-surface rounded-2xl shadow-xl w-full max-w-sm p-6 border border-warm-border">
             <h3 className="font-display text-lg font-semibold text-warm-text mb-2">
-              Aktion loeschen?
+              Aktion löschen?
             </h3>
             <p className="text-warm-muted text-sm mb-6">
-              &quot;{deleteConfirm.title}&quot; wirklich loeschen?
+              &quot;{deleteConfirm.title}&quot; wirklich löschen?
             </p>
             <div className="flex items-center justify-end gap-3">
               <button
@@ -618,7 +618,7 @@ export default function AktionenPage() {
                 disabled={deleting}
                 className="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
               >
-                {deleting ? 'Loeschen...' : 'Loeschen'}
+                {deleting ? 'Löschen...' : 'Löschen'}
               </button>
             </div>
           </div>

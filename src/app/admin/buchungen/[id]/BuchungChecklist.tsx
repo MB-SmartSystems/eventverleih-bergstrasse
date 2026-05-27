@@ -1,11 +1,13 @@
 "use client";
 
 /**
- * Buchungs-Checkliste — UI-Helfer fuer Manuel (Plan Phase 5 B3+B4).
+ * Buchungs-Checkliste — UI-Helfer fuer Manuel.
  *
- * Zeigt auto-gehakte Items basierend auf Buchungs-Daten plus manuell-hakbare Items
- * (gespeichert in Buchung.Checklist_State_JSON oder Position.Eingepackt fuer Pack-Items).
+ * Items nach PHASE gruppiert (Angebot · Zahlung · Übergabe · Rückgabe · Abrechnung).
+ * Die Pack-Liste sitzt im Übergabe-Block (direkt bei Übergabe-Termin + Übergabe durchgeführt).
  *
+ * Auto-Items sind read-only (aus Buchungs-Daten abgeleitet), manuelle + Pack-Items togglebar.
+ * Persistenz UNVERÄNDERT: Buchung.Checklist_State_JSON (manuell) bzw. Position.Eingepackt (Pack).
  * KEINE Mail-Versand-Gate-Funktion — pur visueller Helfer.
  */
 import { useState } from "react";
@@ -14,13 +16,15 @@ interface AutoItem {
   key: string;
   label: string;
   checked: boolean;
-  meta?: string; // z.B. Datum oder Betrag
+  meta?: string;
+  phase: string;
 }
 
 interface ManualItem {
   key: string;
   label: string;
   checked: boolean;
+  phase: string;
 }
 
 interface PackItem {
@@ -29,16 +33,20 @@ interface PackItem {
   checked: boolean;
 }
 
+const PHASE_ORDER = ["Angebot", "Zahlung", "Übergabe", "Rückgabe", "Abrechnung"];
+
 export default function BuchungChecklist({
   buchungId,
   autoItems,
   manualItems,
   packItems,
+  packPhase = "Übergabe",
 }: {
   buchungId: number;
   autoItems: AutoItem[];
   manualItems: ManualItem[];
   packItems: PackItem[];
+  packPhase?: string;
 }) {
   const [items, setItems] = useState({
     manual: Object.fromEntries(manualItems.map((m) => [m.key, m.checked])),
@@ -52,7 +60,6 @@ export default function BuchungChecklist({
     setPending(itemKey);
     setError("");
     const newChecked = !current;
-    // Optimistic update
     setItems((prev) => ({
       ...prev,
       [itemType]: { ...prev[itemType], [itemKey]: newChecked },
@@ -66,18 +73,11 @@ export default function BuchungChecklist({
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         setError(d.error || `HTTP ${res.status}`);
-        // Rollback
-        setItems((prev) => ({
-          ...prev,
-          [itemType]: { ...prev[itemType], [itemKey]: current },
-        }));
+        setItems((prev) => ({ ...prev, [itemType]: { ...prev[itemType], [itemKey]: current } }));
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
-      setItems((prev) => ({
-        ...prev,
-        [itemType]: { ...prev[itemType], [itemKey]: current },
-      }));
+      setItems((prev) => ({ ...prev, [itemType]: { ...prev[itemType], [itemKey]: current } }));
     } finally {
       setPending(null);
     }
@@ -92,74 +92,87 @@ export default function BuchungChecklist({
       {error && (
         <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-700 text-xs">{error}</div>
       )}
-      <div className="space-y-1.5 text-sm">
-        {autoItems.map((item) => (
-          <div
-            key={item.key}
-            className={`flex items-center gap-2 ${item.checked ? "text-warm-text" : "text-warm-muted"}`}
-          >
-            <span className={`inline-block w-4 ${item.checked ? "text-green-600" : "text-gray-300"}`}>
-              {item.checked ? "✓" : "○"}
-            </span>
-            <span className="flex-1">{item.label}</span>
-            {item.meta && <span className="text-xs text-warm-muted">{item.meta}</span>}
-            <span className="text-[10px] uppercase tracking-wider text-warm-muted/60">auto</span>
-          </div>
-        ))}
-        {manualItems.map((m) => (
-          <button
-            key={m.key}
-            onClick={() => toggle(m.key, "manual", items.manual[m.key])}
-            disabled={pending === m.key}
-            className={`w-full flex items-center gap-2 text-left transition-colors disabled:opacity-50 ${
-              items.manual[m.key] ? "text-warm-text" : "text-warm-muted hover:text-warm-text"
-            }`}
-          >
-            <span className={`inline-block w-4 ${items.manual[m.key] ? "text-green-600" : "text-gray-400"}`}>
-              {items.manual[m.key] ? "✓" : "○"}
-            </span>
-            <span className="flex-1">{m.label}</span>
-            <span className="text-[10px] uppercase tracking-wider text-warm-muted/60">manuell</span>
-          </button>
-        ))}
-        {packItems.length > 0 && (
-          <div className="pt-2">
-            <button
-              onClick={() => setPackOpen(!packOpen)}
-              className="w-full flex items-center gap-2 text-left"
-            >
-              <span className={`inline-block w-4 ${packDoneCount === packTotal ? "text-green-600" : "text-gray-400"}`}>
-                {packDoneCount === packTotal ? "✓" : "○"}
-              </span>
-              <span className="flex-1 font-medium">
-                Pack-Liste durchgegangen
-                <span className="text-xs text-warm-muted ml-2">
-                  {packDoneCount}/{packTotal}
-                </span>
-              </span>
-              <span className="text-xs text-warm-muted">{packOpen ? "▴" : "▾"}</span>
-            </button>
-            {packOpen && (
-              <div className="pl-6 mt-2 space-y-1">
-                {packItems.map((p) => (
+      <div className="space-y-4 text-sm">
+        {PHASE_ORDER.map((phase) => {
+          const autos = autoItems.filter((a) => a.phase === phase);
+          const manuals = manualItems.filter((m) => m.phase === phase);
+          const showPack = phase === packPhase && packItems.length > 0;
+          if (autos.length === 0 && manuals.length === 0 && !showPack) return null;
+          return (
+            <div key={phase}>
+              <p className="text-[10px] uppercase tracking-wider text-warm-muted/70 mb-1.5">{phase}</p>
+              <div className="space-y-1.5">
+                {autos.map((item) => (
+                  <div
+                    key={item.key}
+                    className={`flex items-center gap-2 ${item.checked ? "text-warm-text" : "text-warm-muted"}`}
+                  >
+                    <span className={`inline-block w-4 ${item.checked ? "text-green-600" : "text-gray-300"}`}>
+                      {item.checked ? "✓" : "○"}
+                    </span>
+                    <span className="flex-1">{item.label}</span>
+                    {item.meta && <span className="text-xs text-warm-muted">{item.meta}</span>}
+                    <span className="text-[10px] uppercase tracking-wider text-warm-muted/60">auto</span>
+                  </div>
+                ))}
+                {manuals.map((m) => (
                   <button
-                    key={p.positionId}
-                    onClick={() => toggle(String(p.positionId), "pack", items.pack[String(p.positionId)])}
-                    disabled={pending === String(p.positionId)}
-                    className={`w-full flex items-center gap-2 text-left text-sm disabled:opacity-50 ${
-                      items.pack[String(p.positionId)] ? "text-warm-text" : "text-warm-muted hover:text-warm-text"
+                    key={m.key}
+                    onClick={() => toggle(m.key, "manual", items.manual[m.key])}
+                    disabled={pending === m.key}
+                    className={`w-full flex items-center gap-2 text-left transition-colors disabled:opacity-50 ${
+                      items.manual[m.key] ? "text-warm-text" : "text-warm-muted hover:text-warm-text"
                     }`}
                   >
-                    <span className={`inline-block w-4 ${items.pack[String(p.positionId)] ? "text-green-600" : "text-gray-400"}`}>
-                      {items.pack[String(p.positionId)] ? "✓" : "○"}
+                    <span className={`inline-block w-4 ${items.manual[m.key] ? "text-green-600" : "text-gray-400"}`}>
+                      {items.manual[m.key] ? "✓" : "○"}
                     </span>
-                    <span>{p.label}</span>
+                    <span className="flex-1">{m.label}</span>
+                    <span className="text-[10px] uppercase tracking-wider text-warm-muted/60">manuell</span>
                   </button>
                 ))}
+                {showPack && (
+                  <div>
+                    <button
+                      onClick={() => setPackOpen(!packOpen)}
+                      className="w-full flex items-center gap-2 text-left"
+                    >
+                      <span className={`inline-block w-4 ${packDoneCount === packTotal ? "text-green-600" : "text-gray-400"}`}>
+                        {packDoneCount === packTotal ? "✓" : "○"}
+                      </span>
+                      <span className="flex-1 font-medium">
+                        Pack-Liste durchgegangen
+                        <span className="text-xs text-warm-muted ml-2">
+                          {packDoneCount}/{packTotal}
+                        </span>
+                      </span>
+                      <span className="text-xs text-warm-muted">{packOpen ? "▴" : "▾"}</span>
+                    </button>
+                    {packOpen && (
+                      <div className="pl-6 mt-2 space-y-1">
+                        {packItems.map((p) => (
+                          <button
+                            key={p.positionId}
+                            onClick={() => toggle(String(p.positionId), "pack", items.pack[String(p.positionId)])}
+                            disabled={pending === String(p.positionId)}
+                            className={`w-full flex items-center gap-2 text-left text-sm disabled:opacity-50 ${
+                              items.pack[String(p.positionId)] ? "text-warm-text" : "text-warm-muted hover:text-warm-text"
+                            }`}
+                          >
+                            <span className={`inline-block w-4 ${items.pack[String(p.positionId)] ? "text-green-600" : "text-gray-400"}`}>
+                              {items.pack[String(p.positionId)] ? "✓" : "○"}
+                            </span>
+                            <span>{p.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          );
+        })}
       </div>
     </section>
   );

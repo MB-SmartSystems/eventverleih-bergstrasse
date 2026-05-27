@@ -61,7 +61,7 @@ const STATUS_LABELS: Record<string, { label: string; tone: "blue" | "yellow" | "
   Anfrage: { label: "Anfrage", tone: "blue" },
   Angebot_erstellt: { label: "Angebot erstellt", tone: "blue" },
   Angebot_versendet: { label: "Angebot versendet", tone: "yellow" },
-  Bestaetigt: { label: "Kunde hat bestaetigt", tone: "amber" },
+  Bestaetigt: { label: "Kunde hat bestätigt", tone: "amber" },
 };
 
 const TONE_CLASSES: Record<"blue" | "yellow" | "amber", string> = {
@@ -213,7 +213,7 @@ export default async function AnfragenPage() {
                         <div className="text-xs text-gray-500">Mietsumme</div>
                       </div>
                     ) : (
-                      <div className="text-xs text-yellow-400">⚠ Preis fehlt</div>
+                      <div className="text-xs text-yellow-400">Preis fehlt</div>
                     )}
                   </div>
                 </div>

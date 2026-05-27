@@ -173,12 +173,12 @@ export default function KategorienPage() {
       const res = await fetch(`/api/admin/categories/${slug}`, { method: 'DELETE' });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || 'Kategorie kann nicht geloescht werden');
+        throw new Error(data.error || 'Kategorie kann nicht gelöscht werden');
       }
       setCategories((prev) => prev.filter((c) => c.slug !== slug));
       setDeleteConfirm(null);
     } catch (err: unknown) {
-      setDeleteError(err instanceof Error ? err.message : 'Fehler beim Loeschen');
+      setDeleteError(err instanceof Error ? err.message : 'Fehler beim Löschen');
     } finally {
       setDeleting(false);
     }
@@ -373,7 +373,7 @@ export default function KategorienPage() {
                           ? 'opacity-30 cursor-not-allowed'
                           : 'hover:bg-red-50'
                       }`}
-                      title={count > 0 ? `Nicht loeschbar: ${count} Produkte zugeordnet` : 'Loeschen'}
+                      title={count > 0 ? `Nicht löschbar: ${count} Produkte zugeordnet` : 'Löschen'}
                     >
                       <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -461,7 +461,7 @@ export default function KategorienPage() {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            {adding ? 'Wird erstellt...' : 'Hinzufuegen'}
+            {adding ? 'Wird erstellt...' : 'Hinzufügen'}
           </button>
         </form>
       </div>
@@ -472,10 +472,10 @@ export default function KategorienPage() {
           <div className="absolute inset-0 bg-black/40" onClick={() => setDeleteConfirm(null)} />
           <div className="relative bg-warm-surface rounded-2xl shadow-xl w-full max-w-sm p-6 border border-warm-border">
             <h3 className="font-display text-lg font-semibold text-warm-text mb-2">
-              Kategorie loeschen?
+              Kategorie löschen?
             </h3>
             <p className="text-warm-muted text-sm mb-6">
-              Kategorie &quot;{categories.find((c) => c.slug === deleteConfirm)?.name}&quot; wirklich loeschen?
+              Kategorie &quot;{categories.find((c) => c.slug === deleteConfirm)?.name}&quot; wirklich löschen?
             </p>
             {deleteError && <p className="text-red-600 text-sm mb-4">{deleteError}</p>}
             <div className="flex items-center justify-end gap-3">
@@ -490,7 +490,7 @@ export default function KategorienPage() {
                 disabled={deleting}
                 className="px-4 py-2 rounded-lg text-sm bg-red-600 text-white hover:bg-red-700 transition-colors font-medium disabled:opacity-50"
               >
-                {deleting ? 'Loeschen...' : 'Loeschen'}
+                {deleting ? 'Löschen...' : 'Löschen'}
               </button>
             </div>
           </div>

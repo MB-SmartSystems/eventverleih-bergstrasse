@@ -86,7 +86,7 @@ export default function NeueAnfrageForm({
         return;
       }
       if (!neuerKunde.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(neuerKunde.email.trim())) {
-        setError("Gueltige E-Mail-Adresse erforderlich (für Angebots-Versand).");
+        setError("Gültige E-Mail-Adresse erforderlich (für Angebots-Versand).");
         return;
       }
     }
@@ -127,10 +127,10 @@ export default function NeueAnfrageForm({
     <div className="space-y-5">
       {/* Tim-Ferriss-Hinweis (4-Stunden-Woche-Pattern) */}
       <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-sm text-blue-900">
-        <div className="font-semibold mb-1">💡 Lieber den Kunden aufs Web-Formular schicken</div>
+        <div className="font-semibold mb-1">Lieber den Kunden aufs Web-Formular schicken</div>
         <p className="text-blue-800/90">
           Tim-Ferriss-Prinzip: Manuell-Anlage kostet dich Zeit. Bevor du hier loslegst — bitte
-          dein Telefon-/WhatsApp-Gegenueber kurz auf eventverleih-bergstrasse.de zu gehen. Spart
+          dein Telefon-/WhatsApp-Gegenüber kurz auf eventverleih-bergstrasse.de zu gehen. Spart
           dir 5-10 Min und du bekommst die Daten exakt wie der Kunde sie meint. Nur wenn das
           partout nicht geht, hier weiter machen.
         </p>
@@ -221,7 +221,7 @@ export default function NeueAnfrageForm({
                 </div>
               </div>
               <p className="text-xs text-warm-muted">
-                Wird im Kunden-Verzeichnis angelegt. Adresse kann der Kunde spaeter im Member-Bereich oder beim Angebot-Bestaetigen selbst ergaenzen.
+                Wird im Kunden-Verzeichnis angelegt. Adresse kann der Kunde später im Member-Bereich oder beim Angebot-Bestätigen selbst ergänzen.
               </p>
             </div>
           )}
@@ -246,7 +246,7 @@ export default function NeueAnfrageForm({
                 onClick={() => { setVonIso(null); setBisIso(null); }}
                 className="text-xs text-warm-muted hover:text-warm-text underline"
               >
-                zuruecksetzen
+                zurücksetzen
               </button>
             )}
           </div>
@@ -329,7 +329,7 @@ export default function NeueAnfrageForm({
               </div>
             </div>
           ) : (
-            <p className="text-xs text-warm-muted italic">Noch keine Artikel hinzugefuegt.</p>
+            <p className="text-xs text-warm-muted italic">Noch keine Artikel hinzugefügt.</p>
           )}
         </div>
 
@@ -340,7 +340,7 @@ export default function NeueAnfrageForm({
             value={notiz}
             onChange={(e) => setNotiz(e.target.value)}
             rows={3}
-            placeholder="z.B. Kunde hat angerufen am 20.05., will Hochzeit am 15.06., evtl. Lieferung benoetigt..."
+            placeholder="z.B. Kunde hat angerufen am 20.05., will Hochzeit am 15.06., evtl. Lieferung benötigt..."
             className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm resize-none focus:outline-none focus:ring-2 focus:ring-accent/40"
           />
         </div>

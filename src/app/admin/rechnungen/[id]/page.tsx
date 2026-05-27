@@ -115,7 +115,7 @@ export default async function RechnungDetailPage({ params }: { params: Promise<{
             )}
             {r.Mahnstufe?.value && r.Mahnstufe.value !== "keine" && (
               <div className="mt-2 text-xs text-red-700">
-                ⚠ Mahnstufe {r.Mahnstufe.value} {r.Mahn_Datum && `seit ${fmtDate(r.Mahn_Datum)}`}
+                Achtung: Mahnstufe {r.Mahnstufe.value} {r.Mahn_Datum && `seit ${fmtDate(r.Mahn_Datum)}`}
               </div>
             )}
           </section>
@@ -172,7 +172,7 @@ export default async function RechnungDetailPage({ params }: { params: Promise<{
               rel="noreferrer"
               className="block p-3 rounded-lg bg-warm-surface border border-warm-border text-sm text-warm-text hover:bg-accent-50 text-center"
             >
-              📄 PDF öffnen
+              PDF öffnen
             </a>
           )}
         </div>

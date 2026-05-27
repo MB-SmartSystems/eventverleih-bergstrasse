@@ -9,7 +9,7 @@ export default function KundeRowActions({ kundeId, kundeName, buchungCount }: { 
 
   async function del() {
     if (buchungCount > 0) {
-      setError(`Kunde hat noch ${buchungCount} Buchungen. Bitte erst die Buchungen verarbeiten/loeschen.`);
+      setError(`Kunde hat noch ${buchungCount} Buchungen. Bitte erst die Buchungen verarbeiten/löschen.`);
       return;
     }
     setSubmitting(true);
@@ -34,23 +34,23 @@ export default function KundeRowActions({ kundeId, kundeName, buchungCount }: { 
       <button
         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
         className="text-xs text-warm-muted hover:text-red-600"
-        title="Kunde loeschen"
+        title="Kunde löschen"
       >
         ×
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => !submitting && setOpen(false)}>
           <div className="bg-white rounded-lg p-5 max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Kunde loeschen?</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Kunde löschen?</h3>
             <p className="text-sm text-gray-600 mb-3">
-              Sie wollen <strong>{kundeName}</strong> dauerhaft loeschen?
+              Sie wollen <strong>{kundeName}</strong> dauerhaft löschen?
               {buchungCount > 0 ? (
                 <span className="block mt-2 text-red-700 text-xs">
-                  ⚠ Kunde hat {buchungCount} Buchung(en) — Loeschen wird blockiert.
+                  Achtung: Kunde hat {buchungCount} Buchung(en) — Löschen wird blockiert.
                 </span>
               ) : (
                 <span className="block mt-2 text-gray-500 text-xs">
-                  DSGVO-Loeschung wird im Audit-Log dokumentiert. Vorgang ist unwiderruflich.
+                  DSGVO-Löschung wird im Audit-Log dokumentiert. Vorgang ist unwiderruflich.
                 </span>
               )}
             </p>
@@ -68,7 +68,7 @@ export default function KundeRowActions({ kundeId, kundeName, buchungCount }: { 
                 disabled={submitting || buchungCount > 0}
                 className="flex-1 py-2 rounded bg-red-600 text-white text-sm font-medium hover:bg-red-700 disabled:opacity-40"
               >
-                {submitting ? "Loesche…" : "Loeschen"}
+                {submitting ? "Lösche…" : "Löschen"}
               </button>
             </div>
           </div>

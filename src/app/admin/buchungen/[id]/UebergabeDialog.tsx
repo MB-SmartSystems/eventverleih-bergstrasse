@@ -180,7 +180,7 @@ export default function UebergabeDialog({
               onChange={(e) => setAdresse(e.target.value)}
               rows={2}
               className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-              placeholder="Strasse, Ort"
+              placeholder="Straße, Ort"
             />
           </div>
 
