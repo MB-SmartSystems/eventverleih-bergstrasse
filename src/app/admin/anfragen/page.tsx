@@ -3,8 +3,9 @@
  *
  * Server-side render. Auth via Cookie.
  * Filtert auf Buchungen mit Status_Erweitert in [Anfrage, Angebot_erstellt,
- * Angebot_versendet, Bestaetigt] UND Anzahlung_Bezahlt_am == null.
- * Anfrage bleibt damit sichtbar bis die Anzahlung eingegangen ist.
+ * Angebot_versendet] (noch NICHT vom Kunden bestaetigt) UND Anzahlung_Bezahlt_am == null.
+ * Sobald der Kunde bestaetigt (Status Bestaetigt), faellt der Vorgang hier raus und
+ * lebt als Buchung weiter (Buchungen-Liste, Status "Kunde hat bestaetigt / Anzahlung steht aus").
  */
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -54,7 +55,6 @@ const RELEVANT_STATUS = new Set([
   "Anfrage",
   "Angebot_erstellt",
   "Angebot_versendet",
-  "Bestaetigt",
 ]);
 
 const STATUS_LABELS: Record<string, { label: string; tone: "blue" | "yellow" | "amber" }> = {
@@ -136,7 +136,7 @@ export default async function AnfragenPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Offene Anfragen</h1>
           <p className="text-sm text-gray-400 mt-1">
-            {offen.length} {offen.length === 1 ? "Anfrage" : "Anfragen"} — sichtbar bis Anzahlung eingegangen
+            {offen.length} {offen.length === 1 ? "Anfrage" : "Anfragen"} — offen bis der Kunde bestätigt
           </p>
         </div>
         <Link

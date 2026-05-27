@@ -142,16 +142,29 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const kundeId = buchung.Kunde_Link?.[0]?.id;
   const kunde = kundeId ? await getRow<KundeRow>(TABLES.Kunden, kundeId).catch(() => null) : null;
 
-  const [positionenAll, rechnungenAll, artikelAll, angeboteAll] = await Promise.all([
+  const [positionenAll, rechnungenAll, artikelAll, angeboteAll, mailsAll] = await Promise.all([
     listAllRows<PositionRow>(TABLES.Buchungs_Position),
     listAllRows<RechnungRow>(TABLES.Rechnungen),
     listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
     listAllRows<{ id: number; Anfragedatum: string | null; Angebotsdatum: string | null; Akzeptiert_am: string | null; Buchung_Link: Array<{ id: number }> }>(TABLES.Angebote),
+    listAllRows<{
+      id: number;
+      Subject: string | null;
+      Body: string | null;
+      Template_Key: string | null;
+      Erstellt_am: string | null;
+      Sent_am: string | null;
+      Approval_Status: { value: string } | string | null;
+      Buchung_Link: Array<{ id: number }>;
+    }>(TABLES.MailQueue),
   ]);
   const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const rechnungen = rechnungenAll.results.filter((r) => r.Buchung_Link?.[0]?.id === buchungId);
   const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
   const angebot = angeboteAll.results.find((a) => a.Buchung_Link?.[0]?.id === buchungId) ?? null;
+  const mails = mailsAll.results
+    .filter((m) => m.Buchung_Link?.[0]?.id === buchungId)
+    .sort((a, b) => (b.Sent_am || b.Erstellt_am || "").localeCompare(a.Sent_am || a.Erstellt_am || ""));
 
   const status = buchung.Status_Erweitert?.value ?? "Anfrage";
 
@@ -316,6 +329,39 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
               </div>
             </section>
           )}
+
+          {/* Schriftverkehr — alle E-Mails an den Kunden (MailQueue) */}
+          <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
+            <h2 className="text-lg font-semibold text-warm-text mb-3">Schriftverkehr ({mails.length})</h2>
+            {mails.length === 0 ? (
+              <p className="text-sm text-warm-muted">Noch keine E-Mails zu dieser Buchung.</p>
+            ) : (
+              <div className="space-y-2">
+                {mails.map((m) => {
+                  const st =
+                    typeof m.Approval_Status === "object" && m.Approval_Status
+                      ? m.Approval_Status.value
+                      : (m.Approval_Status as string | null);
+                  const statusText = m.Sent_am
+                    ? `✓ gesendet ${fmtDate(m.Sent_am)}`
+                    : st === "Auto_Reply" || st === "Approved"
+                      ? "wird versendet…"
+                      : st || "offen";
+                  return (
+                    <details key={m.id} className="rounded-lg border border-warm-border bg-warm-bg/40">
+                      <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+                        <span className="text-sm text-warm-text font-medium">{m.Subject || "(kein Betreff)"}</span>
+                        <span className="text-xs text-warm-muted whitespace-nowrap">{statusText}</span>
+                      </summary>
+                      <div className="px-3 pb-3 pt-1 border-t border-warm-border">
+                        <pre className="whitespace-pre-wrap break-words text-xs text-warm-muted font-sans leading-relaxed">{m.Body || "(kein Inhalt)"}</pre>
+                      </div>
+                    </details>
+                  );
+                })}
+              </div>
+            )}
+          </section>
         </div>
 
         <div className="space-y-6">
