@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { runAnzahlungReminder } from "@/lib/eventverleih/anzahlung-reminder";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -172,7 +173,15 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, heute, result });
+    // Hobby-Plan: kein eigener Cron — Anzahlungs-Reminder hier mit-ausfuehren (fail-soft)
+    let anzahlung: Record<string, unknown> = {};
+    try {
+      anzahlung = await runAnzahlungReminder();
+    } catch (e) {
+      console.error("[restzahlung-reminder] anzahlung-pass fehlgeschlagen:", e);
+    }
+
+    return NextResponse.json({ ok: true, heute, result, anzahlung });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown";
     console.error("[restzahlung-reminder] failure:", msg);

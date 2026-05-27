@@ -151,6 +151,26 @@ export async function POST(req: NextRequest) {
             stripe_payment_intent: pi.id,
             amount_eur: (pi.amount || 0) / 100,
           });
+          // Bestaetigungs-Mail an Kunden (fail-soft, idempotent)
+          try {
+            const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
+            const kid = b.Kunde_Link?.[0]?.id;
+            const kname = b.Kunde_Link?.[0]?.value || "";
+            if (kid) {
+              await createRow(TABLES.MailQueue, {
+                Erstellt_am: new Date().toISOString(),
+                Buchung_Link: [buchungId],
+                Kunde_Link: [kid],
+                Template_Key: "restzahlung_erhalten",
+                Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
+                Body: `Hallo ${kname},\n\nvielen Dank — Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+                Approval_Status: "Auto_Reply",
+                Idempotency_Key: `B${buchungId}-restzahlung_erhalten`,
+              });
+            }
+          } catch (e) {
+            console.error("[stripe-webhook] Restzahlung-Bestaetigung fehlgeschlagen:", e);
+          }
         } else if (paymentType === "komplettzahlung") {
           return await processReservierungsZahlung(pi, buchungId, "komplettzahlung");
         } else if (paymentType === "kaution") {

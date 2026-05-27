@@ -61,6 +61,9 @@ interface BuchungRow {
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: number | null;
   Kaution_Rueckzahlung_am: string | null;
+  Stripe_Kaution_PaymentIntent: string | null;
+  Kaution_Pruefung_Status: { value: string } | null;
+  Kaution_Prueffrist_bis: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
   Restzahlung_Mail_Versendet_am: string | null;
 }
@@ -251,6 +254,27 @@ export async function loadInboxData(): Promise<InboxData> {
       age_days: a,
       link: `/admin/buchungen/${b.id}`,
     });
+  }
+  // Kaution-Prueffrist abgelaufen — Stripe-Hold aufloesen, bevor er verfaellt (~7-30 Tage)
+  const heuteStr = new Date().toISOString().slice(0, 10);
+  for (const b of buchungen) {
+    if (
+      b.Status_Erweitert?.value === "Zurueckgegeben" &&
+      b.Stripe_Kaution_PaymentIntent &&
+      b.Kaution_Pruefung_Status?.value === "offen" &&
+      !b.Kaution_Rueckzahlung_am &&
+      b.Kaution_Prueffrist_bis &&
+      b.Kaution_Prueffrist_bis <= heuteStr
+    ) {
+      ueberItems.push({
+        id: b.id,
+        buchungId: b.id,
+        title: kundeName(b),
+        subtitle: `Kaution-Prueffrist abgelaufen — Hold aufloesen (verfaellt sonst)`,
+        amount_eur: b.Kaution_Soll_Eur || undefined,
+        link: `/admin/buchungen/${b.id}`,
+      });
+    }
   }
 
   // ----- WARTET AUF KUNDE -----

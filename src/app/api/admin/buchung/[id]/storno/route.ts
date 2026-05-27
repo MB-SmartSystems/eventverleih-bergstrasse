@@ -50,7 +50,7 @@ export async function POST(
     }
 
     await updateRow(TABLES.Buchungen, buchungId, {
-      Status_Erweitert: "Storniert",
+      Status_Erweitert: grund === "No_Show" ? "No_Show" : "Storniert",
       Storno_Grund: grund,
       Storno_am: new Date().toISOString().slice(0, 10),
       Storno_Betrag_Eur: erstattungEur,

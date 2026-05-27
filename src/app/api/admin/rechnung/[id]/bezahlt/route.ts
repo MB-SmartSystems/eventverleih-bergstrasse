@@ -33,6 +33,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Rechnungsnummer: string;
       Betrag_Gesamt: string | null;
       Status: { value: string } | null;
+      Buchung_Link: Array<{ id: number }> | null;
     };
     const rechnung = await getRow<R>(TABLES.Rechnungen, rechnungId);
     if (rechnung.Status?.value === "Bezahlt") {
@@ -59,6 +60,20 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     } catch {
       /* Einnahme silent fail — Rechnung-Update wichtiger */
+    }
+    // Verknuepfte Buchung abschliessen: zurueckgegeben + Rechnung bezahlt -> Abgerechnet.
+    // Guard auf "Zurueckgegeben", damit eine frueh bezahlte Rechnung (Equipment noch draussen)
+    // die Buchung nicht vorzeitig schliesst.
+    try {
+      const buchungId = rechnung.Buchung_Link?.[0]?.id;
+      if (buchungId) {
+        const b = await getRow<{ Status_Erweitert: { value: string } | null }>(TABLES.Buchungen, buchungId);
+        if (b.Status_Erweitert?.value === "Zurueckgegeben") {
+          await updateRow(TABLES.Buchungen, buchungId, { Status_Erweitert: "Abgerechnet" });
+        }
+      }
+    } catch (e) {
+      console.error("[rechnung-bezahlt] Buchung-Abschluss fehlgeschlagen:", e);
     }
     return NextResponse.json({ ok: true });
   } catch (e) {
