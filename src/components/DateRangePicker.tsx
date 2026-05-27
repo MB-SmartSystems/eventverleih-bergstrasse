@@ -46,7 +46,9 @@ export default function DateRangePicker({
   const selected = useMemo<DateRange | undefined>(() => {
     if (!rangeVon) return undefined;
     const from = isoToDate(rangeVon);
-    const to = rangeBis ? isoToDate(rangeBis) : undefined;
+    // Nur "von" gewaehlt: als 1-Tages-Range rendern (from==to), damit der Tag sichtbar
+    // markiert wird (range_start+range_end). Der generische "selected"-Slot ist ungestylt.
+    const to = rangeBis ? isoToDate(rangeBis) : from;
     return { from, to };
   }, [rangeVon, rangeBis]);
 
