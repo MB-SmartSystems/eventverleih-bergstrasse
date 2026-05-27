@@ -37,7 +37,7 @@ export interface AngebotHtmlContext {
     betrag_eur: number;
   }>;
 
-  mietsumme_eur: number;
+  gesamt_eur: number;
   anzahlung_eur: number;
   restzahlung_eur: number;
   kaution_eur: number;
@@ -180,10 +180,9 @@ ${leistung && leistung !== "—" ? `<div class="leistung">Mietzeitraum: ${leistu
 </table>
 
 <div class="summary">
-  <div class="row"><span>Mietsumme</span><span>${fmt(ctx.mietsumme_eur)} €</span></div>
   <div class="row sub"><span>Anzahlung bei Bestätigung (30 %)</span><span>${fmt(ctx.anzahlung_eur)} €</span></div>
   <div class="row sub"><span>Restzahlung bei Übergabe (70 %)</span><span>${fmt(ctx.restzahlung_eur)} €</span></div>
-  <div class="row total"><span>Gesamt</span><span>${fmt(ctx.mietsumme_eur)} €</span></div>
+  <div class="row total"><span>Gesamt</span><span>${fmt(ctx.gesamt_eur)} €</span></div>
   ${
     ctx.kaution_eur > 0
       ? `<div class="kaution-note">Zusätzlich wird bei Übergabe eine Kaution von ${fmt(ctx.kaution_eur)} € hinterlegt und nach beanstandungsfreier Rückgabe vollständig erstattet.</div>`

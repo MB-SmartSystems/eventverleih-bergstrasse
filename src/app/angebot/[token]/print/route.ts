@@ -122,10 +122,23 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
   if (preisAbholung > 0) zusatz.push({ bezeichnung: "Abholung", betrag_eur: preisAbholung });
   if (preisAufbau > 0) zusatz.push({ bezeichnung: "Aufbau", betrag_eur: preisAufbau });
 
+  const mietsumme = snap ? snap.preis_artikel : num(buchung.Preis_Artikel);
+  const gesamt = Math.round((mietsumme + preisLieferung + preisAbholung + preisAufbau) * 100) / 100;
+
+  // Gueltig-bis-Fallback: Angebotsdatum + 14 Tage (Angebot ist 14 Tage gueltig)
+  let gueltigBis = angebot.Gueltig_bis;
+  if (!gueltigBis && angebot.Angebotsdatum) {
+    const d = new Date(angebot.Angebotsdatum);
+    if (!isNaN(d.getTime())) {
+      d.setDate(d.getDate() + 14);
+      gueltigBis = d.toISOString().slice(0, 10);
+    }
+  }
+
   const context: AngebotHtmlContext = {
     angebotsnummer: angebot.Angebotsnummer,
     angebotsdatum: angebot.Angebotsdatum,
-    gueltig_bis: angebot.Gueltig_bis,
+    gueltig_bis: gueltigBis,
     leistung_von: snap ? snap.event_datum_von : buchung.Event_datum_von,
     leistung_bis: snap ? snap.event_datum_bis : buchung.Event_datum_bis,
     kunde: {
@@ -140,7 +153,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
     },
     positionen,
     zusatz_positionen: zusatz,
-    mietsumme_eur: snap ? snap.preis_artikel : num(buchung.Preis_Artikel),
+    gesamt_eur: gesamt,
     anzahlung_eur: snap ? snap.anzahlung_soll_eur : num(buchung.Anzahlung_Soll_Eur),
     restzahlung_eur: snap ? snap.restzahlung_soll_eur : num(buchung.Restzahlung_Soll_Eur),
     kaution_eur: snap ? snap.kaution_soll_eur : num(buchung.Kaution_Soll_Eur),
