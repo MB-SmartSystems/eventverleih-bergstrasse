@@ -325,7 +325,6 @@ export async function POST(req: NextRequest) {
     ].join("");
 
     const buchung = await createRow<BuchungRow>(TABLES.Buchungen, {
-      Status: "Anfrage",
       Status_Erweitert: "Anfrage",
       Standort_Typ: lieferAktiv ? "Privatgrund_Kunde" : "Privatgrund_Kunde",
       Event_datum_von: payload.event_datum_von,

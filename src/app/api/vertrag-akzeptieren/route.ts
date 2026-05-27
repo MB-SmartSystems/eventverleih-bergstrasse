@@ -241,7 +241,6 @@ async function handle(
     if (!currentStatus || earlyStati.has(currentStatus)) {
       // Status auf "Bestaetigt" — Hart-Block, Reserviert erst nach Anzahlung (Stripe-Webhook)
       await updateRow(TABLES.Buchungen, buchungId, {
-        Status: "Reserviert", // Legacy-Feld (alte Single-Select), bleibt zur Kompatibilitaet
         Status_Erweitert: "Bestaetigt",
       });
       await logAudit(buchungId, "Status_Change", {

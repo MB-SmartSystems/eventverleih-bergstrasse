@@ -150,7 +150,6 @@ export async function POST(req: NextRequest) {
 
     // Buchung anlegen
     const buchung = await createRow<{ id: number; Buchung_ID: number }>(TABLES.Buchungen, {
-      Status: "Anfrage",
       Status_Erweitert: "Anfrage",
       Standort_Typ: "Privatgrund_Kunde",
       Event_datum_von: von,
