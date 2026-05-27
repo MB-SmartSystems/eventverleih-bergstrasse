@@ -16,6 +16,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getRow, updateRow, createRow, TABLES } from "@/lib/baserow/client";
+import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -121,6 +122,7 @@ export async function POST(
       console.error("[ruecknahme audit-log]", e);
     }
 
+    invalidateAvailabilityCache();
     return NextResponse.json({ ok: true, stripe: stripeResult });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";

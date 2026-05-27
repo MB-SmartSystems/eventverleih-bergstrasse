@@ -88,27 +88,27 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     // Mail an Kunde
     const erstattungText = calc.erstattung_eur > 0
-      ? `Sie erhalten ${calc.erstattung_eur.toFixed(2)} EUR zurueck. Die Ueberweisung erfolgt in den naechsten 5 Werktagen.`
+      ? `Sie erhalten ${calc.erstattung_eur.toFixed(2)} EUR zurück. Die Überweisung erfolgt in den nächsten 5 Werktagen.`
       : calc.nachzahlung_eur > 0
-        ? `Die Stornogebuehr ist hoeher als Ihre Anzahlung. Bitte ueberweisen Sie ${calc.nachzahlung_eur.toFixed(2)} EUR an unsere Kontoverbindung.`
-        : `Es ist keine Erstattung faellig (kostenfreie Stornierung).`;
+        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Bitte überweisen Sie ${calc.nachzahlung_eur.toFixed(2)} EUR an unsere Kontoverbindung.`
+        : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
 
     const mailBody = `Hallo ${kunde.Vorname || ""} ${kunde.Nachname || ""},
 
 Ihre Stornierung der Buchung #${buchungId} ist eingegangen.
 
-Stornogebuehr (laut AGB): ${calc.stornogebuehr_prozent} % der Mietsumme
+Stornogebühr (laut AGB): ${calc.stornogebuehr_prozent} % der Mietsumme
   ${calc.staffel_label}
   Mietsumme: ${mietsumme.toFixed(2)} EUR
-  Stornogebuehr: ${calc.stornogebuehr_eur.toFixed(2)} EUR
+  Stornogebühr: ${calc.stornogebuehr_eur.toFixed(2)} EUR
   Bereits bezahlt: ${bezahlt.toFixed(2)} EUR
 
 ${erstattungText}
 
-Bei Rueckfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.
+Bei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.
 
-Mit freundlichen Gruessen
-Manuel Buettner — Eventverleih Bergstrasse`;
+Mit freundlichen Grüßen
+Manuel Büttner — Eventverleih Bergstrasse`;
 
     try {
       await createRow(TABLES.MailQueue, {

@@ -220,8 +220,10 @@ async function handle(
       Event_datum_bis: string | null;
       Stripe_Anzahlung_Link: string | null;
       Stripe_Komplettzahlung_Link: string | null;
+      Stripe_Restzahlung_Link: string | null;
       Anzahlung_Soll_Eur: string | number | null;
       Anzahlung_Bezahlt_am: string | null;
+      Restzahlung_Soll_Eur: string | number | null;
       Restzahlung_Bezahlt_am: string | null;
       Preis_Artikel: string | number | null;
       Preis_Lieferung: string | number | null;
@@ -381,6 +383,23 @@ async function handle(
           komplettLink = l.link_url;
         } catch (e) {
           console.error("[vertrag-akzeptieren] Komplettzahlungs-Link-Erzeugung fehlgeschlagen:", e);
+        }
+      }
+
+      // Restzahlungs-Link (Fallback — Hauptort ist anfrage/action bei Freigabe)
+      const restSoll = num(buchungFresh.Restzahlung_Soll_Eur);
+      if (!(buchungFresh.Stripe_Restzahlung_Link || "").trim() && restSoll > 0 && !buchungFresh.Restzahlung_Bezahlt_am) {
+        try {
+          const l = await createPaymentLink({
+            buchungId,
+            paymentType: "restzahlung",
+            amountEur: restSoll,
+            kundeName: kundeName || "Kunde",
+            description: `Restzahlung Buchung #${buchungId} — Event ${buchungFresh.Event_datum_von || ""}`,
+          });
+          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Restzahlung_Link: l.link_url });
+        } catch (e) {
+          console.error("[vertrag-akzeptieren] Restzahlungs-Link-Erzeugung fehlgeschlagen:", e);
         }
       }
 

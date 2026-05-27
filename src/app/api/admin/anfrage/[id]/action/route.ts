@@ -138,6 +138,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Lieferadresse: string | null;
       Stripe_Anzahlung_Link: string | null;
       Stripe_Komplettzahlung_Link: string | null;
+      Stripe_Restzahlung_Link: string | null;
     };
     type Kunde = {
       id: number;
@@ -314,6 +315,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         }
       } catch (e) {
         console.error("[anfrage-action] Stripe-Komplettzahlungs-Link fehlgeschlagen:", e);
+      }
+
+      // Restzahlung (70 %) — fuer Online-Restzahlung + Restzahlungs-Reminder-Mail-Link
+      try {
+        const restSoll = buchung.Restzahlung_Soll_Eur ? parseFloat(buchung.Restzahlung_Soll_Eur) : 0;
+        const alreadyLinkedR = (buchung.Stripe_Restzahlung_Link || "").trim().length > 0;
+        if (restSoll > 0 && !alreadyLinkedR) {
+          const desc = `Restzahlung Buchung #${buchungId} — Event ${buchung.Event_datum_von || ""}`;
+          const link = await createPaymentLink({
+            buchungId,
+            paymentType: "restzahlung",
+            amountEur: restSoll,
+            kundeName,
+            description: desc,
+          });
+          stripeUpdates.Stripe_Restzahlung_Link = link.link_url;
+        }
+      } catch (e) {
+        console.error("[anfrage-action] Stripe-Restzahlungs-Link fehlgeschlagen:", e);
       }
 
       if (Object.keys(stripeUpdates).length > 0) {
