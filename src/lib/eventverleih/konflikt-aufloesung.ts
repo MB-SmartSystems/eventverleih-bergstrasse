@@ -8,6 +8,8 @@
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { checkConflicts } from "./conflicts";
 import { queueConflictStornoMail } from "./conflict-mails";
+import { deactivatePaymentLinksFor } from "@/lib/stripe/payment-links";
+import { invalidateAvailabilityCache } from "./availability";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -65,6 +67,15 @@ export async function resolveKonfliktAfterAnzahlung(winnerBuchungId: number) {
         shared_artikel: c.shared_artikel_namen,
       });
 
+      // Verlierer-Stripe-Links deaktivieren — Kunde kann nicht mehr fuer den vergebenen Termin zahlen
+      try {
+        await deactivatePaymentLinksFor(c.buchung_id, "anzahlung");
+        await deactivatePaymentLinksFor(c.buchung_id, "komplettzahlung");
+        await deactivatePaymentLinksFor(c.buchung_id, "restzahlung");
+      } catch (e) {
+        console.error(`[konflikt-aufloesung] Link-Deaktivierung Buchung ${c.buchung_id}:`, e);
+      }
+
       // Mail an Verlierer
       if (loserKundeId) {
         await queueConflictStornoMail({
@@ -88,5 +99,6 @@ export async function resolveKonfliktAfterAnzahlung(winnerBuchungId: number) {
     Konflikt_Aufgeloest_am: new Date().toISOString().slice(0, 10),
   });
 
+  invalidateAvailabilityCache();
   return { resolved };
 }
