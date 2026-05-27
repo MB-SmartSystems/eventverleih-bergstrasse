@@ -321,7 +321,7 @@ async function handle(
     // Idempotency-Key stabil → kein Duplicate.
     {
       // MailQueue: Vertrag-Bestaetigungs-Mail (mit Manuel-Approval)
-      const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstrasse";
+      const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstraße";
       const vertragsUrl = `${origin}/vertrag/${token}`;
 
       // Kundenname fuer persoenliche Anrede + Stripe-Link-Beschreibung
@@ -384,7 +384,7 @@ async function handle(
         }
       }
 
-      const bankblock = `   Kontoinhaber: Manuel Buettner
+      const bankblock = `   Kontoinhaber: Manuel Büttner
    IBAN: DE84 5001 0517 5420 4742 10
    BIC:  INGDDEFFXXX
    Bank: ING-DiBa AG`;
@@ -398,7 +398,7 @@ Oder direkt komplett zahlen (dann ist alles erledigt):
         ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
    ${stripeLink}${komplettZeile}
 
-Alternativ klassisch per Ueberweisung:
+Alternativ klassisch per Überweisung:
 ${bankblock}`
         : bankblock;
 
@@ -413,17 +413,17 @@ ${bankblock}`
       const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
       const body = `${anrede}
 
-vielen Dank fuer Ihre Bestaetigung. Ihr Termin ist zunaechst vorgemerkt.
+vielen Dank für Ihre Bestätigung. Ihr Termin ist zunächst vorgemerkt.
 
-WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestaetigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
+WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestätigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
 ${stripeBlock}
 Verwendungszweck: ${angebot.Angebotsnummer}
 
-Restzahlung und Kaution folgen bei Uebergabe - gerne bar oder per Ueberweisung.
+Restzahlung und Kaution folgen bei Übergabe - gerne bar oder per Überweisung.
 
-Etwa 7 Tage vor dem Event melde ich mich fuer die finale Abstimmung von Uebergabe-Ort und -Zeit.
+Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit.
 
-Ihren vollstaendigen Mietvertrag mit allen Bedingungen finden Sie hier:
+Ihren vollständigen Mietvertrag mit allen Bedingungen finden Sie hier:
 ${vertragsUrl}${meinBereichUrl ? `
 
 Mein Bereich (Buchungs-Status + Zahlungen + Rechnungen):
@@ -431,15 +431,15 @@ ${meinBereichUrl}` : ""}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 
-Mit freundlichen Gruessen
-Manuel Buettner
+Mit freundlichen Grüßen
+Manuel Büttner
 
-Eventverleih Bergstrasse
-Schlesierstrasse 19a, 64665 Alsbach-Haehnlein
+Eventverleih Bergstraße
+Schlesierstraße 19a, 64665 Alsbach-Hähnlein
 Tel/WhatsApp: +49 156 79521124
 E-Mail: info@eventverleih-bergstrasse.de
 
-Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
+Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
       // Idempotency_Key STABIL (Buchung + Template) — bei Double-Submit kein 2. Eintrag,
       // weil Baserow keinen Unique-Constraint hat aber wir Pre-Check machen

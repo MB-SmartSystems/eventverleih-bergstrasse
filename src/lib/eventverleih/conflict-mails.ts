@@ -22,25 +22,25 @@ interface KonfliktMailParams {
  * (kein Manuel-Approval noetig — informativ + transparent).
  */
 export async function queueConflictHinweisMail(params: KonfliktMailParams) {
-  const subject = `Hinweis zu Ihrer Buchungsanfrage (${params.datumVon}) | Eventverleih Bergstrasse`;
+  const subject = `Hinweis zu Ihrer Buchungsanfrage (${params.datumVon}) | Eventverleih Bergstraße`;
   const artikelListe = params.artikelNamen.map((n) => `   - ${n}`).join("\n");
   const body = `Hallo ${params.kundeName},
 
-vielen Dank fuer Ihre Anfrage / Bestaetigung.
+vielen Dank für Ihre Anfrage / Bestätigung.
 
-Ein kurzer transparenter Hinweis: Aktuell liegt mir eine **parallele Anfrage** fuer den gleichen Termin und mindestens einen der angefragten Artikel vor:
+Ein kurzer transparenter Hinweis: Aktuell liegt mir eine **parallele Anfrage** für den gleichen Termin und mindestens einen der angefragten Artikel vor:
 
 ${artikelListe}
 
-Final reserviert sind die Artikel erst nach Eingang der Anzahlung. Wer zuerst die Anzahlung leistet, bekommt den Zuschlag — der/die andere Anfragende wird informiert und ich bemuehe mich um eine Alternative.
+Final reserviert sind die Artikel erst nach Eingang der Anzahlung. Wer zuerst die Anzahlung leistet, bekommt den Zuschlag — der/die andere Anfragende wird informiert und ich bemühe mich um eine Alternative.
 
 Falls Sie unsicher sind: gerne per WhatsApp kurz Bescheid geben (+49 156 79521124), dann besprechen wir die Lage.
 
-Mit freundlichen Gruessen
-Manuel Buettner
+Mit freundlichen Grüßen
+Manuel Büttner
 
-Eventverleih Bergstrasse
-Schlesierstrasse 19a, 64665 Alsbach-Haehnlein
+Eventverleih Bergstraße
+Schlesierstraße 19a, 64665 Alsbach-Hähnlein
 Tel/WhatsApp: +49 156 79521124
 E-Mail: info@eventverleih-bergstrasse.de`;
 
@@ -63,25 +63,25 @@ E-Mail: info@eventverleih-bergstrasse.de`;
  * weil Manuel ggf. mit Alternativen reagieren will.
  */
 export async function queueConflictStornoMail(params: KonfliktMailParams & { gewinnerName: string }) {
-  const subject = `Bedauerlich: Ihre Anfrage konnte nicht bestaetigt werden (${params.datumVon}) | Eventverleih Bergstrasse`;
+  const subject = `Bedauerlich: Ihre Anfrage konnte nicht bestätigt werden (${params.datumVon}) | Eventverleih Bergstraße`;
   const artikelListe = params.artikelNamen.map((n) => `   - ${n}`).join("\n");
   const body = `Hallo ${params.kundeName},
 
-leider muss ich Ihnen mitteilen, dass die Artikel fuer Ihren Termin am ${params.datumVon} bereits anderweitig vergeben sind:
+leider muss ich Ihnen mitteilen, dass die Artikel für Ihren Termin am ${params.datumVon} bereits anderweitig vergeben sind:
 
 ${artikelListe}
 
-Wie im vorherigen Hinweis erwaehnt: Reservierung wird erst mit Eingang der Anzahlung verbindlich. Eine andere Buchung hat die Anzahlung zuerst geleistet.
+Wie im vorherigen Hinweis erwähnt: Reservierung wird erst mit Eingang der Anzahlung verbindlich. Eine andere Buchung hat die Anzahlung zuerst geleistet.
 
-Ich bemuehe mich, Ihnen eine Alternative anzubieten — entweder mit aehnlichen Artikeln oder einem anderen Termin. Bitte melden Sie sich kurz, damit wir gemeinsam schauen koennen.
+Ich bemühe mich, Ihnen eine Alternative anzubieten — entweder mit ähnlichen Artikeln oder einem anderen Termin. Bitte melden Sie sich kurz, damit wir gemeinsam schauen können.
 
-Sollten Sie die gesamte Buchung nicht mehr brauchen: einfach kurz Bescheid geben, dann ist die Anfrage geloescht.
+Sollten Sie die gesamte Buchung nicht mehr brauchen: einfach kurz Bescheid geben, dann ist die Anfrage gelöscht.
 
-Mit freundlichen Gruessen und Entschuldigung fuer die Umstaende
-Manuel Buettner
+Mit freundlichen Grüßen und Entschuldigung für die Umstände
+Manuel Büttner
 
-Eventverleih Bergstrasse
-Schlesierstrasse 19a, 64665 Alsbach-Haehnlein
+Eventverleih Bergstraße
+Schlesierstraße 19a, 64665 Alsbach-Hähnlein
 Tel/WhatsApp: +49 156 79521124
 E-Mail: info@eventverleih-bergstrasse.de`;
 

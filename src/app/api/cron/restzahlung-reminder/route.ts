@@ -50,25 +50,25 @@ function parseDec(v: string | number | null | undefined): number {
 function buildMail(tone: "freundlich" | "dringender" | "letzte_mahnung", kundeName: string, restSoll: number, eventDatumVon: string, stripeLink: string | null, meinBereichUrl: string | null): { subject: string; body: string } {
   const linkLine = stripeLink
     ? `Am bequemsten zahlen Sie online:\n${stripeLink}\n\n`
-    : `Bitte ueberweisen Sie auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
+    : `Bitte überweisen Sie auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
   const memberBlock = meinBereichUrl ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n` : "";
-  const sig = `\n\nMit freundlichen Gruessen\nManuel Buettner — Eventverleih Bergstrasse\nTel/WhatsApp +49 156 79521124`;
+  const sig = `\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
   if (tone === "freundlich") {
     return {
       subject: "Erinnerung: Restzahlung Ihrer Buchung",
-      body: `Hallo ${kundeName},\n\neine kurze freundliche Erinnerung: in zwei Wochen findet Ihr Event statt (${eventDatumVon}). Bitte denken Sie an die Restzahlung von ${restSoll.toFixed(2)} EUR.\n\n${linkLine}Alternativ koennen Sie auch bar oder per EC-Karte bei der Uebergabe zahlen.${memberBlock}${sig}`,
+      body: `Hallo ${kundeName},\n\neine kurze freundliche Erinnerung: in zwei Wochen findet Ihr Event statt (${eventDatumVon}). Bitte denken Sie an die Restzahlung von ${restSoll.toFixed(2)} EUR.\n\n${linkLine}Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen.${memberBlock}${sig}`,
     };
   }
   if (tone === "dringender") {
     return {
       subject: "Restzahlung Ihrer Buchung — noch eine Woche",
-      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Damit die Uebergabe reibungslos klappt, brauche ich Ihre Restzahlung von ${restSoll.toFixed(2)} EUR bitte zeitnah.\n\n${linkLine}Falls Sie planen, bar zur Uebergabe zu zahlen, geben Sie mir kurz Bescheid — dann nehme ich es so auf.${memberBlock}${sig}`,
+      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Damit die Übergabe reibungslos klappt, brauche ich Ihre Restzahlung von ${restSoll.toFixed(2)} EUR bitte zeitnah.\n\n${linkLine}Falls Sie planen, bar zur Übergabe zu zahlen, geben Sie mir kurz Bescheid — dann nehme ich es so auf.${memberBlock}${sig}`,
     };
   }
   return {
     subject: "WICHTIG: Restzahlung Ihrer Buchung — Event in 3 Tagen",
-    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}). Die Restzahlung von ${restSoll.toFixed(2)} EUR ist noch offen.\n\nBitte zahlen Sie heute, sonst kann ich die Uebergabe leider nicht durchfuehren. Bei Bar-Zahlung bei Uebergabe brauche ich eine WhatsApp-Bestaetigung von Ihnen, sonst gilt die Reservierung als gefaehrdet.\n\n${linkLine}${memberBlock}${sig}`,
+    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}). Die Restzahlung von ${restSoll.toFixed(2)} EUR ist noch offen.\n\nBitte zahlen Sie heute, sonst kann ich die Übergabe leider nicht durchführen. Bei Bar-Zahlung bei Übergabe brauche ich eine WhatsApp-Bestätigung von Ihnen, sonst gilt die Reservierung als gefährdet.\n\n${linkLine}${memberBlock}${sig}`,
   };
 }
 

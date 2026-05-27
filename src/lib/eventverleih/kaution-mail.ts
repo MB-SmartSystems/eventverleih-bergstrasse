@@ -90,33 +90,33 @@ export async function queueKautionHoldMail(opts: {
     ? `\n\nMein Bereich (Buchungs-Status + Zahlungen + Rechnungen):\n${meinBereichUrl}`
     : "";
 
-  const subject = "Kaution hinterlegen | Eventverleih Bergstrasse";
+  const subject = "Kaution hinterlegen | Eventverleih Bergstraße";
   const mailBody = `${greeting},
 
-vor der Uebergabe brauchen wir Ihre Kaution als Sicherheit. **Wir buchen die Kaution NICHT ab** — Stripe blockiert den Betrag nur auf Ihrer Karte (sogenannte Pre-Authorization). Bei Rueckgabe ohne Schaeden wird der Hold automatisch aufgeloest, es fliesst kein Geld.
+vor der Übergabe brauchen wir Ihre Kaution als Sicherheit. **Wir buchen die Kaution NICHT ab** — Stripe blockiert den Betrag nur auf Ihrer Karte (sogenannte Pre-Authorization). Bei Rückgabe ohne Schäden wird der Hold automatisch aufgelöst, es fließt kein Geld.
 
 Kautions-Betrag: ${amountFmt} EUR
 
 Bitte hier hinterlegen:
 ${kautionUrl}
 
-Wichtiges in Kuerze:
-  * Karte wird gepruft + Betrag vorgemerkt (kein Abbuchen)
-  * Hold ist standardmaessig 7 Tage aktiv. Bei Visa/Mastercard verlaengert Stripe ggf. auf bis zu 30 Tage automatisch.
-  * Bei Rueckgabe ohne Schaeden: Aufloesung des Holds in der Regel innerhalb 1-3 Werktagen.
-  * Falls Ihre Karte keine Pre-Authorization unterstuetzt: einfach auf diese Mail antworten, dann nehmen wir die Kaution bei Uebergabe in bar.${memberBlock}
+Wichtiges in Kürze:
+  * Karte wird geprüft + Betrag vorgemerkt (kein Abbuchen)
+  * Hold ist standardmäßig 7 Tage aktiv. Bei Visa/Mastercard verlängert Stripe ggf. auf bis zu 30 Tage automatisch.
+  * Bei Rückgabe ohne Schäden: Auflösung des Holds in der Regel innerhalb 1-3 Werktagen.
+  * Falls Ihre Karte keine Pre-Authorization unterstützt: einfach auf diese Mail antworten, dann nehmen wir die Kaution bei Übergabe in bar.${memberBlock}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 
-Mit freundlichen Gruessen
-Manuel Buettner
+Mit freundlichen Grüßen
+Manuel Büttner
 
-Eventverleih Bergstrasse
-Schlesierstrasse 19a, 64665 Alsbach-Haehnlein
+Eventverleih Bergstraße
+Schlesierstraße 19a, 64665 Alsbach-Hähnlein
 Tel/WhatsApp: +49 156 79521124
 E-Mail: info@eventverleih-bergstrasse.de
 
-Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
+Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
   // Idempotenz-Key: Default date-suffixed (Reminder mehrfach erlaubt), Cron uebergibt stabilen Key.
   const today = new Date().toISOString().slice(0, 10);
