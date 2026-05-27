@@ -46,7 +46,6 @@ export interface RechnungContext {
     email: string;
     website: string;
     iban: string;
-    paypal: string;
     ust_hinweis: string;
   };
 }
@@ -188,8 +187,7 @@ ${leistung && leistung !== "—" ? `<div class="leistung">Leistungszeitraum: ${l
   <strong>Zahlungsdetails</strong>
   Bitte überweisen Sie den Betrag bis spätestens ${fmtDate(ctx.faelligkeit)} auf folgendes Konto:<br>
   Kontoinhaber: ${escape(f.inhaber)}<br>
-  IBAN: <span class="iban">${escape(f.iban)}</span><br>
-  Alternativ per PayPal an: ${escape(f.paypal)}
+  IBAN: <span class="iban">${escape(f.iban)}</span>
 </div>
 
 <div class="ust">${escape(f.ust_hinweis)}</div>

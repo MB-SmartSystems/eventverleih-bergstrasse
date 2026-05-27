@@ -205,7 +205,6 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const telefon = configText(config, "Telefon", "+49 156 79521124");
   const email = configText(config, "Email", "info@eventverleih-bergstrasse.de");
   const iban = configText(config, "IBAN", "");
-  const paypal = configText(config, "PayPal", "info@eventverleih-bergstrasse.de");
   const steuernummer = configText(config, "Steuernummer", "");
 
   return (
@@ -361,8 +360,6 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                 Kontoinhaber: {inhaber}
                 <br />
                 IBAN: <span className="font-mono text-warm-text">{iban}</span>
-                <br />
-                Alternativ per PayPal an: {paypal}
               </div>
             </div>
           )}

@@ -12,9 +12,10 @@
  *  6. Triggert n8n-Webhook eve-rechnung-pdf-mail mit { rechnung_id }
  *  7. Antwortet sofort {ok, rechnung_id, token, url}
  *
- * Der n8n-Workflow rendert HTML → Gotenberg → PDF, lädt das PDF zu
- * Vercel Blob hoch, aktualisiert Rechnungen.PDF_URL und versendet die
- * Mail mit Attachment.
+ * Der n8n-Workflow eve-rechnung-render-mail rendert HTML → Gotenberg → PDF und
+ * versendet die Mail mit Attachment. Die PDF-Ablage für den In-Portal-Download
+ * (Rechnungen.PDF_URL) macht separat der eve-pdf-render-Flow
+ * (/rechnung/[token]/print → /api/internal/store-pdf).
  */
 import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";

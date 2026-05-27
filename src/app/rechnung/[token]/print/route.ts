@@ -21,7 +21,6 @@ const FIRMA = {
   email: "info@eventverleih-bergstrasse.de",
   website: "eventverleih-bergstrasse.de",
   iban: "DE84 5001 0517 5420 4742 10",
-  paypal: "manuelbuettner@web.de",
   ust_hinweis: "Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.",
 };
 
