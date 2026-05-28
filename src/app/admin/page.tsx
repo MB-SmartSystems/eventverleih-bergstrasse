@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { loadInboxData, type InboxItem, type QuadrantData } from "@/lib/eventverleih/inbox";
+import { PendingMailRow } from "@/components/admin/PendingMailRow";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -168,32 +169,22 @@ export default async function AdminInboxHome() {
         </div>
       )}
 
-      {/* Mail-Queue-Widget */}
-      {data.mailqueue_pending > 0 && (
-        <Link
-          href="/admin/anfragen"
-          className="flex items-center justify-between gap-3 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3 hover:bg-yellow-100 transition-colors"
-        >
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="font-display font-semibold text-yellow-900">
-                Mail-Queue: {data.mailqueue_pending}{" "}
-                {data.mailqueue_pending === 1 ? "Mail wartet" : "Mails warten"} auf Freigabe
-              </div>
-              <div className="text-xs text-yellow-800">
-                Klicken um zu reviewen und freizugeben
-              </div>
-            </div>
+      {/* Mail-Queue Pending — inline Approve/Reject pro Mail */}
+      {data.pending_mails.length > 0 && (
+        <div className="rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-3">
+          <div className="font-display font-semibold text-yellow-900 mb-2">
+            {data.pending_mails.length}{" "}
+            {data.pending_mails.length === 1 ? "Mail wartet" : "Mails warten"} auf Freigabe
           </div>
-          <svg
-            className="w-5 h-5 text-yellow-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+          <p className="text-xs text-yellow-800 mb-3">
+            Reminder-Mails an Kunden — vor dem Versand kurz prüfen ob die Zahlung wirklich noch offen ist.
+          </p>
+          <div className="space-y-2">
+            {data.pending_mails.map((m) => (
+              <PendingMailRow key={m.id} mail={m} />
+            ))}
+          </div>
+        </div>
       )}
 
       <div>

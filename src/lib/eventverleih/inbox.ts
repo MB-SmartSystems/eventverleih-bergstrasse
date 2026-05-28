@@ -37,8 +37,19 @@ export interface KonfliktItem {
   link: string;
 }
 
+export interface PendingMailItem {
+  id: number;
+  subject: string;
+  body: string;
+  template_key: string;
+  buchung_id?: number;
+  kunde_name?: string;
+  erstellt_am: string | null;
+}
+
 export interface InboxData {
   mailqueue_pending: number;
+  pending_mails: PendingMailItem[];
   konflikte: KonfliktItem[];
   gerade_bestaetigt: QuadrantData;
   heute_zu_tun: QuadrantData;
@@ -72,7 +83,10 @@ interface MailQueueRow {
   id: number;
   Approval_Status: { value: string } | null;
   Subject: string | null;
+  Body: string | null;
+  Template_Key: string | null;
   Buchung_Link: Array<{ id: number; value: string }> | null;
+  Kunde_Link: Array<{ id: number; value: string }> | null;
   Erstellt_am: string | null;
 }
 
@@ -156,21 +170,23 @@ export async function loadInboxData(): Promise<InboxData> {
       link: `/admin/buchungen/${b.id}`,
     });
   }
-  // Mail-Queue Pending → Drill-Down
+  // Pending-Mails werden NICHT mehr in den Quadrant gepackt — sie bekommen einen
+  // eigenen Block direkt unter dem Mail-Queue-Banner mit Freigeben/Verwerfen-Buttons
+  // (siehe pending_mails unten).
   const pendingMails = mailqueue.filter(
     (m) => m.Approval_Status?.value === "Pending",
   );
-  for (const m of pendingMails) {
-    heuteItems.push({
+  const pending_mails: PendingMailItem[] = pendingMails
+    .sort((a, b) => (b.Erstellt_am || "").localeCompare(a.Erstellt_am || ""))
+    .map((m) => ({
       id: m.id,
-      buchungId: m.Buchung_Link?.[0]?.id,
-      title: m.Subject || `MailQueue #${m.id}`,
-      subtitle: `Mail wartet auf Freigabe`,
-      link: m.Buchung_Link?.[0]?.id
-        ? `/admin/buchungen/${m.Buchung_Link[0].id}`
-        : `/admin/anfragen`,
-    });
-  }
+      subject: m.Subject || `MailQueue #${m.id}`,
+      body: m.Body || "",
+      template_key: m.Template_Key || "",
+      buchung_id: m.Buchung_Link?.[0]?.id,
+      kunde_name: m.Kunde_Link?.[0]?.value || m.Buchung_Link?.[0]?.value,
+      erstellt_am: m.Erstellt_am,
+    }));
   // Uebergaben heute (Datum_Beginn = heute)
   const uebergabenHeute = buchungen.filter(
     (b) =>
@@ -417,6 +433,7 @@ export async function loadInboxData(): Promise<InboxData> {
 
   return {
     mailqueue_pending,
+    pending_mails,
     konflikte,
     gerade_bestaetigt: {
       total: geradeBestaetigtItems.length,
