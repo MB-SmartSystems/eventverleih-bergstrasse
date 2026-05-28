@@ -1,16 +1,22 @@
 /**
- * GET /api/cron/restzahlung-reminder — Vercel-Cron taeglich 07:30
+ * GET /api/cron/restzahlung-reminder — Vercel-Cron täglich 07:30
  *
- * Plan Phase 5 B9:
  *  - listet alle Buchungen mit Status=Reserviert + Event in T-14/T-7/T-3
- *  - schickt Mail mit eskalierendem Wording + Stripe-Restzahlungs-Link
- *  - T-3: Telegram-Push an Manuel
+ *  - legt freundliche Restzahlungs-Info-Mail in MailQueue (Approval_Status=Pending)
+ *  - KEIN Telegram-T-3-Push, KEINE Eskalation — Manuel sieht offene Restzahlungen
+ *    morgens im /guten-morgen Schritt 3g und entscheidet pro Buchung
  *  - Idempotency-Key pro Buchung+Stufe verhindert doppelte Mails
  *
  * Vercel-Cron Auth via CRON_SECRET (siehe vercel docs).
+ *
+ * Sicherheits-Gate (analog Anzahlung): Pending-Mails werden vom n8n-Workflow
+ * `eve-mailqueue-poll` NICHT versendet (Filter Auto_Reply|Approved). Falls
+ * Restzahlung schon eingegangen aber noch nicht im Dashboard quittiert, kann
+ * Manuel via Trigger-Phrase "Restzahlung [Kunde] ist da" Baserow patchen +
+ * Pending-Mail canceln.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { listAllRows, listRows, createRow, TABLES } from "@/lib/baserow/client";
+import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { runAnzahlungReminder } from "@/lib/eventverleih/anzahlung-reminder";
 
@@ -30,9 +36,9 @@ interface BuchungRow {
 }
 
 const STUFEN = [
-  { tage: 14, tpl: "restzahlung_T14", tone: "freundlich" as const },
-  { tage: 7, tpl: "restzahlung_T7", tone: "dringender" as const },
-  { tage: 3, tpl: "restzahlung_T3", tone: "letzte_mahnung" as const },
+  { tage: 14, tpl: "restzahlung_pre14" },
+  { tage: 7, tpl: "restzahlung_pre7" },
+  { tage: 3, tpl: "restzahlung_pre3" },
 ];
 
 function daysBetween(future: string): number {
@@ -48,28 +54,42 @@ function parseDec(v: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
-function buildMail(tone: "freundlich" | "dringender" | "letzte_mahnung", kundeName: string, restSoll: number, eventDatumVon: string, stripeLink: string | null, meinBereichUrl: string | null): { subject: string; body: string } {
+/**
+ * Freundliche Restzahlungs-Erinnerung — gleicher Ton für alle 3 Stufen,
+ * nur Eingangs-Satz variiert. KEINE Eskalation, KEIN "sonst keine Übergabe".
+ */
+function buildMail(
+  tpl: string,
+  kundeName: string,
+  restSoll: number,
+  eventDatumVon: string,
+  stripeLink: string | null,
+  meinBereichUrl: string | null,
+): { subject: string; body: string } {
   const linkLine = stripeLink
-    ? `Am bequemsten zahlen Sie online:\n${stripeLink}\n\n`
-    : `Bitte überweisen Sie auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
-  const memberBlock = meinBereichUrl ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n` : "";
-  const sig = `\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+    ? `Am bequemsten online:\n${stripeLink}\n\n`
+    : `Überweisung auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
+  const memberBlock = meinBereichUrl
+    ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
+    : "";
+  const sig = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
-  if (tone === "freundlich") {
-    return {
-      subject: "Erinnerung: Restzahlung Ihrer Buchung",
-      body: `Hallo ${kundeName},\n\neine kurze freundliche Erinnerung: in zwei Wochen findet Ihr Event statt (${eventDatumVon}). Bitte denken Sie an die Restzahlung von ${restSoll.toFixed(2)} EUR.\n\n${linkLine}Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen.${memberBlock}${sig}`,
-    };
+  let opening = "";
+  if (tpl === "restzahlung_pre14") {
+    opening = `in zwei Wochen ist Ihr Event (${eventDatumVon}).`;
+  } else if (tpl === "restzahlung_pre7") {
+    opening = `Ihr Event am ${eventDatumVon} ist in einer Woche.`;
+  } else {
+    opening = `Ihr Event am ${eventDatumVon} ist in wenigen Tagen.`;
   }
-  if (tone === "dringender") {
-    return {
-      subject: "Restzahlung Ihrer Buchung — noch eine Woche",
-      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Damit die Übergabe reibungslos klappt, brauche ich Ihre Restzahlung von ${restSoll.toFixed(2)} EUR bitte zeitnah.\n\n${linkLine}Falls Sie planen, bar zur Übergabe zu zahlen, geben Sie mir kurz Bescheid — dann nehme ich es so auf.${memberBlock}${sig}`,
-    };
-  }
+
+  const core = `Damit die Übergabe entspannt klappt, wäre die Restzahlung von ${restSoll.toFixed(2)} EUR vorab gut. Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen — kurze WhatsApp reicht, dann nehme ich es so auf.`;
+
+  const pscript = `Falls die Restzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
+
   return {
-    subject: "WICHTIG: Restzahlung Ihrer Buchung — Event in 3 Tagen",
-    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}). Die Restzahlung von ${restSoll.toFixed(2)} EUR ist noch offen.\n\nBitte zahlen Sie heute, sonst kann ich die Übergabe leider nicht durchführen. Bei Bar-Zahlung bei Übergabe brauche ich eine WhatsApp-Bestätigung von Ihnen, sonst gilt die Reservierung als gefährdet.\n\n${linkLine}${memberBlock}${sig}`,
+    subject: `Kurze Erinnerung: Restzahlung Ihrer Buchung am ${eventDatumVon}`,
+    body: `Hallo ${kundeName},\n\n${opening}\n\n${core}\n\n${linkLine}${pscript}${memberBlock}${sig}`,
   };
 }
 
@@ -85,6 +105,7 @@ export async function GET(req: NextRequest) {
     pruefte: 0,
     mails_versendet: 0,
     skipped_duplicate: 0,
+    skipped_bezahlt_inzwischen: 0,
     fehler: 0,
     details: [] as Array<Record<string, unknown>>,
   };
@@ -115,11 +136,22 @@ export async function GET(req: NextRequest) {
         continue;
       }
 
+      // Sicherheits-Pre-Check: frisches getRow direkt vor createRow.
+      try {
+        const fresh = await getRow<BuchungRow>(TABLES.Buchungen, b.id);
+        if (fresh.Restzahlung_Bezahlt_am) {
+          result.skipped_bezahlt_inzwischen++;
+          continue;
+        }
+      } catch (e) {
+        console.error("[restzahlung-reminder] pre-check getRow fehlgeschlagen:", e);
+      }
+
       const kundeId = b.Kunde_Link?.[0]?.id;
       const kundeName = b.Kunde_Link?.[0]?.value || "";
       if (!kundeId) continue;
 
-      // Auto-Login-Link fuer Mein-Bereich (fail-soft)
+      // Auto-Login-Link für Mein-Bereich (fail-soft)
       let meinBereichUrl: string | null = null;
       try {
         meinBereichUrl = await memberAutoLoginUrl(kundeId);
@@ -127,7 +159,7 @@ export async function GET(req: NextRequest) {
         console.error("[restzahlung-reminder] member-token fehlgeschlagen:", e);
       }
 
-      const mail = buildMail(stufe.tone, kundeName, restSoll, b.Event_datum_von, b.Stripe_Restzahlung_Link, meinBereichUrl);
+      const mail = buildMail(stufe.tpl, kundeName, restSoll, b.Event_datum_von, b.Stripe_Restzahlung_Link, meinBereichUrl);
 
       try {
         await createRow(TABLES.MailQueue, {
@@ -137,7 +169,7 @@ export async function GET(req: NextRequest) {
           Template_Key: stufe.tpl,
           Subject: mail.subject,
           Body: mail.body,
-          Approval_Status: "Auto_Reply",
+          Approval_Status: "Pending",
           Idempotency_Key: idemKey,
         });
         result.mails_versendet++;
@@ -146,34 +178,9 @@ export async function GET(req: NextRequest) {
         result.fehler++;
         console.error("[restzahlung-reminder] mail-insert fehlgeschlagen:", e);
       }
-
-      // Telegram-Push bei T-3
-      if (stufe.tage === 3) {
-        const notifyUrl = process.env.N8N_ANFRAGE_NOTIFY_URL || "";
-        if (notifyUrl) {
-          try {
-            await fetch(notifyUrl, {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                event: "restzahlung_offen_T3",
-                buchung_id: b.id,
-                buchung_nr: b.Buchung_ID,
-                kunde_name: kundeName,
-                restzahlung_eur: restSoll.toFixed(2),
-                event_datum: b.Event_datum_von,
-                hinweis: "Restzahlung 3 Tage vor Event noch offen — letzte Mahnung an Kunde raus",
-              }),
-              signal: AbortSignal.timeout(5000),
-            });
-          } catch (e) {
-            console.error("[restzahlung-reminder] telegram-notify fehlgeschlagen:", e);
-          }
-        }
-      }
     }
 
-    // Hobby-Plan: kein eigener Cron — Anzahlungs-Reminder hier mit-ausfuehren (fail-soft)
+    // Hobby-Plan: kein eigener Cron — Anzahlungs-Reminder hier mit-ausführen (fail-soft)
     let anzahlung: Record<string, unknown> = {};
     try {
       anzahlung = await runAnzahlungReminder();
