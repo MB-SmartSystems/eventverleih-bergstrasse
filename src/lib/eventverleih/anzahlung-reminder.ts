@@ -1,12 +1,21 @@
 /**
  * Anzahlungs-Reminder-Logik (Hobby-Plan: kein eigener Cron — wird vom
- * restzahlung-reminder-Cron mit-ausgefuehrt, beide laufen morgens).
+ * restzahlung-reminder-Cron mit-ausgeführt, beide laufen morgens).
  *
- * Schliesst die "Bestaetigt aber nie bezahlt"-Luecke: bestaetigte Buchungen ohne
+ * Schließt die "Bestätigt aber nie bezahlt"-Lücke: bestätigte Buchungen ohne
  * Anzahlungseingang versanden sonst lautlos (Stripe-Webhook setzt erst BEI Zahlung
  * auf Reserviert). KEIN Auto-Storno (first-to-pay-wins, weich) — Manuel entscheidet.
+ *
+ * Ton: freundliche Info, KEINE Mahnung. Wording vermittelt "Termin ist vorgemerkt,
+ * verbindlich-eingebucht erst mit Anzahlung — first-to-pay-wins". Alle Stufen tragen
+ * denselben Ton; nur der Eingangs-Satz variiert je Trigger.
+ *
+ * Sicherheits-Gate: Mails landen mit Approval_Status="Pending" in MailQueue und
+ * gehen erst nach Manuel-Freigabe raus. Falls Anzahlung tatsächlich schon
+ * eingegangen ist (Bank-Überweisung, noch nicht im Dashboard quittiert), wird
+ * die Pending-Mail im /guten-morgen via Trigger-Phrase gecancelt.
  */
-import { listAllRows, listRows, createRow, TABLES } from "@/lib/baserow/client";
+import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 
 interface BuchungRow {
@@ -18,18 +27,36 @@ interface BuchungRow {
   Anzahlung_Bezahlt_am: string | null;
   Stripe_Anzahlung_Link: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
+  Angebote: Array<{ id: number; value: string }> | null;
 }
 
+interface AngebotRow {
+  id: number;
+  Akzeptiert_am: string | null;
+}
+
+/**
+ * Trigger-Stufen — Priorisierung absteigend (näher am Event = wichtiger).
+ * Bei Mehrfach-Match an einem Tag (z.B. Buchung 7 Tage vor Event mit Akzept vor 3 Tagen
+ * matched sowohl pre7 als auch post3) gewinnt der FRUEHESTE Eintrag dieser Liste.
+ */
 const STUFEN = [
-  { tage: 14, tpl: "anzahlung_T14", tone: "freundlich" as const },
-  { tage: 7, tpl: "anzahlung_T7", tone: "dringender" as const },
-  { tage: 3, tpl: "anzahlung_T3", tone: "letzte_chance" as const },
+  { tpl: "anzahlung_pre3", art: "pre_event" as const, tage: 3 },
+  { tpl: "anzahlung_pre7", art: "pre_event" as const, tage: 7 },
+  { tpl: "anzahlung_pre14", art: "pre_event" as const, tage: 14 },
+  { tpl: "anzahlung_post3", art: "post_bestaetigt" as const, tage: 3 },
 ];
 
 function daysBetween(future: string): number {
   const d = new Date(future);
   if (isNaN(d.getTime())) return -1;
   return Math.ceil((d.getTime() - Date.now()) / 86_400_000);
+}
+
+function daysSince(past: string): number {
+  const d = new Date(past);
+  if (isNaN(d.getTime())) return -1;
+  return Math.floor((Date.now() - d.getTime()) / 86_400_000);
 }
 
 function parseDec(v: string | number | null | undefined): number {
@@ -39,8 +66,12 @@ function parseDec(v: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
+/**
+ * Freundliche Info-Mail: "Reservierung noch nicht final, solange Anzahlung nicht da"
+ * — gleicher Ton für alle Stufen, nur Eingangs-Satz variiert.
+ */
 function buildMail(
-  tone: "freundlich" | "dringender" | "letzte_chance",
+  tpl: string,
   kundeName: string,
   anzahlungSoll: number,
   eventDatumVon: string,
@@ -48,31 +79,36 @@ function buildMail(
   meinBereichUrl: string | null,
 ): { subject: string; body: string } {
   const linkLine = stripeLink
-    ? `Am bequemsten zahlen Sie online:\n${stripeLink}\n\n`
-    : `Bitte überweisen Sie auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
-  const memberBlock = meinBereichUrl ? `\nIhren Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n` : "";
-  const sig = `\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+    ? `Am bequemsten online (sofort eingebucht):\n${stripeLink}\n\n`
+    : `Überweisung auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
+  const memberBlock = meinBereichUrl
+    ? `\nIhren Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
+    : "";
+  const sig = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
-  if (tone === "freundlich") {
-    return {
-      subject: "Erinnerung: Anzahlung zur Reservierung Ihrer Buchung",
-      body: `Hallo ${kundeName},\n\nvielen Dank für Ihre Bestätigung. Ihr Termin am ${eventDatumVon} ist für Sie vorgemerkt — verbindlich reserviert wird er mit Eingang der Anzahlung von ${anzahlungSoll.toFixed(2)} EUR.\n\n${linkLine}So ist der Termin sicher für Sie geblockt.${memberBlock}${sig}`,
-    };
+  let opening = "";
+  if (tpl === "anzahlung_post3") {
+    opening = `vielen Dank für Ihre Bestätigung. Ihr Termin am ${eventDatumVon} ist bei mir vorgemerkt.`;
+  } else if (tpl === "anzahlung_pre14") {
+    opening = `kurze Info zu Ihrer Buchung am ${eventDatumVon}: der Termin ist bei mir vorgemerkt.`;
+  } else if (tpl === "anzahlung_pre7") {
+    opening = `Ihr Event am ${eventDatumVon} ist in einer Woche. Ihr Termin ist bei mir vorgemerkt.`;
+  } else {
+    opening = `Ihr Event am ${eventDatumVon} ist in wenigen Tagen. Ihr Termin ist bei mir vorgemerkt.`;
   }
-  if (tone === "dringender") {
-    return {
-      subject: "Anzahlung Ihrer Buchung — Termin in einer Woche",
-      body: `Hallo ${kundeName},\n\nIhr Event ist in einer Woche (${eventDatumVon}). Die Anzahlung von ${anzahlungSoll.toFixed(2)} EUR ist noch offen — erst damit ist der Termin verbindlich für Sie reserviert.\n\n${linkLine}Bitte zeitnah, damit Ihnen die Artikel sicher zur Verfügung stehen.${memberBlock}${sig}`,
-    };
-  }
+
+  const core = `Damit ich die Teile fest für Sie einbuchen kann, brauche ich noch die Anzahlung von ${anzahlungSoll.toFixed(2)} EUR. Solange die nicht da ist, gilt bei mir first-come-first-serve — ich blockiere die Artikel nicht hart, falls jemand anders schneller zahlt.`;
+
+  const pscript = `Falls die Anzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
+
   return {
-    subject: "WICHTIG: Anzahlung Ihrer Buchung — Termin in 3 Tagen",
-    body: `Hallo ${kundeName},\n\nIhr Event findet in 3 Tagen statt (${eventDatumVon}), die Anzahlung von ${anzahlungSoll.toFixed(2)} EUR ist noch nicht eingegangen.\n\nBitte leisten Sie die Anzahlung heute, damit ich den Termin verbindlich für Sie reservieren kann — ohne Anzahlung kann ich die Artikel nicht garantieren.\n\n${linkLine}${memberBlock}${sig}`,
+    subject: `Kurze Info zu Ihrer Buchung am ${eventDatumVon}`,
+    body: `Hallo ${kundeName},\n\n${opening}\n\n${core}\n\n${linkLine}${pscript}${memberBlock}${sig}`,
   };
 }
 
 export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
-  const result = { pruefte: 0, mails_versendet: 0, skipped_duplicate: 0, fehler: 0 };
+  const result = { pruefte: 0, mails_versendet: 0, skipped_duplicate: 0, skipped_bezahlt_inzwischen: 0, fehler: 0 };
 
   const all = await listAllRows<BuchungRow>(TABLES.Buchungen);
   for (const b of all.results) {
@@ -83,8 +119,25 @@ export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
     if (anzahlungSoll <= 0) continue;
 
     result.pruefte++;
+
+    // Trigger-Match: alle passenden Stufen sammeln, hoechst-priorisierte (= erste in STUFEN) gewinnt.
     const tageBis = daysBetween(b.Event_datum_von);
-    const stufe = STUFEN.find((s) => s.tage === tageBis);
+    let akzeptAm: string | null = null;
+    const angebotId = b.Angebote?.[0]?.id;
+    if (angebotId) {
+      try {
+        const ang = await getRow<AngebotRow>(TABLES.Angebote, angebotId);
+        akzeptAm = ang.Akzeptiert_am;
+      } catch (e) {
+        console.error("[anzahlung-reminder] angebot-fetch fehlgeschlagen:", e);
+      }
+    }
+    const tageSeitBest = akzeptAm ? daysSince(akzeptAm) : -1;
+
+    const stufe = STUFEN.find((s) => {
+      if (s.art === "pre_event") return tageBis === s.tage;
+      return tageSeitBest === s.tage;
+    });
     if (!stufe) continue;
 
     const idemKey = `B${b.id}-${stufe.tpl}`;
@@ -92,6 +145,18 @@ export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
     if (existing.results.find((m) => m.Idempotency_Key === idemKey)) {
       result.skipped_duplicate++;
       continue;
+    }
+
+    // Sicherheits-Pre-Check direkt vor createRow: frisches getRow, falls Stripe-Webhook
+    // oder Manuel-Quittierung zwischen listAllRows und hier passiert ist.
+    try {
+      const fresh = await getRow<BuchungRow>(TABLES.Buchungen, b.id);
+      if (fresh.Anzahlung_Bezahlt_am) {
+        result.skipped_bezahlt_inzwischen++;
+        continue;
+      }
+    } catch (e) {
+      console.error("[anzahlung-reminder] pre-check getRow fehlgeschlagen:", e);
     }
 
     const kundeId = b.Kunde_Link?.[0]?.id;
@@ -105,7 +170,7 @@ export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
       console.error("[anzahlung-reminder] member-token fehlgeschlagen:", e);
     }
 
-    const mail = buildMail(stufe.tone, kundeName, anzahlungSoll, b.Event_datum_von, b.Stripe_Anzahlung_Link, meinBereichUrl);
+    const mail = buildMail(stufe.tpl, kundeName, anzahlungSoll, b.Event_datum_von, b.Stripe_Anzahlung_Link, meinBereichUrl);
 
     try {
       await createRow(TABLES.MailQueue, {
@@ -115,37 +180,13 @@ export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
         Template_Key: stufe.tpl,
         Subject: mail.subject,
         Body: mail.body,
-        Approval_Status: "Auto_Reply",
+        Approval_Status: "Pending",
         Idempotency_Key: idemKey,
       });
       result.mails_versendet++;
     } catch (e) {
       result.fehler++;
       console.error("[anzahlung-reminder] mail-insert fehlgeschlagen:", e);
-    }
-
-    if (stufe.tage === 3) {
-      const notifyUrl = process.env.N8N_ANFRAGE_NOTIFY_URL || "";
-      if (notifyUrl) {
-        try {
-          await fetch(notifyUrl, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event: "anzahlung_offen_T3",
-              buchung_id: b.id,
-              buchung_nr: b.Buchung_ID,
-              kunde_name: kundeName,
-              anzahlung_eur: anzahlungSoll.toFixed(2),
-              event_datum: b.Event_datum_von,
-              hinweis: "Anzahlung 3 Tage vor Event noch offen — bestaetigte Buchung droht zu versanden",
-            }),
-            signal: AbortSignal.timeout(5000),
-          });
-        } catch (e) {
-          console.error("[anzahlung-reminder] telegram-notify fehlgeschlagen:", e);
-        }
-      }
     }
   }
 
