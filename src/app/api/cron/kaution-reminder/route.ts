@@ -17,6 +17,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, TABLES } from "@/lib/baserow/client";
 import { queueKautionHoldMail } from "@/lib/eventverleih/kaution-mail";
+import { runReviewReminder } from "@/lib/eventverleih/review-reminder";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -100,7 +101,16 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, heute, result });
+    // Sub-Pass: Review-Reminder (kein eigener Cron wg. Hobby-Cron-Limit). Fail-soft —
+    // darf den Kaution-Cron nie kippen.
+    let review: unknown = null;
+    try {
+      review = await runReviewReminder();
+    } catch (e) {
+      console.error("[kaution-reminder] review sub-pass fehlgeschlagen:", e);
+    }
+
+    return NextResponse.json({ ok: true, heute, result, review });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown";
     console.error("[kaution-reminder] failure:", msg);
