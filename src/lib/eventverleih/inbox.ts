@@ -167,7 +167,7 @@ export async function loadInboxData(): Promise<InboxData> {
       buchungId: b.id,
       title: kundeName(b),
       subtitle: `Anfrage offen — Termin ${fmtDate(b.Event_datum_von)}`,
-      link: `/admin/buchungen/${b.id}`,
+      link: `/admin/anfragen`,
     });
   }
   // Pending-Mails werden NICHT mehr in den Quadrant gepackt — sie bekommen einen
@@ -230,7 +230,7 @@ export async function loadInboxData(): Promise<InboxData> {
         title: kundeName(b),
         subtitle: `Anfrage seit ${a}d ohne Bewegung`,
         age_days: a,
-        link: `/admin/buchungen/${b.id}`,
+        link: `/admin/anfragen`,
       });
     }
   }

@@ -47,22 +47,17 @@ function Quadrant({
   emptyHint: string;
   accent: "blue" | "red" | "amber" | "green";
 }) {
-  const accentClasses = {
-    blue: "border-blue-200 bg-blue-50/30",
-    red: "border-red-200 bg-red-50/30",
-    amber: "border-amber-200 bg-amber-50/30",
-    green: "border-green-200 bg-green-50/30",
-  };
-  const headerClasses = {
-    blue: "text-blue-900",
-    red: "text-red-900",
-    amber: "text-amber-900",
-    green: "text-green-900",
+  const dotClasses = {
+    blue: "bg-blue-400",
+    red: "bg-red-400",
+    amber: "bg-amber-400",
+    green: "bg-green-400",
   };
   return (
-    <div className={`rounded-xl border ${accentClasses[accent]} p-4`}>
+    <div className="rounded-xl border border-warm-border bg-warm-surface p-4">
       <div className="flex items-center justify-between mb-3">
-        <h2 className={`font-display text-base font-semibold ${headerClasses[accent]}`}>
+        <h2 className="font-display text-base font-semibold text-warm-text flex items-center gap-2">
+          <span className={`w-2 h-2 rounded-full ${dotClasses[accent]}`} />
           {title}
         </h2>
         <div className="text-sm text-warm-muted font-medium">
