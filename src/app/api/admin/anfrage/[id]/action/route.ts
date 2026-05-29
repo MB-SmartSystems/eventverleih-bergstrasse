@@ -24,6 +24,26 @@ type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 interface ActionBody {
   action: Action;
   anmerkung?: string;
+  // Ablehnung: Grund-Kategorie bestimmt den KUNDEN-Text; interne_notiz bleibt intern; ohne_mail = stille Ablehnung (Test/Spam)
+  grund_kategorie?: string;
+  kunden_text?: string;
+  interne_notiz?: string;
+  ohne_mail?: boolean;
+}
+
+// Vorformulierte, höfliche KUNDEN-Texte je Ablehnungsgrund (NICHT die interne Notiz).
+const ABLEHNEN_TEXTE: Record<string, string> = {
+  ausgebucht: "Leider sind die von Ihnen gewünschten Artikel für diesen Termin bereits vergeben.",
+  liefergebiet: "Leider liegt Ihr Veranstaltungsort außerhalb unseres Liefergebiets.",
+  nicht_verfuegbar: "Leider können wir die gewünschten Artikel aktuell nicht anbieten.",
+  kurzfristig: "Leider ist der Termin für eine zuverlässige Bereitstellung zu kurzfristig.",
+};
+
+/** KUNDEN-Text für die Absage. 'intern' (z.B. „möchte nicht vermieten") = neutral-höflich, KEIN Grund genannt. */
+function resolveAblehnenText(kategorie?: string, kundenText?: string): string {
+  if (kategorie === "sonstiges") return (kundenText || "").trim();
+  if (kategorie === "intern" || !kategorie) return "";
+  return ABLEHNEN_TEXTE[kategorie] || "";
 }
 
 const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
@@ -198,8 +218,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       newStatus = "Offen"; // bleibt offen, wartet auf Telefonat
       templateKey = "rueckruf_vorschlag";
     } else {
-      // ablehnen
-      mail = buildAblehnenMail({ vorname: kunde.Vorname, nachname: kunde.Nachname, grund: body.anmerkung });
+      // ablehnen — Kundentext aus Grund-Kategorie (interne Notiz NICHT verwenden)
+      mail = buildAblehnenMail({ vorname: kunde.Vorname, nachname: kunde.Nachname, grund: resolveAblehnenText(body.grund_kategorie, body.kunden_text) });
       newStatus = "Abgelehnt";
       templateKey = "anfrage_abgelehnt";
     }
@@ -248,7 +268,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
     if (newStatus === "Abgelehnt") {
       updateData.Abgelehnt_am = new Date().toISOString();
-      updateData.Abgelehnt_Grund = body.anmerkung?.trim() || "Manuel-Entscheidung im Dashboard";
+      // INTERN: Kategorie + interne Notiz — geht NIE an den Kunden
+      updateData.Abgelehnt_Grund =
+        [body.grund_kategorie, body.interne_notiz?.trim()].filter(Boolean).join(" — ") ||
+        "Manuel-Entscheidung im Dashboard";
     }
     await updateRow(TABLES.Angebote, angebotId, updateData);
 
@@ -345,17 +368,20 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     }
 
-    // MailQueue-Row anlegen (Approved → Poll versendet)
-    await createRow(TABLES.MailQueue, {
-      Erstellt_am: new Date().toISOString(),
-      Buchung_Link: [buchungId],
-      Kunde_Link: [kundeId],
-      Template_Key: templateKey,
-      Subject: mail.subject,
-      Body: mail.body,
-      Approval_Status: "Approved",
-      Idempotency_Key: `A${angebotId}-${templateKey}`,
-    });
+    // MailQueue-Row anlegen (Approved → Poll versendet) — bei "ohne Mail ablehnen" (Test/Spam) ueberspringen
+    const skipMail = body.action === "ablehnen" && body.ohne_mail === true;
+    if (!skipMail) {
+      await createRow(TABLES.MailQueue, {
+        Erstellt_am: new Date().toISOString(),
+        Buchung_Link: [buchungId],
+        Kunde_Link: [kundeId],
+        Template_Key: templateKey,
+        Subject: mail.subject,
+        Body: mail.body,
+        Approval_Status: "Approved",
+        Idempotency_Key: `A${angebotId}-${templateKey}`,
+      });
+    }
 
     // Angebots-PDF fuer den In-Portal-Download rendern lassen (Blob + Angebote.PDF_URL).
     // Nur beim Versand, fail-soft (no-op wenn N8N_PDF_RENDER_URL nicht gesetzt).

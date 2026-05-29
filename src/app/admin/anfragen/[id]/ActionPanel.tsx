@@ -10,7 +10,10 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
   const [showAnmerkungInput, setShowAnmerkungInput] = useState(false);
   const [anmerkung, setAnmerkung] = useState("");
   const [showAblehnenInput, setShowAblehnenInput] = useState(false);
-  const [ablehnenGrund, setAblehnenGrund] = useState("");
+  const [ablehnenKategorie, setAblehnenKategorie] = useState("ausgebucht");
+  const [ablehnenKundenText, setAblehnenKundenText] = useState("");
+  const [ablehnenNotiz, setAblehnenNotiz] = useState("");
+  const [ablehnenOhneMail, setAblehnenOhneMail] = useState(false);
 
   async function exec(action: Action, anmerkungText?: string) {
     if (submitting) return;
@@ -32,6 +35,39 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
         setError(data.error || `HTTP ${res.status}`);
       } else {
         // Reload page
+        window.location.reload();
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function execAblehnen() {
+    if (submitting) return;
+    const msg = ablehnenOhneMail
+      ? "Anfrage OHNE Mail ablehnen? Der Kunde wird NICHT benachrichtigt."
+      : "Anfrage ablehnen? Der Kunde bekommt eine höfliche Absage-Mail.";
+    if (!confirm(msg)) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/admin/anfrage/${angebotId}/action`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "ablehnen",
+          grund_kategorie: ablehnenKategorie,
+          kunden_text: ablehnenKategorie === "sonstiges" ? ablehnenKundenText : undefined,
+          interne_notiz: ablehnenNotiz || undefined,
+          ohne_mail: ablehnenOhneMail,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || `HTTP ${res.status}`);
+      } else {
         window.location.reload();
       }
     } catch (e) {
@@ -102,20 +138,54 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
         </button>
 
         {showAblehnenInput && (
-          <div className="p-3 rounded-lg bg-black/30 border border-red-500/20 space-y-2">
-            <textarea
-              value={ablehnenGrund}
-              onChange={(e) => setAblehnenGrund(e.target.value)}
-              rows={3}
-              placeholder="Grund (optional, wird in die Absage-Mail eingefügt) — z.B. „Urlaubsbedingt können wir die Anfrage leider nicht annehmen.“"
-              className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none"
-            />
+          <div className="p-3 rounded-lg bg-black/30 border border-red-500/20 space-y-3">
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Grund (bestimmt den Kundentext)</label>
+              <select
+                value={ablehnenKategorie}
+                onChange={(e) => setAblehnenKategorie(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500/50"
+              >
+                <option value="ausgebucht">Termin/Artikel ausgebucht</option>
+                <option value="liefergebiet">Außerhalb Liefergebiet</option>
+                <option value="nicht_verfuegbar">Artikel nicht verfügbar</option>
+                <option value="kurzfristig">Termin zu kurzfristig</option>
+                <option value="intern">Möchte nicht vermieten (neutrale Mail)</option>
+                <option value="sonstiges">Sonstiges (eigener Kundentext)</option>
+              </select>
+            </div>
+            {ablehnenKategorie === "sonstiges" && (
+              <div>
+                <label className="block text-xs text-gold-300 mb-1">Dieser Text geht an den Kunden</label>
+                <textarea
+                  value={ablehnenKundenText}
+                  onChange={(e) => setAblehnenKundenText(e.target.value)}
+                  rows={2}
+                  placeholder="Höflicher Absagetext für den Kunden ..."
+                  className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-red-500/50 resize-none"
+                />
+              </div>
+            )}
+            <div>
+              <label className="block text-xs text-gray-400 mb-1">Interne Notiz (geht NICHT an den Kunden)</label>
+              <input
+                type="text"
+                value={ablehnenNotiz}
+                onChange={(e) => setAblehnenNotiz(e.target.value)}
+                placeholder="z.B. kam komisch rüber / Testanfrage"
+                className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-white/30"
+              />
+            </div>
+            <label className="flex items-center gap-2 text-xs text-gray-300">
+              <input type="checkbox" checked={ablehnenOhneMail} onChange={(e) => setAblehnenOhneMail(e.target.checked)} />
+              Ohne Mail ablehnen (Test/Spam)
+            </label>
             <button
-              onClick={() => exec("ablehnen", ablehnenGrund)}
-              disabled={submitting}
-              className="w-full py-2 rounded bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-all disabled:opacity-50"
+              onClick={execAblehnen}
+              disabled={submitting || (ablehnenKategorie === "sonstiges" && ablehnenKundenText.trim().length < 2)}
+              className="w-full py-2 rounded bg-red-500 hover:bg-red-400 text-white text-sm font-semibold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Absage senden
+              {ablehnenOhneMail ? "Ablehnen ohne Mail" : "Absage senden"}
             </button>
           </div>
         )}
