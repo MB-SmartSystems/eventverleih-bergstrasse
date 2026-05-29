@@ -240,3 +240,71 @@ export async function getAvailabilityForAllArtikel(
 export function invalidateAvailabilityCache(): void {
   cache.clear();
 }
+
+const COMMITTED_STATI = new Set(["Bestaetigt", "Reserviert", "Uebergeben", "In_Miete"]);
+
+export interface CommittedDemandResult {
+  artikel_id: number;
+  artikel_name: string;
+  bestand: number; // effektiver Bestand
+  committed_other: number; // bereits durch ANDERE committete Buchungen im Overlap gebunden
+  frei: number; // bestand - committed_other (>= 0)
+}
+
+/**
+ * Knappheits-Check fuer die Annahme einer Anfrage (Manuels "vorab-reserviert weich"-Modell):
+ * Wieviel von jedem Artikel ist im Zeitraum bereits durch ANDERE committete Buchungen
+ * (Bestaetigt/Reserviert/Uebergeben/In_Miete) gebunden? Blockt NICHT — liefert nur die
+ * Zahlen fuer eine Warnung. `excludeBuchungId` = die aktuelle Anfrage/Buchung selbst.
+ */
+export async function getCommittedDemand(
+  artikelIds: number[],
+  von: string,
+  bis: string,
+  excludeBuchungId?: number,
+): Promise<Map<number, CommittedDemandResult>> {
+  const out = new Map<number, CommittedDemandResult>();
+  if (artikelIds.length === 0 || !von || !bis) return out;
+
+  const [buchungenRes, positionenRes, artikelRes] = await Promise.all([
+    listAllRows<BuchungLite>(TABLES.Buchungen),
+    listAllRows<BuchungsPositionLite>(TABLES.Buchungs_Position),
+    listAllRows<ArtikelLite>(TABLES.Artikel),
+  ]);
+
+  const committedIds = new Set<number>();
+  for (const b of buchungenRes.results) {
+    if (excludeBuchungId && b.id === excludeBuchungId) continue;
+    if (!COMMITTED_STATI.has(b.Status_Erweitert?.value || "")) continue;
+    if (!rangeOverlaps(b.Event_datum_von, b.Event_datum_bis, von, bis)) continue;
+    committedIds.add(b.id);
+  }
+
+  const demand = new Map<number, number>();
+  for (const pos of positionenRes.results) {
+    const bid = pos.Buchung_Link?.[0]?.id;
+    if (!bid || !committedIds.has(bid)) continue;
+    const anzahl = parseInt0(pos.Anzahl);
+    if (anzahl <= 0) continue;
+    for (const art of pos.Artikel_Link ?? []) {
+      demand.set(art.id, (demand.get(art.id) ?? 0) + anzahl);
+    }
+  }
+
+  const artById = new Map(artikelRes.results.map((a) => [a.id, a]));
+  for (const aid of artikelIds) {
+    const art = artById.get(aid);
+    const bestand = art
+      ? Math.max(0, parseInt0(art.Bestand_OK) - parseInt0(art.Bestand_Reparatur) - parseInt0(art.Bestand_Defekt))
+      : 0;
+    const committed_other = demand.get(aid) ?? 0;
+    out.set(aid, {
+      artikel_id: aid,
+      artikel_name: art?.Bezeichnung || `Artikel ${aid}`,
+      bestand,
+      committed_other,
+      frei: Math.max(0, bestand - committed_other),
+    });
+  }
+  return out;
+}

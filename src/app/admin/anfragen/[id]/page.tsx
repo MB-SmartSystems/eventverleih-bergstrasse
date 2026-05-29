@@ -13,6 +13,7 @@ import ServicesEditor from "./ServicesEditor";
 import EventDatumEditor from "./EventDatumEditor";
 import UpdateVersandPanel from "./UpdateVersandPanel";
 import { parseSnapshot, diffAgainstLive } from "@/lib/angebot-snapshot";
+import { getCommittedDemand } from "@/lib/eventverleih/availability";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -233,6 +234,24 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
       )
     : [];
 
+  // Knappheits-Check (2-Zelte-Fall): ist fuer den Termin schon genug Bestand anderweitig
+  // committet (Bestaetigt/Reserviert+)? Warnt nur — blockt nicht (vorab-reserviert weich).
+  const knappheit: Array<{ name: string; angefragt: number; frei: number; bestand: number }> = [];
+  if (buchung.Event_datum_von && buchung.Event_datum_bis) {
+    try {
+      const artikelIds = positionItems.map((p) => p.artikelId).filter((x) => x > 0);
+      const demand = await getCommittedDemand(artikelIds, buchung.Event_datum_von, buchung.Event_datum_bis, buchungId);
+      for (const p of positionItems) {
+        const d = demand.get(p.artikelId);
+        if (d && p.anzahl > d.frei) {
+          knappheit.push({ name: p.bezeichnung, angefragt: p.anzahl, frei: d.frei, bestand: d.bestand });
+        }
+      }
+    } catch (e) {
+      console.error("[anfrage-detail] Knappheits-Check fehlgeschlagen:", e);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
@@ -270,6 +289,22 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
           Kunden-Ansicht öffnen
         </a>
       </div>
+
+      {knappheit.length > 0 && (
+        <section className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/40">
+          <h2 className="text-sm font-semibold text-amber-200 mb-2">⚠ Knapper Bestand für diesen Termin</h2>
+          <ul className="text-xs text-amber-100 space-y-1">
+            {knappheit.map((k, i) => (
+              <li key={i}>
+                <strong>{k.name}</strong>: {k.angefragt} angefragt, aber nur {k.frei} von {k.bestand} frei — der Rest ist für dieses Datum bereits anderweitig vergeben.
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-amber-200/70 mt-2">
+            Annehmen geht trotzdem (vorab-reserviert, blockt nicht) — verbindlich wird die Buchung erst mit der ersten Anzahlung (first-to-pay-wins).
+          </p>
+        </section>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
