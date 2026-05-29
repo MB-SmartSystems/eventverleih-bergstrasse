@@ -354,8 +354,8 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
                 )}
               </div>
               <p className="text-xs text-gray-500 mt-3">
-                Alternativ Überweisung oder bar zur Übergabe. Ihre Buchung ist erst zu 100 % reserviert, sobald die
-                Anzahlung bei uns eingegangen ist.
+                Ihre Buchung ist erst zu 100 % reserviert, sobald die Anzahlung bei
+                uns eingegangen ist.
               </p>
             </div>
           )}

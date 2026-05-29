@@ -73,6 +73,14 @@ export default function AGB() {
               werden gemäß den Regelungen im persönlichen Mietvertrag mit der
               Kaution verrechnet.
             </p>
+            <p>
+              <strong>Zahlungswege:</strong> Die Anzahlung erfolgt online per Karte
+              (Kreditkarte/Stripe) über den im Angebot bzw. in Ihrem Kundenbereich
+              hinterlegten Zahlungslink. Die Restzahlung kann bei der Übergabe in bar
+              oder ebenfalls online geleistet werden. Die Kaution wird per Karte als
+              Vorautorisierung hinterlegt und nach beanstandungsfreier Rückgabe wieder
+              freigegeben.
+            </p>
 
             <h2>§ 4 Widerrufsrecht</h2>
             <p>

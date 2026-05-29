@@ -355,10 +355,6 @@ async function handle(
         }
       }
 
-      const bankblock = `   Kontoinhaber: Manuel Büttner
-   IBAN: DE84 5001 0517 5420 4742 10
-   BIC:  INGDDEFFXXX
-   Bank: ING-DiBa AG`;
       const komplettZeile = komplettLink
         ? `
 
@@ -367,11 +363,8 @@ Oder direkt komplett zahlen (dann ist alles erledigt):
         : "";
       const stripeBlock = stripeLink
         ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
-   ${stripeLink}${komplettZeile}
-
-Alternativ klassisch per Überweisung:
-${bankblock}`
-        : bankblock;
+   ${stripeLink}${komplettZeile}`
+        : `Ihren persönlichen Zahlungslink sende ich Ihnen umgehend zu — melden Sie sich gern kurz, falls er nicht ankommt.`;
 
       // Auto-Login-Link fuer Mein-Bereich
       let meinBereichUrl = "";
@@ -390,7 +383,7 @@ WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbi
 ${stripeBlock}
 Verwendungszweck: ${angebot.Angebotsnummer}
 
-Restzahlung und Kaution folgen bei Übergabe - gerne bar oder per Überweisung.
+Restzahlung und Kaution folgen bei der Übergabe - gerne bar oder bequem online per Zahlungslink.
 
 Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit.
 

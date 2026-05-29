@@ -68,7 +68,7 @@ function buildMail(
 ): { subject: string; body: string } {
   const linkLine = stripeLink
     ? `Am bequemsten online:\n${stripeLink}\n\n`
-    : `Überweisung auf:\n   IBAN: DE84 5001 0517 5420 4742 10\n   Verwendungszweck: bitte Angebotsnummer angeben.\n\n`;
+    : `Sie können bequem online über Ihren Kundenbereich zahlen (Link unten) — oder bar bei der Übergabe.\n\n`;
   const memberBlock = meinBereichUrl
     ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
     : "";
