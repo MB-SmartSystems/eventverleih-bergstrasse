@@ -230,7 +230,11 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
             {info.label}
           </div>
           <div className="text-lg font-semibold text-white">
-            Buchung #{buchung.Buchung_ID || buchung.id}
+            {status === "Anfrage"
+              ? "Anfrage"
+              : ["Angebot_erstellt", "Angebot_versendet"].includes(status)
+                ? "Angebot"
+                : `Buchung #${buchung.Buchung_ID || buchung.id}`}
           </div>
           <div className="text-sm text-gray-400 mt-1">{zeitraum}</div>
         </div>

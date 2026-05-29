@@ -175,7 +175,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
             ← Alle Buchungen
           </Link>
           <h1 className="text-2xl font-bold text-warm-text mt-2">
-            Buchung #{buchung.Buchung_ID}
+            {status === "Anfrage" ? "Anfrage" : ["Angebot_erstellt", "Angebot_versendet"].includes(status) ? "Angebot" : "Buchung"} #{buchung.Buchung_ID}
             <span className="ml-3 inline-block px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-700">
               {status.replace(/_/g, " ")}
             </span>
