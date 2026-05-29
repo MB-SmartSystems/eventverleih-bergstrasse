@@ -24,6 +24,12 @@ export const metadata: Metadata = {
     ],
     apple: "/apple-touch-icon.png",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Eventverleih",
+  },
   openGraph: {
     title: "Eventverleih Bergstraße — Zelte & Eventausstattung",
     description:
