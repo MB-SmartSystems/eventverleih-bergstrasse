@@ -368,7 +368,7 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
             dann automatisch, und Sie können die Reservierung mit einem Klick sichern.
           </p>
         </div>
-      ) : (
+      ) : (statusVal === "Versendet" || hasUpdateBanner) ? (
         <AcceptForm
           token={token}
           kunde={{
@@ -382,6 +382,14 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
           }}
           declineFlags={declineFlags}
         />
+      ) : (
+        <div className="mt-10 p-6 rounded-xl bg-white/5 border border-white/10">
+          <p className="text-gray-300 font-semibold">Dieses Angebot ist aktuell nicht zur Bestätigung verfügbar.</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Bei Fragen erreichen Sie uns jederzeit per WhatsApp/Tel +49 156 79521124 oder
+            per E-Mail an info@eventverleih-bergstrasse.de.
+          </p>
+        </div>
       )}
     </>
   );

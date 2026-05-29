@@ -85,6 +85,27 @@ async function handle(
       );
     }
 
+    // GATE (Phase 0): Nur ein VERSENDETES Angebot ist akzeptierbar — oder ein Re-Accept
+    // einer neueren Version. Verhindert, dass ein Kunde ueber einen alten Token-Link ein
+    // abgelehntes / storniertes / noch-nicht-freigegebenes Angebot selbst bestaetigt
+    // (sonst: Status "Abgelehnt" + Zahllinks + "bitte Anzahlung leisten"-Mail an einen abgesagten Kunden).
+    {
+      const st = angebot.Status?.value || "";
+      const snapV0 = parseInt(angebot.Snapshot_Version ?? "0", 10) || 0;
+      const akzV0 = parseInt(angebot.Akzept_Version ?? "0", 10) || 0;
+      const reAcceptNewVersion = snapV0 > 0 && akzV0 > 0 && snapV0 > akzV0;
+      if (st === "Akzeptiert" && !reAcceptNewVersion) {
+        // bereits bestaetigt → idempotent zurueck zur Angebotsseite, kein erneutes Verarbeiten
+        return NextResponse.redirect(new URL(`/angebot/${token}?bestaetigt=1`, origin), 303);
+      }
+      if (st !== "Versendet" && !reAcceptNewVersion) {
+        return NextResponse.json(
+          { error: "Dieses Angebot ist aktuell nicht zur Bestätigung verfügbar. Bei Fragen melden Sie sich gern bei uns." },
+          { status: 409 }
+        );
+      }
+    }
+
     // Kundendaten updaten falls geliefert — Pflicht für rechtsverbindliche Bestätigung
     if (kundenDaten) {
       const patch: Record<string, string> = {};
