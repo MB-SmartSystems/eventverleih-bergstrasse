@@ -309,6 +309,7 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
               eventDatumVon={buchung.Event_datum_von}
               mietsumme={gesamt}
               bezahlt={bezahlt}
+              bindend={["Bestaetigt", "Reserviert"].includes(status)}
             />
           )}
         </div>

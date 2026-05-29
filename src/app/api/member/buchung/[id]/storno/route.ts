@@ -69,11 +69,28 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     } catch { /* ignore */ }
 
-    const calc = berechneStorno({
-      eventDatumVon: buchung.Event_datum_von,
-      mietsummeEur: mietsumme,
-      bereitsBezahltEur: bezahlt,
-    });
+    // GATE (Phase 0): Storno-Staffel greift NUR bei verbindlicher Buchung.
+    // Anzahlung-Modell: ein Vertrag besteht erst ab Bestaetigt/Reserviert. Eine
+    // unverbindliche Anfrage / ein offenes Angebot wird KOSTENFREI zurueckgezogen
+    // (keine Gebuehr, keine Nachzahlung) — verhindert "35 EUR Stornogebuehr auf eine
+    // 5 Minuten alte Anfrage".
+    const bindend = status === "Bestaetigt" || status === "Reserviert";
+    const calc = bindend
+      ? berechneStorno({
+          eventDatumVon: buchung.Event_datum_von,
+          mietsummeEur: mietsumme,
+          bereitsBezahltEur: bezahlt,
+        })
+      : {
+          stornogebuehr_prozent: 0,
+          stornogebuehr_eur: 0,
+          erstattung_eur: bezahlt,
+          nachzahlung_eur: 0,
+          staffel_label: "Unverbindliche Anfrage — kostenfreier Rueckzug",
+          tage_bis_event: buchung.Event_datum_von
+            ? Math.floor((new Date(buchung.Event_datum_von).getTime() - Date.now()) / 86_400_000)
+            : 0,
+        };
 
     const stufeLabel = `${calc.stornogebuehr_prozent}%`;
 

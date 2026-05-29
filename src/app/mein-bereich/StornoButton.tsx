@@ -7,6 +7,8 @@ interface Props {
   eventDatumVon: string | null;
   mietsumme: number;
   bezahlt: number;
+  /** true = verbindliche Buchung (Bestaetigt/Reserviert) → Storno-Staffel. false = unverbindliche Anfrage → kostenfreier Rueckzug. */
+  bindend: boolean;
 }
 
 function berechne(eventDatumVon: string | null, mietsumme: number, bezahlt: number) {
@@ -28,12 +30,15 @@ function fmtEur(n: number): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
-export default function StornoButton({ buchungId, eventDatumVon, mietsumme, bezahlt }: Props) {
+export default function StornoButton({ buchungId, eventDatumVon, mietsumme, bezahlt, bindend }: Props) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const calc = berechne(eventDatumVon, mietsumme, bezahlt);
+  // Unverbindliche Anfrage → kostenfreier Rueckzug (keine Staffel). Sonst Storno-Staffel.
+  const calc = bindend
+    ? berechne(eventDatumVon, mietsumme, bezahlt)
+    : { tage: 0, prozent: 0, label: "Unverbindliche Anfrage — kostenfreier Rückzug", gebuehr: 0, erstattung: bezahlt, nachzahlung: 0 };
 
   async function confirm() {
     setSubmitting(true);
@@ -64,12 +69,12 @@ export default function StornoButton({ buchungId, eventDatumVon, mietsumme, beza
         onClick={() => setOpen(true)}
         className="text-xs text-gray-400 hover:text-red-300 underline"
       >
-        Buchung stornieren
+        {bindend ? "Buchung stornieren" : "Anfrage zurückziehen"}
       </button>
       {open && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={() => !submitting && setOpen(false)}>
           <div className="bg-navy-800 border border-white/10 rounded-xl p-6 max-w-md w-full" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-4">Buchung stornieren?</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">{bindend ? "Buchung stornieren?" : "Anfrage zurückziehen?"}</h2>
             {!calc ? (
               <p className="text-gray-400">Kein Event-Datum gesetzt — Stornierung über Manuel abwickeln.</p>
             ) : (
