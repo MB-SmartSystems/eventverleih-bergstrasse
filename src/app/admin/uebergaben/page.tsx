@@ -7,9 +7,9 @@
  * bestätigt werden (ZahlungsPanel / UebergabeDialog — funktionieren am Handy).
  */
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { isAuthenticated } from "@/lib/auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
+import UebergabeActions from "./UebergabeActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -20,6 +20,7 @@ interface BuchungRow {
   Status_Erweitert: { value: string } | null;
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
+  Anzahlung_Soll_Eur: string | number | null;
   Anzahlung_Bezahlt_am: string | null;
   Restzahlung_Soll_Eur: string | number | null;
   Restzahlung_Bezahlt_am: string | null;
@@ -89,7 +90,7 @@ export default async function UebergabenPage() {
   const kundeById = new Map(kundenAll.results.map((k) => [k.id, k]));
 
   // Packliste je Buchung
-  const packByBuchung = new Map<number, Array<{ anzahl: number; name: string }>>();
+  const packByBuchung = new Map<number, Array<{ positionId: number; label: string; checked: boolean }>>();
   for (const p of positionenAll.results) {
     const bid = p.Buchung_Link?.[0]?.id;
     if (!bid) continue;
@@ -97,7 +98,7 @@ export default async function UebergabenPage() {
     const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—";
     const anzahl = parseInt(p.Anzahl ?? "1", 10) || 1;
     const list = packByBuchung.get(bid) ?? [];
-    list.push({ anzahl, name });
+    list.push({ positionId: p.id, label: `${anzahl}× ${name}`, checked: false });
     packByBuchung.set(bid, list);
   }
 
@@ -139,7 +140,6 @@ export default async function UebergabenPage() {
             const dLabel =
               dTage === 0 ? "HEUTE" : dTage === 1 ? "morgen" : dTage !== null && dTage < 0 ? `${-dTage}d überfällig` : dTage !== null ? `in ${dTage}d` : "";
 
-            const restOffen = num(b.Restzahlung_Soll_Eur) > 0 && !b.Restzahlung_Bezahlt_am;
             const kautionSoll = num(b.Kaution_Soll_Eur);
             const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
 
@@ -165,46 +165,16 @@ export default async function UebergabenPage() {
                   </a>
                 )}
 
-                {/* Packliste */}
-                <div className="mt-3">
-                  <div className="text-xs font-medium text-warm-muted uppercase tracking-wide mb-1">Packliste</div>
-                  {pack.length === 0 ? (
-                    <p className="text-sm text-warm-muted">Keine Artikel hinterlegt.</p>
-                  ) : (
-                    <ul className="text-sm text-warm-text space-y-0.5">
-                      {pack.map((it, i) => (
-                        <li key={i} className="flex items-baseline gap-2">
-                          <span className="font-mono text-warm-muted w-8 shrink-0">{it.anzahl}×</span>
-                          <span>{it.name}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-
-                {/* Status-Hinweise */}
-                <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                  <span className={`px-2 py-0.5 rounded ${b.Anzahlung_Bezahlt_am ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
-                    Anzahlung {b.Anzahlung_Bezahlt_am ? "✓" : "offen"}
-                  </span>
-                  {num(b.Restzahlung_Soll_Eur) > 0 && (
-                    <span className={`px-2 py-0.5 rounded ${restOffen ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      Restzahlung {restOffen ? `offen (${num(b.Restzahlung_Soll_Eur).toFixed(2)} €)` : "✓"}
-                    </span>
-                  )}
-                  {kautionSoll > 0 && (
-                    <span className={`px-2 py-0.5 rounded ${kautionOffen ? "bg-amber-100 text-amber-700" : "bg-green-100 text-green-700"}`}>
-                      Kaution {kautionOffen ? `offen (${kautionSoll.toFixed(2)} €)` : "✓"}
-                    </span>
-                  )}
-                </div>
-
-                <Link
-                  href={`/admin/buchungen/${b.id}`}
-                  className="mt-3 inline-flex items-center justify-center w-full py-2.5 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-dark transition-colors"
-                >
-                  Übergabe &amp; Zahlung →
-                </Link>
+                <UebergabeActions
+                  buchungId={b.id}
+                  packItems={pack}
+                  anzahlungOffen={num(b.Anzahlung_Soll_Eur) > 0 && !b.Anzahlung_Bezahlt_am}
+                  anzahlungSoll={num(b.Anzahlung_Soll_Eur)}
+                  restzahlungOffen={num(b.Restzahlung_Soll_Eur) > 0 && !b.Restzahlung_Bezahlt_am}
+                  restzahlungSoll={num(b.Restzahlung_Soll_Eur)}
+                  kautionOffen={kautionOffen}
+                  kautionSoll={kautionSoll}
+                />
               </div>
             );
           })}
