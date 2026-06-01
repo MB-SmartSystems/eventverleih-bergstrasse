@@ -63,9 +63,10 @@ function fmtEur(v: string | null): string {
   return `${parseFloat(v).toFixed(2).replace(".", ",")} €`;
 }
 
-export default async function BuchungenPage({ searchParams }: { searchParams: Promise<{ filter?: string }> }) {
+export default async function BuchungenPage({ searchParams }: { searchParams: Promise<{ filter?: string; sort?: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
-  const { filter = "alle" } = await searchParams;
+  const { filter = "alle", sort = "event_desc" } = await searchParams;
+  const sortAsc = sort === "event_asc";
 
   const [buchungenList, kundenList] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
@@ -79,7 +80,18 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   else if (filter === "abgeschlossen") rows = rows.filter((b) => DONE.has(b.Status_Erweitert?.value ?? ""));
   else if (filter === "storniert") rows = rows.filter((b) => CANCELLED.has(b.Status_Erweitert?.value ?? ""));
 
-  rows.sort((a, b) => (b.Event_datum_von ?? "").localeCompare(a.Event_datum_von ?? ""));
+  rows.sort((a, b) => {
+    const cmp = (a.Event_datum_von ?? "").localeCompare(b.Event_datum_von ?? "");
+    return sortAsc ? cmp : -cmp;
+  });
+
+  const buildHref = (f: string, s: string) => {
+    const params = new URLSearchParams();
+    if (f !== "alle") params.set("filter", f);
+    if (s !== "event_desc") params.set("sort", s);
+    const qs = params.toString();
+    return `/admin/buchungen${qs ? `?${qs}` : ""}`;
+  };
 
   const tabs = [
     { key: "alle", label: "Alle", count: buchungenList.results.length },
@@ -99,7 +111,7 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
         {tabs.map((t) => (
           <Link
             key={t.key}
-            href={`/admin/buchungen${t.key === "alle" ? "" : `?filter=${t.key}`}`}
+            href={buildHref(t.key, sort)}
             className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
               filter === t.key
                 ? "bg-accent text-white"
@@ -121,7 +133,14 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
             <thead className="bg-warm-bg border-b border-warm-border">
               <tr className="text-left text-xs uppercase tracking-wide text-warm-muted">
                 <th className="px-4 py-2.5">ID</th>
-                <th className="px-4 py-2.5">Event</th>
+                <th className="px-4 py-2.5">
+                  <Link
+                    href={buildHref(filter, sortAsc ? "event_desc" : "event_asc")}
+                    className="inline-flex items-center gap-1 hover:text-warm-text transition-colors"
+                  >
+                    Event <span aria-hidden>{sortAsc ? "↑" : "↓"}</span>
+                  </Link>
+                </th>
                 <th className="px-4 py-2.5">Kunde</th>
                 <th className="px-4 py-2.5">Status</th>
                 <th className="px-4 py-2.5 text-right">Gesamt</th>
