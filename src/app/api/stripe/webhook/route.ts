@@ -97,6 +97,30 @@ async function processReservierungsZahlung(
     lock_until: buchung.Event_datum_bis,
   });
 
+  // Komplettzahlung = sofort vollstaendig bezahlt -> Bestaetigungs-Mail wie bei
+  // Restzahlung (der Anzahlung-only-Fall ist NICHT vollstaendig bezahlt -> keine Mail).
+  if (paymentType === "komplettzahlung") {
+    try {
+      const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
+      const kid = b.Kunde_Link?.[0]?.id;
+      const kname = b.Kunde_Link?.[0]?.value || "";
+      if (kid) {
+        await createRow(TABLES.MailQueue, {
+          Erstellt_am: new Date().toISOString(),
+          Buchung_Link: [buchungId],
+          Kunde_Link: [kid],
+          Template_Key: "komplettzahlung_erhalten",
+          Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
+          Body: `Hallo ${kname},\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+          Approval_Status: "Auto_Reply",
+          Idempotency_Key: `B${buchungId}-komplettzahlung_erhalten`,
+        });
+      }
+    } catch (e) {
+      console.error("[stripe-webhook] Komplettzahlung-Bestaetigung fehlgeschlagen:", e);
+    }
+  }
+
   // Mengen-genauer Engpass-Check -> nur flaggen, nichts Destruktives.
   try {
     const conflicts = await listOpenStockConflicts();

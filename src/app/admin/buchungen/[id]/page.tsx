@@ -46,8 +46,10 @@ type BuchungRow = {
   Notizen: string | null;
   Anzahlung_Soll_Eur: string | null;
   Anzahlung_Bezahlt_am: string | null;
+  Anzahlung_Bezahlt_Eur: string | null;
   Restzahlung_Soll_Eur: string | null;
   Restzahlung_Bezahlt_am: string | null;
+  Restzahlung_Bezahlt_Eur: string | null;
   Kaution_Soll_Eur: string | null;
   Zahlungen_JSON: string | null;
   Checklist_State_JSON: string | null;
@@ -391,9 +393,12 @@ Vertrag
                 return [];
               }
             })();
-            const bezahlt = zahlungen
-              .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
-              .reduce((s, z) => s + z.betrag, 0);
+            // Bezahlt aus den Skalar-Feldern (Source of Truth) — die schreiben BEIDE
+            // Wege: manuelle Erfassung UND Stripe-Webhook. Zahlungen_JSON fuellt nur
+            // der manuelle Weg, war daher bei Stripe-Zahlungen leer -> "Offen" falsch.
+            const bezahlt =
+              (parseFloat(buchung.Anzahlung_Bezahlt_Eur ?? "0") || 0) +
+              (parseFloat(buchung.Restzahlung_Bezahlt_Eur ?? "0") || 0);
             const offen = Math.max(0, gesamt - bezahlt);
             return (
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
