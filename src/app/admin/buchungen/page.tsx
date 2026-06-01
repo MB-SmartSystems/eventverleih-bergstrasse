@@ -94,11 +94,11 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
     return sortAsc ? cmp : -cmp;
   });
 
-  const buildHref = (f: string, s: string) => {
+  const buildHref = (f: string, s?: string) => {
     const params = new URLSearchParams();
     if (f !== "alle") params.set("filter", f);
     const natural = f === "anstehend" ? "event_asc" : "event_desc";
-    if (s !== natural) params.set("sort", s);
+    if (s && s !== natural) params.set("sort", s);
     const qs = params.toString();
     return `/admin/buchungen${qs ? `?${qs}` : ""}`;
   };
