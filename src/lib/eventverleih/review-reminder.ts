@@ -10,7 +10,7 @@
  *    an einen unzufriedenen Kunden)
  *  - Google-Review-Link aus ENV GOOGLE_REVIEW_URL (optional; ohne Var generischer Verweis)
  */
-import { listAllRows, listRows, createRow, TABLES } from "@/lib/baserow/client";
+import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 
 interface BuchungRow {
   id: number;
@@ -66,8 +66,14 @@ export async function runReviewReminder(): Promise<{
       continue;
     }
     const kundeId = b.Kunde_Link?.[0]?.id;
-    const kundeName = b.Kunde_Link?.[0]?.value || "";
     if (!kundeId) continue;
+    let kundeName = "";
+    try {
+      const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
+      kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim();
+    } catch (e) {
+      console.error("[review-reminder] kunde-fetch fehlgeschlagen:", e);
+    }
     result.pruefte++;
 
     const idemKey = `B${b.id}-review`;
