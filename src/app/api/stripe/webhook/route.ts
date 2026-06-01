@@ -97,28 +97,39 @@ async function processReservierungsZahlung(
     lock_until: buchung.Event_datum_bis,
   });
 
-  // Komplettzahlung = sofort vollstaendig bezahlt -> Bestaetigungs-Mail wie bei
-  // Restzahlung (der Anzahlung-only-Fall ist NICHT vollstaendig bezahlt -> keine Mail).
-  if (paymentType === "komplettzahlung") {
-    try {
-      const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
-      const kid = b.Kunde_Link?.[0]?.id;
-      const kname = b.Kunde_Link?.[0]?.value || "";
-      if (kid) {
-        await createRow(TABLES.MailQueue, {
-          Erstellt_am: new Date().toISOString(),
-          Buchung_Link: [buchungId],
-          Kunde_Link: [kid],
-          Template_Key: "komplettzahlung_erhalten",
-          Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-          Body: `Hallo ${kname},\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
-          Approval_Status: "Auto_Reply",
-          Idempotency_Key: `B${buchungId}-komplettzahlung_erhalten`,
-        });
-      }
-    } catch (e) {
-      console.error("[stripe-webhook] Komplettzahlung-Bestaetigung fehlgeschlagen:", e);
+  // Bestaetigungs-Mail je nach Zahlungsart (fail-soft, idempotent):
+  //  - komplettzahlung: "vollstaendig bezahlt"
+  //  - anzahlung: "Termin verbindlich reserviert, Restzahlung folgt zur Uebergabe"
+  // (Frueher bekam der Anzahlung-only-Kunde GAR keine Bestaetigung -> Vertrauensluecke.)
+  try {
+    const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
+    const kid = b.Kunde_Link?.[0]?.id;
+    const kname = b.Kunde_Link?.[0]?.value || "";
+    if (kid && paymentType === "komplettzahlung") {
+      await createRow(TABLES.MailQueue, {
+        Erstellt_am: new Date().toISOString(),
+        Buchung_Link: [buchungId],
+        Kunde_Link: [kid],
+        Template_Key: "komplettzahlung_erhalten",
+        Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
+        Body: `Hallo ${kname},\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+        Approval_Status: "Auto_Reply",
+        Idempotency_Key: `B${buchungId}-komplettzahlung_erhalten`,
+      });
+    } else if (kid && paymentType === "anzahlung") {
+      await createRow(TABLES.MailQueue, {
+        Erstellt_am: new Date().toISOString(),
+        Buchung_Link: [buchungId],
+        Kunde_Link: [kid],
+        Template_Key: "anzahlung_erhalten",
+        Subject: "Anzahlung erhalten — Ihr Termin ist reserviert",
+        Body: `Hallo ${kname},\n\nvielen Dank — Ihre Anzahlung ist bei uns eingegangen. Ihr Termin ist damit verbindlich für Sie reserviert. Die Restzahlung wird zur Übergabe fällig; wir erinnern Sie rechtzeitig.\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+        Approval_Status: "Auto_Reply",
+        Idempotency_Key: `B${buchungId}-anzahlung_erhalten`,
+      });
     }
+  } catch (e) {
+    console.error("[stripe-webhook] Zahlungs-Bestaetigung fehlgeschlagen:", e);
   }
 
   // Mengen-genauer Engpass-Check -> nur flaggen, nichts Destruktives.

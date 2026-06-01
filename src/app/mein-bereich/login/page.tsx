@@ -32,9 +32,18 @@ export default async function MemberLoginPage({
           ← Zurück zur Startseite
         </Link>
         <h1 className="font-display text-3xl font-bold mt-8 mb-4">Mein Bereich</h1>
-        {reason === "invalid" && (
+        {reason === "sent" && (
+          <div className="mb-6 p-4 rounded-lg bg-green-500/10 border border-green-500/30 text-green-200 text-sm">
+            Falls eine Buchung mit dieser Adresse existiert, ist der Login-Link unterwegs. Bitte prüfen Sie Ihr E-Mail-Postfach (auch den Spam-Ordner).
+          </div>
+        )}
+        {(reason === "invalid" || reason === "invalid_email" || reason === "error") && (
           <div className="mb-6 p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
-            Der Login-Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an.
+            {reason === "invalid_email"
+              ? "Bitte geben Sie eine gültige E-Mail-Adresse ein."
+              : reason === "error"
+                ? "Es ist ein Fehler aufgetreten. Bitte versuchen Sie es erneut."
+                : "Der Login-Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen an."}
           </div>
         )}
         <p className="text-gray-400 mb-6">

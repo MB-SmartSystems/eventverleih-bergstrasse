@@ -10,6 +10,7 @@ import Link from "next/link";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
 import StornoButton from "./StornoButton";
+import { bezahltEur } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -28,7 +29,9 @@ interface BuchungRow {
   Restzahlung_Soll_Eur: string | null;
   Kaution_Soll_Eur: string | null;
   Anzahlung_Bezahlt_am: string | null;
+  Anzahlung_Bezahlt_Eur: string | null;
   Restzahlung_Bezahlt_am: string | null;
+  Restzahlung_Bezahlt_Eur: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_am: string | null;
   Stripe_Anzahlung_Link: string | null;
@@ -204,18 +207,9 @@ function BuchungCard({ buchung, variant, angebotPdfUrl }: { buchung: BuchungRow;
   const gesamt = preisArtikel + preisLieferung + preisAbholung + preisAufbau;
   const kautionSoll = parseFloat(buchung.Kaution_Soll_Eur || "0") || 0;
 
-  // Zahlungen-Summe aus JSON
-  let bezahlt = 0;
-  try {
-    if (buchung.Zahlungen_JSON) {
-      const arr = JSON.parse(buchung.Zahlungen_JSON);
-      if (Array.isArray(arr)) {
-        bezahlt = arr
-          .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
-          .reduce((s, z) => s + (typeof z.betrag === "number" ? z.betrag : 0), 0);
-      }
-    }
-  } catch { /* ignore */ }
+  // Bezahlt aus den Skalar-Feldern (Source of Truth, von Stripe UND manuell gesetzt).
+  // Zahlungen_JSON war hier leer bei Stripe-Zahlern -> "Offen = Gesamt" trotz Zahlung.
+  const bezahlt = bezahltEur(buchung);
   const offen = Math.max(0, gesamt - bezahlt);
 
   // Zahlung steht aus?

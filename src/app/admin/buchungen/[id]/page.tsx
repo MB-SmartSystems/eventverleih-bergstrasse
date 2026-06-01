@@ -20,6 +20,7 @@ import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
 import KautionMailPanel from "./KautionMailPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
+import { bezahltEur } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -720,9 +721,9 @@ Vertrag
             <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
               {(async () => {
                 const settings = await loadEveSettings();
-                const bezahlt =
-                  parseFloat(buchung.Anzahlung_Soll_Eur ?? "0") +
-                  parseFloat(buchung.Restzahlung_Soll_Eur ?? "0");
+                // Tatsaechlich bezahlt (Skalar-Felder), NICHT Soll — sonst wird die
+                // Erstattung ueberzahlt, wenn der Kunde erst die Anzahlung geleistet hat.
+                const bezahlt = bezahltEur(buchung);
                 const calc = calculateStornoErstattung(
                   buchung.Event_datum_von,
                   bezahlt,

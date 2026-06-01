@@ -168,7 +168,9 @@ export async function createKautionCheckoutSession(params: {
       kunde_name: params.kundeName.slice(0, 250),
     },
     success_url: params.successUrl || `${baseUrl}/danke?type=kaution`,
-    cancel_url: params.cancelUrl || `${baseUrl}/angebot`,
+    // Abbruch -> Startseite. /angebot existiert nicht (nur /angebot/[token]) und
+    // der Token liegt hier nicht vor -> waere eine 404 gewesen.
+    cancel_url: params.cancelUrl || `${baseUrl}/`,
   });
   return { url: session.url || "", session_id: session.id };
 }

@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { berechneStorno } from "@/lib/eventverleih/storno";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { bezahltEur, eurMail } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ interface BuchungData {
   Preis_Lieferung: string | number | null;
   Preis_Abholung: string | number | null;
   Preis_Aufbau: string | number | null;
+  Anzahlung_Bezahlt_Eur: string | number | null;
+  Restzahlung_Bezahlt_Eur: string | number | null;
   Zahlungen_JSON: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
@@ -57,17 +60,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     // Mietsumme + bereits bezahlt
     const mietsumme = parseDec(buchung.Preis_Artikel) + parseDec(buchung.Preis_Lieferung) + parseDec(buchung.Preis_Abholung) + parseDec(buchung.Preis_Aufbau);
-    let bezahlt = 0;
-    try {
-      if (buchung.Zahlungen_JSON) {
-        const arr = JSON.parse(buchung.Zahlungen_JSON);
-        if (Array.isArray(arr)) {
-          bezahlt = arr
-            .filter((z) => z.typ === "anzahlung" || z.typ === "restzahlung")
-            .reduce((s, z) => s + (typeof z.betrag === "number" ? z.betrag : 0), 0);
-        }
-      }
-    } catch { /* ignore */ }
+    // Bezahlt aus Skalar-Feldern (Source of Truth) — Zahlungen_JSON war bei Stripe-Zahlern
+    // leer -> Erstattung wurde faelschlich mit bezahlt=0 berechnet (Kunde verlor sein Geld).
+    const bezahlt = bezahltEur(buchung);
 
     // GATE (Phase 0): Storno-Staffel greift NUR bei verbindlicher Buchung.
     // Anzahlung-Modell: ein Vertrag besteht erst ab Bestaetigt/Reserviert. Eine
@@ -105,9 +100,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     // Mail an Kunde
     const erstattungText = calc.erstattung_eur > 0
-      ? `Sie erhalten ${calc.erstattung_eur.toFixed(2)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).`
+      ? `Sie erhalten ${eurMail(calc.erstattung_eur)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).`
       : calc.nachzahlung_eur > 0
-        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${calc.nachzahlung_eur.toFixed(2)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
+        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
         : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
 
     const mailBody = `Hallo ${kunde.Vorname || ""} ${kunde.Nachname || ""},
@@ -116,9 +111,9 @@ Ihre Stornierung der Buchung #${buchungId} ist eingegangen.
 
 Stornogebühr (laut AGB): ${calc.stornogebuehr_prozent} % der Mietsumme
   ${calc.staffel_label}
-  Mietsumme: ${mietsumme.toFixed(2)} EUR
-  Stornogebühr: ${calc.stornogebuehr_eur.toFixed(2)} EUR
-  Bereits bezahlt: ${bezahlt.toFixed(2)} EUR
+  Mietsumme: ${eurMail(mietsumme)} EUR
+  Stornogebühr: ${eurMail(calc.stornogebuehr_eur)} EUR
+  Bereits bezahlt: ${eurMail(bezahlt)} EUR
 
 ${erstattungText}
 
