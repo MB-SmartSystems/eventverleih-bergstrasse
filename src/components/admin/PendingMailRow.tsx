@@ -50,34 +50,34 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
 
   if (done) {
     return (
-      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
+      <div className="rounded-lg border border-warm-border bg-warm-surface px-3 py-2 text-xs text-warm-muted">
         {done === "approved" ? "✓ Freigegeben — n8n versendet beim nächsten Poll" : "✓ Verworfen — Mail wird nicht versendet"}
       </div>
     );
   }
 
   return (
-    <div className="rounded-lg border border-yellow-200 bg-white px-3 py-2.5">
+    <div className="rounded-lg border border-warm-border bg-warm-bg px-3 py-2.5">
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-block rounded bg-yellow-100 text-yellow-900 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+            <span className="inline-block rounded bg-warm-surface text-warm-muted border border-warm-border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
               {templateLabel(mail.template_key)}
             </span>
-            <span className="text-xs text-gray-500">{daysSinceLabel(mail.erstellt_am)}</span>
+            <span className="text-xs text-warm-muted">{daysSinceLabel(mail.erstellt_am)}</span>
           </div>
-          <div className="text-sm font-medium text-gray-900 mt-1 truncate">
+          <div className="text-sm font-medium text-warm-text mt-1 truncate">
             {mail.subject}
           </div>
           {(mail.kunde_name || mail.buchung_id) && (
-            <div className="text-xs text-gray-600">
+            <div className="text-xs text-warm-muted">
               {mail.kunde_name && <span>{mail.kunde_name}</span>}
               {mail.buchung_id && (
                 <>
                   {mail.kunde_name && <span> · </span>}
                   <Link
                     href={`/admin/buchungen/${mail.buchung_id}`}
-                    className="underline hover:text-gray-900"
+                    className="underline hover:text-warm-text"
                   >
                     Buchung #{mail.buchung_id}
                   </Link>
@@ -97,26 +97,26 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
           <button
             onClick={() => action("reject")}
             disabled={loading !== null}
-            className="px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 py-1 rounded-md bg-warm-surface text-warm-muted text-xs font-medium hover:bg-warm-surface/70 hover:text-warm-text border border-warm-border disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading === "reject" ? "…" : "Verwerfen"}
           </button>
           <button
             onClick={() => setExpanded((v) => !v)}
             aria-label={expanded ? "Body einklappen" : "Body anschauen"}
-            className="px-2 py-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 text-xs"
+            className="px-2 py-1 rounded-md text-warm-muted hover:bg-warm-surface hover:text-warm-text text-xs"
           >
             {expanded ? "▲" : "▼"}
           </button>
         </div>
       </div>
       {error && (
-        <div className="mt-2 text-xs text-red-700 bg-red-50 px-2 py-1 rounded">
+        <div className="mt-2 text-xs text-red-300 bg-red-500/10 border border-red-500/30 px-2 py-1 rounded">
           Fehler: {error}
         </div>
       )}
       {expanded && (
-        <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2 max-h-72 overflow-auto font-sans">
+        <pre className="mt-2 whitespace-pre-wrap text-xs text-warm-text bg-warm-surface border border-warm-border rounded p-2 max-h-72 overflow-auto font-sans">
           {mail.body}
         </pre>
       )}
