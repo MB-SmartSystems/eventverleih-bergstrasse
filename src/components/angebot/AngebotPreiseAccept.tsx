@@ -227,14 +227,23 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
                 <td className="py-2 text-right">{fmtEur(effRestzahlung)}</td>
               </tr>
               <tr className="border-b border-white/10">
-                <td className="py-2">Kaution (wird nach Rückgabe vollständig erstattet)</td>
+                <td className="py-2">Kaution – Vorautorisierung, kein Abbuchen (nach Rückgabe freigegeben)</td>
                 <td className="py-2 text-right">{fmtEurStr(kautionSoll)}</td>
+              </tr>
+              <tr className="border-t border-gold-500/20 font-semibold text-white">
+                <td className="py-2.5">Gesamt verfügbar zu halten (inkl. Kaution)</td>
+                <td className="py-2.5 text-right">{fmtEur(effSumme + num(kautionSoll))}</td>
               </tr>
             </tbody>
           </table>
           <p className="text-[11px] text-gray-500 mt-2">
             Alle Preise inkl. gesetzlicher Steuern. Eventverleih Bergstraße ist Kleinunternehmer nach § 19 Abs. 1
             UStG — kein USt-Ausweis.
+          </p>
+          <p className="text-xs text-gray-400 mt-2">
+            <strong className="text-gray-300">Hinweis zur Kaution:</strong> Die Kaution kommt zusätzlich zur Miete. Sie
+            wird nicht abgebucht, sondern bei der Übergabe als Vorautorisierung auf Ihrer Karte vorgemerkt und nach
+            schadenfreier Rückgabe automatisch wieder freigegeben.
           </p>
         </>
       )}
