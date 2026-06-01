@@ -20,6 +20,7 @@ interface BuchungRow {
   Status_Erweitert: { value: string } | null;
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
+  Uebergabe_Termin: string | null;
   Anzahlung_Soll_Eur: string | number | null;
   Anzahlung_Bezahlt_am: string | null;
   Restzahlung_Soll_Eur: string | number | null;
@@ -58,6 +59,20 @@ function fmtDate(s: string | null): string {
   if (!s) return "—";
   const [y, m, d] = s.slice(0, 10).split("-");
   return `${d}.${m}.${y}`;
+}
+
+function fmtDateTime(s: string | null): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
 }
 
 function daysFromToday(s: string | null): number | null {
@@ -153,6 +168,11 @@ export default async function UebergabenPage() {
                       {b.Event_datum_bis && b.Event_datum_bis !== b.Event_datum_von ? ` – ${fmtDate(b.Event_datum_bis)}` : ""}
                       {dLabel && <span className="ml-2 text-accent font-medium">{dLabel}</span>}
                     </div>
+                    {b.Uebergabe_Termin && (
+                      <div className="text-sm text-accent font-medium mt-0.5">
+                        Übergabe/Abholung: {fmtDateTime(b.Uebergabe_Termin)}
+                      </div>
+                    )}
                   </div>
                   <span className="shrink-0 text-xs px-2 py-1 rounded bg-warm-bg border border-warm-border text-warm-muted">
                     {STATUS_LABEL[status] ?? status}
