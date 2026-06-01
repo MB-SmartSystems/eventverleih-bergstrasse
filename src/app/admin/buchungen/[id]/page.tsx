@@ -209,8 +209,8 @@ Vertrag
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
           {/* Kunde */}
           {kunde && (
             <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
@@ -540,6 +540,13 @@ Vertrag
                 meta: buchung.Restzahlung_Bezahlt_am ? new Date(buchung.Restzahlung_Bezahlt_am).toLocaleDateString("de-DE") : undefined,
               },
               {
+                key: "uebergabe_termin",
+                phase: "Übergabe",
+                label: "Übergabe-Termin mit Kunde vereinbart",
+                checked: !!buchung.Uebergabe_Termin,
+                meta: buchung.Uebergabe_Termin ? new Date(buchung.Uebergabe_Termin).toLocaleDateString("de-DE") : undefined,
+              },
+              {
                 key: "uebergabe",
                 phase: "Übergabe",
                 label: "Übergabe durchgeführt",
@@ -568,7 +575,6 @@ Vertrag
 
             // Manuelle Items (Phase steuert Gruppierung in der Checkliste)
             const manualItemKeys = [
-              { key: "uebergabe_termin", phase: "Übergabe", label: "Übergabe-Termin telefonisch abgestimmt" },
               { key: "schaden_geprueft", phase: "Rückgabe", label: "Schäden geprüft + ggf. dokumentiert" },
             ];
             const manualItems = manualItemKeys.map((m) => ({

@@ -306,8 +306,8 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
         </section>
       )}
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
           {/* Versand-Status + Update-Versand */}
           <UpdateVersandPanel
             angebotId={angebot.id}
