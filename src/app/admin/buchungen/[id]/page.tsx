@@ -617,23 +617,30 @@ Vertrag
           />
 
           {/* Stripe-Zahlungslinks */}
-          <StripeLinksPanel
-            buchungId={buchung.id}
-            anzahlungSollEur={parseFloat(buchung.Anzahlung_Soll_Eur ?? "0")}
-            restzahlungSollEur={parseFloat(buchung.Restzahlung_Soll_Eur ?? "0")}
-            anzahlungLink={buchung.Stripe_Anzahlung_Link}
-            restzahlungLink={buchung.Stripe_Restzahlung_Link}
-            anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
-            restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
-          />
-
-          {/* Kaution-Hold-Versand (vor Uebergabe) */}
-          <KautionMailPanel
-            buchungId={buchung.id}
-            kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
-            kautionLink={buchung.Stripe_Kaution_Link}
-            kautionHinterlegtAm={buchung.Kaution_Hinterlegt_am}
-          />
+          {/* Manuelle Zahlungs-Tools — eingeklappt (Links liegen automatisch in
+              Angebot/Mein-Bereich/Mails; hier nur fuer manuelles Nachsenden). */}
+          <details>
+            <summary className="cursor-pointer text-sm text-warm-muted hover:text-warm-text px-1 py-2">
+              Zahlungs-Links & Kaution-Mail (manuell)
+            </summary>
+            <div className="mt-2 space-y-4">
+              <StripeLinksPanel
+                buchungId={buchung.id}
+                anzahlungSollEur={parseFloat(buchung.Anzahlung_Soll_Eur ?? "0")}
+                restzahlungSollEur={parseFloat(buchung.Restzahlung_Soll_Eur ?? "0")}
+                anzahlungLink={buchung.Stripe_Anzahlung_Link}
+                restzahlungLink={buchung.Stripe_Restzahlung_Link}
+                anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
+                restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
+              />
+              <KautionMailPanel
+                buchungId={buchung.id}
+                kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
+                kautionLink={buchung.Stripe_Kaution_Link}
+                kautionHinterlegtAm={buchung.Kaution_Hinterlegt_am}
+              />
+            </div>
+          </details>
 
           {/* Termine (Uebergabe + Rueckgabe) — wird in Google Calendar synct wenn ENV gesetzt */}
           <TerminePanel

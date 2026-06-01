@@ -176,7 +176,7 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
           Keine offenen Anfragen — du bist auf dem Stand.
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {offen.map((b) => {
             const angebot = angebotByBuchungId.get(b.id);
             const kunde = b.Kunde_Link?.[0]?.id ? kundenById.get(b.Kunde_Link[0].id) : null;
@@ -201,41 +201,36 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
               <Link
                 key={b.id}
                 href={href}
-                className="block p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-500/30 transition-all"
+                className="block px-4 py-3 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-500/30 transition-all"
               >
-                <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className={`text-xs px-2 py-1 rounded font-medium ${TONE_CLASSES[statusInfo.tone]}`}>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs px-2 py-0.5 rounded font-medium ${TONE_CLASSES[statusInfo.tone]}`}>
                         {statusInfo.label}
                       </span>
-                      <span className="text-xs px-2 py-1 rounded bg-gold-500/20 text-gold-300 font-mono">
+                      <span className="text-xs px-2 py-0.5 rounded bg-gold-500/20 text-gold-300 font-mono">
                         {formatRange(b.Event_datum_von, b.Event_datum_bis)}
+                      </span>
+                      <span className="font-semibold text-white truncate">
+                        {kunde ? `${kunde.Vorname} ${kunde.Nachname}` : "Unbekannter Kunde"}
                       </span>
                       {angebot && (
                         <span className="text-xs text-gray-500 font-mono">{angebot.Angebotsnummer}</span>
                       )}
-                      {angebot?.Anfragedatum && (
-                        <span className="text-xs text-gray-500">Anfrage vom {fmtDateDe(angebot.Anfragedatum)}</span>
-                      )}
                     </div>
-                    <h3 className="text-lg font-semibold text-white mb-1">
-                      {kunde ? `${kunde.Vorname} ${kunde.Nachname}` : "Unbekannter Kunde"}
-                    </h3>
-                    {kunde?.Email && <p className="text-sm text-gray-400">{kunde.Email}</p>}
-                    {snippet && (
-                      <p className="text-sm text-gray-400 mt-2 line-clamp-2">{snippet}</p>
-                    )}
-                    <div className={`text-xs mt-3 font-medium ${NEXT_ACTION_CLASSES[nextAction.tone]}`}>
-                      → {nextAction.label}
+                    <div className="flex items-center gap-2 mt-1 min-w-0 text-xs">
+                      <span className={`font-medium shrink-0 ${NEXT_ACTION_CLASSES[nextAction.tone]}`}>
+                        → {nextAction.label}
+                      </span>
+                      {snippet && (
+                        <span className="text-gray-500 truncate">· {snippet}</span>
+                      )}
                     </div>
                   </div>
                   <div className="text-right shrink-0">
                     {preisArtikel > 0 ? (
-                      <div>
-                        <div className="text-2xl font-bold text-white">{preisArtikel.toFixed(2)} €</div>
-                        <div className="text-xs text-gray-500">Mietsumme</div>
-                      </div>
+                      <div className="text-lg font-bold text-white whitespace-nowrap">{preisArtikel.toFixed(2)} €</div>
                     ) : (
                       <div className="text-xs text-yellow-400">Preis fehlt</div>
                     )}
