@@ -104,7 +104,7 @@ Wichtiges in Kürze:
   * Karte wird geprüft + Betrag vorgemerkt (kein Abbuchen)
   * Hold ist standardmäßig 7 Tage aktiv. Bei Visa/Mastercard verlängert Stripe ggf. auf bis zu 30 Tage automatisch.
   * Bei Rückgabe ohne Schäden: Auflösung des Holds in der Regel innerhalb 1-3 Werktagen.
-  * Falls Ihre Karte keine Pre-Authorization unterstützt: einfach auf diese Mail antworten, dann nehmen wir die Kaution bei Übergabe in bar.${memberBlock}
+  * Falls beim Hinterlegen etwas klemmt, melden Sie sich kurz — dann finden wir gemeinsam eine Lösung.${memberBlock}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 

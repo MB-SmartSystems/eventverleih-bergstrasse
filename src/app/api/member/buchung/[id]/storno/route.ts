@@ -105,9 +105,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     // Mail an Kunde
     const erstattungText = calc.erstattung_eur > 0
-      ? `Sie erhalten ${calc.erstattung_eur.toFixed(2)} EUR zurück. Die Überweisung erfolgt in den nächsten 5 Werktagen.`
+      ? `Sie erhalten ${calc.erstattung_eur.toFixed(2)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).`
       : calc.nachzahlung_eur > 0
-        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Bitte überweisen Sie ${calc.nachzahlung_eur.toFixed(2)} EUR an unsere Kontoverbindung.`
+        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${calc.nachzahlung_eur.toFixed(2)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
         : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
 
     const mailBody = `Hallo ${kunde.Vorname || ""} ${kunde.Nachname || ""},
