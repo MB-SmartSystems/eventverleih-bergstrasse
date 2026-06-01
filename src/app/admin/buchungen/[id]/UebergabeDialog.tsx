@@ -39,8 +39,8 @@ export default function UebergabeDialog({
     positionen.map((p) => ({ position_id: p.id, name: p.name, ok: false })),
   );
   const [adresse, setAdresse] = useState(uebergabeAdresse || "");
-  const [kautionMethode, setKautionMethode] = useState<"stripe_preauth" | "bar" | "ec" | "keine">(
-    kautionSollEur ? "bar" : "keine",
+  const [kautionMethode, setKautionMethode] = useState<"stripe_preauth" | "bar" | "keine">(
+    kautionSollEur ? "stripe_preauth" : "keine",
   );
   const [kautionEur, setKautionEur] = useState(kautionSollEur || 0);
   const [notiz, setNotiz] = useState("");
@@ -188,7 +188,7 @@ export default function UebergabeDialog({
           <div>
             <label className="block text-sm font-medium text-warm-text mb-1">Kaution</label>
             <div className="flex gap-2 mb-2 flex-wrap">
-              {(["stripe_preauth", "bar", "ec", "keine"] as const).map((m) => (
+              {(["stripe_preauth", "bar", "keine"] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
@@ -199,7 +199,7 @@ export default function UebergabeDialog({
                       : "bg-warm-surface text-warm-muted border-warm-border"
                   }`}
                 >
-                  {m === "stripe_preauth" ? "Stripe-Hold" : m === "bar" ? "Bar" : m === "ec" ? "EC" : "Keine"}
+                  {m === "stripe_preauth" ? "Stripe-Hold" : m === "bar" ? "Bar" : "Keine"}
                 </button>
               ))}
             </div>
