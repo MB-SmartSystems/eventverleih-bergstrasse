@@ -23,35 +23,20 @@ export default function Footer() {
             </p>
           </div>
 
-          {/* Contact */}
+          {/* Anfrage & Buchung */}
           <div>
-            <h4 className="text-white font-semibold mb-4">Kontakt</h4>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href="tel:+4915679521124"
-                  className="text-gray-400 hover:text-gold-400 transition-colors"
-                >
-                  Telefon: +49 156 79521124
-                </a>
-              </li>
-              <li>
-                <a
-                  href="mailto:info@eventverleih-bergstrasse.de"
-                  className="text-gray-400 hover:text-gold-400 transition-colors"
-                >
-                  E-Mail: info@eventverleih-bergstrasse.de
-                </a>
-              </li>
-              <li>
-                <a
-                  href="https://wa.me/4915679521124"
-                  className="text-gray-400 hover:text-gold-400 transition-colors"
-                >
-                  WhatsApp: +49 156 79521124
-                </a>
-              </li>
-            </ul>
+            <h4 className="text-white font-semibold mb-4">Anfrage & Buchung</h4>
+            <p className="text-gray-400 text-sm leading-relaxed mb-4">
+              Wunsch-Artikel auswählen und unverbindlich über den Warenkorb
+              anfragen — wir melden uns mit Verfügbarkeit und einem klaren
+              Angebot.
+            </p>
+            <Link
+              href="/#sortiment"
+              className="text-gold-400 hover:text-gold-300 text-sm font-medium transition-colors"
+            >
+              Zum Sortiment →
+            </Link>
           </div>
 
           {/* Legal */}

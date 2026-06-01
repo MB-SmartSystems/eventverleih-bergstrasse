@@ -605,12 +605,7 @@ export default function CartPage() {
 
               {submitResult === "error" && (
                 <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
-                  Es gab ein Problem beim Senden Ihrer Anfrage{errorText ? `: ${errorText}` : "."} Bitte versuchen Sie es erneut
-                  oder schreiben Sie direkt an{" "}
-                  <a href="mailto:info@eventverleih-bergstrasse.de" className="underline">
-                    info@eventverleih-bergstrasse.de
-                  </a>
-                  .
+                  Es gab ein Problem beim Senden Ihrer Anfrage{errorText ? `: ${errorText}` : "."} Bitte versuchen Sie es in Kürze erneut.
                 </div>
               )}
 
