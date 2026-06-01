@@ -48,7 +48,13 @@ const SCHON_VERARBEITET = new Set([
 type ReservierungBuchung = {
   Status_Erweitert: { value: string } | null;
   Event_datum_bis: string | null;
+  Anzahlung_Soll_Eur: string | number | null;
+  Restzahlung_Soll_Eur: string | number | null;
 };
+
+function eurNum(v: string | number | null): number {
+  return typeof v === "number" ? v : parseFloat(v ?? "0") || 0;
+}
 
 /**
  * Verarbeitet eine Reservierungs-Zahlung (Anzahlung ODER Komplettzahlung).
@@ -75,8 +81,12 @@ async function processReservierungsZahlung(
   const patch: Record<string, unknown> = {
     Status_Erweitert: "Reserviert",
     Anzahlung_Bezahlt_am: today,
+    Anzahlung_Bezahlt_Eur: eurNum(buchung.Anzahlung_Soll_Eur),
   };
-  if (paymentType === "komplettzahlung") patch.Restzahlung_Bezahlt_am = today;
+  if (paymentType === "komplettzahlung") {
+    patch.Restzahlung_Bezahlt_am = today;
+    patch.Restzahlung_Bezahlt_Eur = eurNum(buchung.Restzahlung_Soll_Eur);
+  }
   if (buchung.Event_datum_bis) patch.Lock_Until = `${buchung.Event_datum_bis}T23:59:59Z`;
   await updateRow(TABLES.Buchungen, buchungId, patch);
   await logAudit(buchungId, "Anzahlung_eingegangen", {
@@ -146,6 +156,7 @@ export async function POST(req: NextRequest) {
         } else if (paymentType === "restzahlung") {
           await updateRow(TABLES.Buchungen, buchungId, {
             Restzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
+            Restzahlung_Bezahlt_Eur: (pi.amount || 0) / 100,
           });
           await logAudit(buchungId, "Restzahlung_eingegangen", {
             stripe_payment_intent: pi.id,
