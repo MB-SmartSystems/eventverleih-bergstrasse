@@ -35,6 +35,8 @@ type BuchungRow = {
   Preis_Abbau: string | null;
   Kaution_Soll_Eur: string | null;
   Status_Erweitert: { value: string } | null;
+  Anzahlung_Bezahlt_am: string | null;
+  Restzahlung_Bezahlt_am: string | null;
   Kunde_Link: Array<{ id: number }>;
 };
 
@@ -110,6 +112,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       return NextResponse.json({ error: "Keine Preise gesetzt — Rechnung würde 0,00 € lauten" }, { status: 422 });
     }
 
+    // Voll bezahlt (Anzahlung + Restzahlung per Stripe eingegangen)? → Rechnung ist reiner Beleg, kein Zahlungs-/IBAN-Block.
+    const vollBezahlt = !!buchung.Anzahlung_Bezahlt_am && !!buchung.Restzahlung_Bezahlt_am;
+
     // Rechnungsnummer
     const existing = await listRows<RechnungRow>(TABLES.Rechnungen, { size: 500 });
     const year = new Date().getFullYear();
@@ -164,6 +169,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       rechnung: {
         rechnungsnummer,
         rechnungsdatum: heute,
+        bezahlt: vollBezahlt,
         faelligkeit,
         betrag_netto_eur: summe,
         betrag_ust_eur: 0,
@@ -177,7 +183,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Rechnungsnummer: rechnungsnummer,
       Rechnungsdatum: heute,
       Typ_Erweitert: "Komplett",
-      Status: "Gesendet",
+      Status: vollBezahlt ? "Bezahlt" : "Gesendet",
       Betrag_Netto: summe,
       Betrag_USt: 0,
       Betrag_Gesamt: summe,

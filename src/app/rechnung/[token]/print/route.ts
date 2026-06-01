@@ -45,6 +45,7 @@ interface SnapshotRechnung {
   rechnungsnummer?: string;
   rechnungsdatum?: string;
   faelligkeit?: string;
+  bezahlt?: boolean;
   betrag_gesamt_eur?: number;
 }
 interface SnapshotPosition {
@@ -95,6 +96,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
     rechnungsnummer: r.rechnungsnummer ?? "",
     rechnungsdatum: r.rechnungsdatum ?? "",
     faelligkeit: r.faelligkeit ?? "",
+    bezahlt: r.bezahlt ?? false,
     leistung_von: b.event_datum_von ?? null,
     leistung_bis: b.event_datum_bis ?? null,
     kunde: {

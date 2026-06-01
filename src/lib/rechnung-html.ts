@@ -37,6 +37,7 @@ export interface RechnungContext {
 
   summe_eur: number;
   kaution_eur: number;
+  bezahlt?: boolean;
 
   firma: {
     name: string;
@@ -185,9 +186,11 @@ ${leistung && leistung !== "—" ? `<div class="leistung">Leistungszeitraum: ${l
 
 <div class="zahlungshinweis">
   <strong>Zahlungsdetails</strong>
-  Bitte überweisen Sie den Betrag bis spätestens ${fmtDate(ctx.faelligkeit)} auf folgendes Konto:<br>
+  ${ctx.bezahlt
+    ? `Der Rechnungsbetrag wurde vollständig über Stripe beglichen. Diese Rechnung dient als Beleg — keine weitere Zahlung erforderlich.`
+    : `Bitte überweisen Sie den Betrag bis spätestens ${fmtDate(ctx.faelligkeit)} auf folgendes Konto:<br>
   Kontoinhaber: ${escape(f.inhaber)}<br>
-  IBAN: <span class="iban">${escape(f.iban)}</span>
+  IBAN: <span class="iban">${escape(f.iban)}</span>`}
 </div>
 
 <div class="ust">${escape(f.ust_hinweis)}</div>

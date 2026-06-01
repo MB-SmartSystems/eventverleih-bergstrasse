@@ -363,6 +363,14 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
               </div>
             </div>
           )}
+          {rechnung.Status?.value === "Bezahlt" && (
+            <div className="mt-8 p-4 rounded-lg bg-green-500/10 border-l-4 border-green-500">
+              <div className="font-semibold text-warm-text mb-1">Bezahlt</div>
+              <div className="text-sm text-warm-muted">
+                Der Rechnungsbetrag wurde vollständig über Stripe beglichen. Diese Rechnung dient als Beleg.
+              </div>
+            </div>
+          )}
 
           {/* PDF-Info */}
           <div className="mt-6">
