@@ -22,6 +22,8 @@ type BuchungRow = {
   Preis_Lieferung: string | null;
   Preis_Abholung: string | null;
   Preis_Aufbau: string | null;
+  Uebergabe_Termin: string | null;
+  Lieferadresse: string | null;
   Gesamt: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
@@ -56,6 +58,19 @@ function fmtDate(d: string | null): string {
   if (!d) return "—";
   const [y, m, dd] = d.split("-");
   return `${dd}.${m}.${y}`;
+}
+
+function fmtDateTime(s: string | null): string {
+  if (!s) return "—";
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return "—";
+  return d.toLocaleString("de-DE", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Berlin",
+  });
 }
 
 function fmtEur(v: string | null): string {
@@ -161,6 +176,15 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
               {rows.map((b) => {
                 const kunde = b.Kunde_Link?.[0]?.id ? kundenById.get(b.Kunde_Link[0].id) : null;
                 const status = b.Status_Erweitert?.value ?? "—";
+                const hasLieferung = parseFloat(b.Preis_Lieferung ?? "0") > 0;
+                const hasAbholung = parseFloat(b.Preis_Abholung ?? "0") > 0;
+                const hasAufbau = parseFloat(b.Preis_Aufbau ?? "0") > 0;
+                const logistik = hasLieferung
+                  ? `Lieferung${hasAufbau ? " + Aufbau" : ""}${hasAbholung ? " + Abholung" : ""}`
+                  : "Selbstabholung";
+                const ort = hasLieferung
+                  ? b.Lieferadresse || "Lieferadresse offen"
+                  : "Treffpunkt Grillhütte Sandwiese";
                 return (
                   <tr
                     key={b.id}
@@ -177,6 +201,10 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                         {b.Event_datum_bis && b.Event_datum_bis !== b.Event_datum_von && (
                           <div className="text-xs text-warm-muted">bis {fmtDate(b.Event_datum_bis)}</div>
                         )}
+                        {b.Uebergabe_Termin && (
+                          <div className="text-xs text-accent mt-1">Übergabe {fmtDateTime(b.Uebergabe_Termin)}</div>
+                        )}
+                        <div className="text-xs text-warm-muted">{logistik} · {ort}</div>
                       </Link>
                     </td>
                     <td className="px-4 py-3">
