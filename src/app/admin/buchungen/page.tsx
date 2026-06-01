@@ -65,8 +65,11 @@ function fmtEur(v: string | null): string {
 
 export default async function BuchungenPage({ searchParams }: { searchParams: Promise<{ filter?: string; sort?: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
-  const { filter = "alle", sort = "event_desc" } = await searchParams;
-  const sortAsc = sort === "event_asc";
+  const { filter = "alle", sort } = await searchParams;
+  const heute = new Date().toISOString().slice(0, 10);
+  // Default-Sortierung je Ansicht: "Anstehend" aufsteigend (nächstes zuerst), sonst absteigend (neueste zuerst)
+  const defaultSort = filter === "anstehend" ? "event_asc" : "event_desc";
+  const sortAsc = (sort ?? defaultSort) === "event_asc";
 
   const [buchungenList, kundenList] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
@@ -76,7 +79,13 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   const kundenById = new Map(kundenList.results.map((k) => [k.id, k]));
 
   let rows = buchungenList.results;
-  if (filter === "aktiv") rows = rows.filter((b) => ACTIVE.has(b.Status_Erweitert?.value ?? ""));
+  if (filter === "anstehend")
+    rows = rows.filter(
+      (b) =>
+        !CANCELLED.has(b.Status_Erweitert?.value ?? "") &&
+        (b.Event_datum_bis ?? b.Event_datum_von ?? "") >= heute,
+    );
+  else if (filter === "aktiv") rows = rows.filter((b) => ACTIVE.has(b.Status_Erweitert?.value ?? ""));
   else if (filter === "abgeschlossen") rows = rows.filter((b) => DONE.has(b.Status_Erweitert?.value ?? ""));
   else if (filter === "storniert") rows = rows.filter((b) => CANCELLED.has(b.Status_Erweitert?.value ?? ""));
 
@@ -88,13 +97,15 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   const buildHref = (f: string, s: string) => {
     const params = new URLSearchParams();
     if (f !== "alle") params.set("filter", f);
-    if (s !== "event_desc") params.set("sort", s);
+    const natural = f === "anstehend" ? "event_asc" : "event_desc";
+    if (s !== natural) params.set("sort", s);
     const qs = params.toString();
     return `/admin/buchungen${qs ? `?${qs}` : ""}`;
   };
 
   const tabs = [
     { key: "alle", label: "Alle", count: buchungenList.results.length },
+    { key: "anstehend", label: "Anstehend", count: buchungenList.results.filter((b) => !CANCELLED.has(b.Status_Erweitert?.value ?? "") && (b.Event_datum_bis ?? b.Event_datum_von ?? "") >= heute).length },
     { key: "aktiv", label: "Aktiv", count: buchungenList.results.filter((b) => ACTIVE.has(b.Status_Erweitert?.value ?? "")).length },
     { key: "abgeschlossen", label: "Abgeschlossen", count: buchungenList.results.filter((b) => DONE.has(b.Status_Erweitert?.value ?? "")).length },
     { key: "storniert", label: "Storniert", count: buchungenList.results.filter((b) => CANCELLED.has(b.Status_Erweitert?.value ?? "")).length },
