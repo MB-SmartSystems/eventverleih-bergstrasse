@@ -383,7 +383,7 @@ WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbi
 ${stripeBlock}
 Verwendungszweck: ${angebot.Angebotsnummer}
 
-Restzahlung und Kaution folgen bei der Übergabe - gerne bar oder bequem online per Zahlungslink.
+Restzahlung und Kaution folgen vor bzw. bei der Übergabe — bequem online per Zahlungslink.
 
 Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit.
 

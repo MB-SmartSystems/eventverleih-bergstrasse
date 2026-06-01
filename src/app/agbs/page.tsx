@@ -76,8 +76,8 @@ export default function AGB() {
             <p>
               <strong>Zahlungswege:</strong> Die Anzahlung erfolgt online per Karte
               (Kreditkarte/Stripe) über den im Angebot bzw. in Ihrem Kundenbereich
-              hinterlegten Zahlungslink. Die Restzahlung kann bei der Übergabe in bar
-              oder ebenfalls online geleistet werden. Die Kaution wird per Karte als
+              hinterlegten Zahlungslink. Die Restzahlung erfolgt ebenfalls online per
+              Karte über den hinterlegten Zahlungslink. Die Kaution wird per Karte als
               Vorautorisierung hinterlegt und nach beanstandungsfreier Rückgabe wieder
               freigegeben.
             </p>
