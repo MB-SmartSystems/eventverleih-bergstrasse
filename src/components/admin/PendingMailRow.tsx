@@ -50,7 +50,7 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
 
   if (done) {
     return (
-      <div className="rounded-lg border border-warm-bg bg-warm-bg/30 px-3 py-2 text-xs text-warm-muted">
+      <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600">
         {done === "approved" ? "✓ Freigegeben — n8n versendet beim nächsten Poll" : "✓ Verworfen — Mail wird nicht versendet"}
       </div>
     );
@@ -64,20 +64,20 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
             <span className="inline-block rounded bg-yellow-100 text-yellow-900 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
               {templateLabel(mail.template_key)}
             </span>
-            <span className="text-xs text-warm-muted">{daysSinceLabel(mail.erstellt_am)}</span>
+            <span className="text-xs text-gray-500">{daysSinceLabel(mail.erstellt_am)}</span>
           </div>
-          <div className="text-sm font-medium text-warm-text mt-1 truncate">
+          <div className="text-sm font-medium text-gray-900 mt-1 truncate">
             {mail.subject}
           </div>
           {(mail.kunde_name || mail.buchung_id) && (
-            <div className="text-xs text-warm-muted">
+            <div className="text-xs text-gray-600">
               {mail.kunde_name && <span>{mail.kunde_name}</span>}
               {mail.buchung_id && (
                 <>
                   {mail.kunde_name && <span> · </span>}
                   <Link
                     href={`/admin/buchungen/${mail.buchung_id}`}
-                    className="underline hover:text-accent"
+                    className="underline hover:text-gray-900"
                   >
                     Buchung #{mail.buchung_id}
                   </Link>
@@ -97,14 +97,14 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
           <button
             onClick={() => action("reject")}
             disabled={loading !== null}
-            className="px-2.5 py-1 rounded-md bg-warm-bg text-warm-text text-xs font-medium hover:bg-warm-bg/80 border border-warm-bg disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-2.5 py-1 rounded-md bg-gray-100 text-gray-700 text-xs font-medium hover:bg-gray-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading === "reject" ? "…" : "Verwerfen"}
           </button>
           <button
             onClick={() => setExpanded((v) => !v)}
             aria-label={expanded ? "Body einklappen" : "Body anschauen"}
-            className="px-2 py-1 rounded-md text-warm-muted hover:bg-warm-bg/50 text-xs"
+            className="px-2 py-1 rounded-md text-gray-400 hover:bg-gray-100 hover:text-gray-600 text-xs"
           >
             {expanded ? "▲" : "▼"}
           </button>
@@ -116,7 +116,7 @@ export function PendingMailRow({ mail }: { mail: PendingMailItem }) {
         </div>
       )}
       {expanded && (
-        <pre className="mt-2 whitespace-pre-wrap text-xs text-warm-muted bg-warm-bg/30 rounded p-2 max-h-72 overflow-auto font-sans">
+        <pre className="mt-2 whitespace-pre-wrap text-xs text-gray-700 bg-gray-50 border border-gray-200 rounded p-2 max-h-72 overflow-auto font-sans">
           {mail.body}
         </pre>
       )}
