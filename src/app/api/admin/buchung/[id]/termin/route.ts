@@ -21,6 +21,8 @@ interface BuchungData {
   Calendar_Event_ID_Uebergabe: string | null;
   Calendar_Event_ID_Rueckgabe: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
+  Lieferadresse: string | null;
+  Preis_Lieferung: string | null;
 }
 
 function isValidDateTime(v: unknown): v is string {
@@ -78,6 +80,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (calendarId && webhookUrl) {
       try {
         const buchung = await getRow<BuchungData>(TABLES.Buchungen, buchungId);
+        let kundeName = buchung.Kunde_Link?.[0]?.value || "";
+        const kid = buchung.Kunde_Link?.[0]?.id;
+        if (kid) {
+          try {
+            const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kid);
+            kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim() || kundeName;
+          } catch {
+            /* fail-soft: Name bleibt Fallback */
+          }
+        }
+        const hatLieferung = parseFloat(buchung.Preis_Lieferung ?? "0") > 0;
+        const location =
+          hatLieferung && buchung.Lieferadresse
+            ? buchung.Lieferadresse
+            : "Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein";
         await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -88,8 +105,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             rueckgabe_termin: buchung.Rueckgabe_Termin,
             existing_uebergabe_event: buchung.Calendar_Event_ID_Uebergabe,
             existing_rueckgabe_event: buchung.Calendar_Event_ID_Rueckgabe,
-            kunde_name: buchung.Kunde_Link?.[0]?.value || "",
-            location: "Grillhuette Sandwiese (Freizeitanlage), Alsbach-Haehnlein",
+            kunde_name: kundeName,
+            location,
           }),
           signal: AbortSignal.timeout(5000),
         });
