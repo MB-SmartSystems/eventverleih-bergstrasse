@@ -193,9 +193,10 @@ export async function POST(
       }
     }
 
-    // Liefer-Preis berechnen
-    const lieferpreis = lieferung && distKm > 0 ? distKm * 2 : 0;
-    const abholpreis = abholung && distKm > 0 ? distKm * 2 : 0;
+    // Liefer-Preis berechnen — angefangene km voll berechnen (aufrunden)
+    const billKm = Math.ceil(distKm);
+    const lieferpreis = lieferung && distKm > 0 ? billKm * 2 : 0;
+    const abholpreis = abholung && distKm > 0 ? billKm * 2 : 0;
 
     // Aufbau-Preis
     let aufbauSumme = 0;
@@ -213,8 +214,8 @@ export async function POST(
     const today = new Date().toISOString().slice(0, 10);
     const zusatzBlock: string[] = [];
     if (aufbau && aufbauSumme > 0) zusatzBlock.push(`Aufbau-Service: ${aufbauSumme.toFixed(2)} EUR`);
-    if (lieferung) zusatzBlock.push(`Lieferung gewuenscht (${distKm} km, ${lieferpreis.toFixed(2)} EUR)`);
-    if (abholung) zusatzBlock.push(`Abholung gewuenscht (${distKm} km, ${abholpreis.toFixed(2)} EUR)`);
+    if (lieferung) zusatzBlock.push(`Lieferung gewuenscht (${billKm} km, ${lieferpreis.toFixed(2)} EUR)`);
+    if (abholung) zusatzBlock.push(`Abholung gewuenscht (${billKm} km, ${abholpreis.toFixed(2)} EUR)`);
     if (resolvedAdr) zusatzBlock.push(`Event-Adresse: ${resolvedAdr.display}`);
     const noteAppend = zusatzBlock.length > 0
       ? `\n\n--- Service-Update ${today} ---\n${zusatzBlock.join("\n")}`

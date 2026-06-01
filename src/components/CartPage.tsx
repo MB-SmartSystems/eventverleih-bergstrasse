@@ -135,9 +135,10 @@ export default function CartPage() {
   const aufbauSumme = itemPricing.reduce((s, p) => s + p.aufbauSummeProItem, 0);
   const totalAufbau = aufbauKomplett ? aufbauSumme : 0;
 
-  // Liefer-Preise: 2 €/km pro Service-Operation
-  const lieferpreis = lieferungGewuenscht && distanceKm !== null ? distanceKm * 2 : 0;
-  const abholpreis = abholungGewuenscht && distanceKm !== null ? distanceKm * 2 : 0;
+  // Liefer-Preise: 2 €/km pro Service-Operation; angefangene km werden aufgerundet
+  const billKm = distanceKm !== null ? Math.ceil(distanceKm) : 0;
+  const lieferpreis = lieferungGewuenscht && distanceKm !== null ? billKm * 2 : 0;
+  const abholpreis = abholungGewuenscht && distanceKm !== null ? billKm * 2 : 0;
 
   const totalGesamt = totalMiete + totalKaution + totalAufbau + lieferpreis + abholpreis;
   const aufAnfrageCount = itemPricing.filter((p) => p.aufAnfrage).length;
@@ -220,12 +221,12 @@ export default function CartPage() {
     }
     if (lieferungGewuenscht) {
       cartLines.push(
-        `+ Lieferung zum Event${distanceKm !== null ? ` (${distanceKm} km, ${formatEur(lieferpreis)})` : " (Preis im Angebot)"}`,
+        `+ Lieferung zum Event${distanceKm !== null ? ` (${billKm} km, ${formatEur(lieferpreis)})` : " (Preis im Angebot)"}`,
       );
     }
     if (abholungGewuenscht) {
       cartLines.push(
-        `+ Abholung nach Event${distanceKm !== null ? ` (${distanceKm} km, ${formatEur(abholpreis)})` : " (Preis im Angebot)"}`,
+        `+ Abholung nach Event${distanceKm !== null ? ` (${billKm} km, ${formatEur(abholpreis)})` : " (Preis im Angebot)"}`,
       );
     }
     if (lieferAktiv && lieferStrasse) {
@@ -787,13 +788,13 @@ export default function CartPage() {
                 )}
                 {lieferpreis > 0 && (
                   <div className="flex items-baseline justify-between">
-                    <dt className="text-gray-400">Lieferung ({distanceKm} km)</dt>
+                    <dt className="text-gray-400">Lieferung ({billKm} km)</dt>
                     <dd className="text-white font-medium">{formatEur(lieferpreis)}</dd>
                   </div>
                 )}
                 {abholpreis > 0 && (
                   <div className="flex items-baseline justify-between">
-                    <dt className="text-gray-400">Abholung ({distanceKm} km)</dt>
+                    <dt className="text-gray-400">Abholung ({billKm} km)</dt>
                     <dd className="text-white font-medium">{formatEur(abholpreis)}</dd>
                   </div>
                 )}

@@ -254,8 +254,9 @@ export async function POST(req: NextRequest) {
 
     // Lieferung + Abholung: 2 €/km pro Service
     const distKm = typeof payload.distance_km === "number" && payload.distance_km > 0 ? payload.distance_km : 0;
-    const lieferpreis = payload.lieferung_gewuenscht && distKm > 0 ? distKm * 2 : 0;
-    const abholpreis = payload.abholung_gewuenscht && distKm > 0 ? distKm * 2 : 0;
+    const billKm = Math.ceil(distKm); // angefangene km voll berechnen
+    const lieferpreis = payload.lieferung_gewuenscht && distKm > 0 ? billKm * 2 : 0;
+    const abholpreis = payload.abholung_gewuenscht && distKm > 0 ? billKm * 2 : 0;
     const lieferGesamt = lieferpreis + abholpreis;
 
     // Lieferadresse als Text fuer Baserow
@@ -310,10 +311,10 @@ export async function POST(req: NextRequest) {
       lieferDetails.push(`Aufbau-Service: ${aufbauSumme.toFixed(2)} EUR`);
     }
     if (payload.lieferung_gewuenscht) {
-      lieferDetails.push(`Lieferung gewuenscht (${distKm} km, ${lieferpreis.toFixed(2)} EUR)`);
+      lieferDetails.push(`Lieferung gewuenscht (${billKm} km, ${lieferpreis.toFixed(2)} EUR)`);
     }
     if (payload.abholung_gewuenscht) {
-      lieferDetails.push(`Abholung gewuenscht (${distKm} km, ${abholpreis.toFixed(2)} EUR)`);
+      lieferDetails.push(`Abholung gewuenscht (${billKm} km, ${abholpreis.toFixed(2)} EUR)`);
     }
     if (lieferadresseStr) {
       lieferDetails.push(`Event-Adresse: ${lieferadresseStr}`);
