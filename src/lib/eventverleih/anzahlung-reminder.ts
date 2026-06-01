@@ -17,6 +17,7 @@
  */
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 interface BuchungRow {
   id: number;
@@ -86,23 +87,26 @@ function buildMail(
     : "";
   const sig = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
+  const datum = formatGermanShort(eventDatumVon);
+  const betragFmt = anzahlungSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   let opening = "";
   if (tpl === "anzahlung_post3") {
-    opening = `vielen Dank für Ihre Bestätigung. Ihr Termin am ${eventDatumVon} ist bei mir vorgemerkt.`;
+    opening = `vielen Dank für Ihre Bestätigung. Ihr Termin am ${datum} ist bei mir vorgemerkt.`;
   } else if (tpl === "anzahlung_pre14") {
-    opening = `kurze Info zu Ihrer Buchung am ${eventDatumVon}: der Termin ist bei mir vorgemerkt.`;
+    opening = `kurze Info zu Ihrer Buchung am ${datum}: der Termin ist bei mir vorgemerkt.`;
   } else if (tpl === "anzahlung_pre7") {
-    opening = `Ihr Event am ${eventDatumVon} ist in einer Woche. Ihr Termin ist bei mir vorgemerkt.`;
+    opening = `Ihr Event am ${datum} ist in einer Woche. Ihr Termin ist bei mir vorgemerkt.`;
   } else {
-    opening = `Ihr Event am ${eventDatumVon} ist in wenigen Tagen. Ihr Termin ist bei mir vorgemerkt.`;
+    opening = `Ihr Event am ${datum} ist in wenigen Tagen. Ihr Termin ist bei mir vorgemerkt.`;
   }
 
-  const core = `Damit ich die Teile fest für Sie einbuchen kann, brauche ich noch die Anzahlung von ${anzahlungSoll.toFixed(2)} EUR. Solange die nicht da ist, gilt bei mir first-come-first-serve — ich blockiere die Artikel nicht hart, falls jemand anders schneller zahlt.`;
+  const core = `Damit ich die Teile fest für Sie einbuchen kann, brauche ich noch die Anzahlung von ${betragFmt} EUR. Bis Ihre Anzahlung eingeht, halte ich die Artikel zwar für Sie vor, kann sie aber noch nicht fest reservieren. Zahlt in der Zwischenzeit jemand anderes schneller, hätte er Vorrang.`;
 
   const pscript = `Falls die Anzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
 
   return {
-    subject: `Kurze Info zu Ihrer Buchung am ${eventDatumVon}`,
+    subject: `Kurze Info zu Ihrer Buchung am ${datum}`,
     body: `Hallo ${kundeName},\n\n${opening}\n\n${core}\n\n${linkLine}${pscript}${memberBlock}${sig}`,
   };
 }
@@ -160,8 +164,15 @@ export async function runAnzahlungReminder(): Promise<Record<string, unknown>> {
     }
 
     const kundeId = b.Kunde_Link?.[0]?.id;
-    const kundeName = b.Kunde_Link?.[0]?.value || "";
     if (!kundeId) continue;
+    let kundeName = "";
+    try {
+      const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
+      kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim();
+    } catch (e) {
+      console.error("[anzahlung-reminder] kunde-fetch fehlgeschlagen:", e);
+    }
+    if (!kundeName) continue;
 
     let meinBereichUrl: string | null = null;
     try {

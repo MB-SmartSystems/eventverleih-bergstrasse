@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { runAnzahlungReminder } from "@/lib/eventverleih/anzahlung-reminder";
+import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -74,21 +75,24 @@ function buildMail(
     : "";
   const sig = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
+  const datum = formatGermanShort(eventDatumVon);
+  const betragFmt = restSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
   let opening = "";
   if (tpl === "restzahlung_pre14") {
-    opening = `in zwei Wochen ist Ihr Event (${eventDatumVon}).`;
+    opening = `in zwei Wochen ist Ihr Event (${datum}).`;
   } else if (tpl === "restzahlung_pre7") {
-    opening = `Ihr Event am ${eventDatumVon} ist in einer Woche.`;
+    opening = `Ihr Event am ${datum} ist in einer Woche.`;
   } else {
-    opening = `Ihr Event am ${eventDatumVon} ist in wenigen Tagen.`;
+    opening = `Ihr Event am ${datum} ist in wenigen Tagen.`;
   }
 
-  const core = `Damit die Übergabe entspannt klappt, wäre die Restzahlung von ${restSoll.toFixed(2)} EUR vorab gut. Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen — kurze WhatsApp reicht, dann nehme ich es so auf.`;
+  const core = `Damit die Übergabe entspannt klappt, wäre die Restzahlung von ${betragFmt} EUR vorab gut. Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen — kurze WhatsApp reicht, dann nehme ich es so auf.`;
 
   const pscript = `Falls die Restzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
 
   return {
-    subject: `Kurze Erinnerung: Restzahlung Ihrer Buchung am ${eventDatumVon}`,
+    subject: `Kurze Erinnerung: Restzahlung Ihrer Buchung am ${datum}`,
     body: `Hallo ${kundeName},\n\n${opening}\n\n${core}\n\n${linkLine}${pscript}${memberBlock}${sig}`,
   };
 }
@@ -148,8 +152,15 @@ export async function GET(req: NextRequest) {
       }
 
       const kundeId = b.Kunde_Link?.[0]?.id;
-      const kundeName = b.Kunde_Link?.[0]?.value || "";
       if (!kundeId) continue;
+      let kundeName = "";
+      try {
+        const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
+        kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim();
+      } catch (e) {
+        console.error("[restzahlung-reminder] kunde-fetch fehlgeschlagen:", e);
+      }
+      if (!kundeName) continue;
 
       // Auto-Login-Link für Mein-Bereich (fail-soft)
       let meinBereichUrl: string | null = null;
