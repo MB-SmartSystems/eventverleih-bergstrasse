@@ -129,8 +129,10 @@ function isPast(dateStr: string | null): boolean {
   return d.getTime() < Date.now() - DAY_MS;
 }
 
-function kundeName(b: BuchungRow): string {
-  return b.Kunde_Link?.[0]?.value || "(unbekannt)";
+interface KundeRow {
+  id: number;
+  Vorname: string | null;
+  Nachname: string | null;
 }
 
 function fmtDate(s: string | null): string {
@@ -139,15 +141,27 @@ function fmtDate(s: string | null): string {
 }
 
 export async function loadInboxData(): Promise<InboxData> {
-  const [buchungenRes, mailqueueRes, angeboteRes, stockConflicts] = await Promise.all([
+  const [buchungenRes, mailqueueRes, angeboteRes, kundenRes, stockConflicts] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
     listAllRows<MailQueueRow>(TABLES.MailQueue),
     listAllRows<AngebotRow>(TABLES.Angebote),
+    listAllRows<KundeRow>(TABLES.Kunden),
     listOpenStockConflicts(),
   ]);
   const buchungen = buchungenRes.results;
   const mailqueue = mailqueueRes.results;
   const angebote = angeboteRes.results;
+
+  // Kunden-ID -> "Vorname Nachname" (Baserow-Link-Wert ist die Kunde-ID, nicht der Name)
+  const kundeNames = new Map<number, string>();
+  for (const k of kundenRes.results) {
+    const n = `${k.Vorname ?? ""} ${k.Nachname ?? ""}`.trim();
+    if (n) kundeNames.set(k.id, n);
+  }
+  const kundeName = (b: BuchungRow): string => {
+    const id = b.Kunde_Link?.[0]?.id;
+    return (id != null ? kundeNames.get(id) : undefined) || "(unbekannt)";
+  };
 
   // ----- Mail-Queue Widget -----
   const mailqueue_pending = mailqueue.filter(
@@ -184,7 +198,7 @@ export async function loadInboxData(): Promise<InboxData> {
       body: m.Body || "",
       template_key: m.Template_Key || "",
       buchung_id: m.Buchung_Link?.[0]?.id,
-      kunde_name: m.Kunde_Link?.[0]?.value || m.Buchung_Link?.[0]?.value,
+      kunde_name: (m.Kunde_Link?.[0]?.id != null ? kundeNames.get(m.Kunde_Link[0].id) : undefined) || undefined,
       erstellt_am: m.Erstellt_am,
     }));
   // Uebergaben heute (Datum_Beginn = heute)
