@@ -297,87 +297,6 @@ Vertrag
             })()}
           </section>
 
-          {/* Notizen */}
-          {buchung.Notizen && (
-            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-              <h2 className="text-lg font-semibold text-warm-text mb-3">Notizen</h2>
-              <p className="text-sm text-warm-muted whitespace-pre-wrap">{buchung.Notizen}</p>
-            </section>
-          )}
-
-          {/* Rechnungen */}
-          {rechnungen.length > 0 && (
-            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-              <h2 className="text-lg font-semibold text-warm-text mb-3">Rechnungen ({rechnungen.length})</h2>
-              <div className="space-y-2">
-                {rechnungen.map((r) => (
-                  <Link
-                    key={r.id}
-                    href={`/admin/rechnungen/${r.id}`}
-                    className="block p-3 rounded-lg border border-warm-border hover:bg-accent-50/40 transition-colors"
-                  >
-                    <div className="flex items-center justify-between gap-3 flex-wrap">
-                      <div className="text-sm">
-                        <span className="font-mono text-warm-text">{r.Rechnungsnummer}</span>
-                        {r.Typ_Erweitert?.value && (
-                          <span className="ml-2 text-xs text-warm-muted">{r.Typ_Erweitert.value}</span>
-                        )}
-                      </div>
-                      <div className="text-sm text-warm-text font-medium">{fmtEur(r.Betrag_Gesamt)}</div>
-                      <span className="text-xs text-warm-muted">{r.Status?.value ?? "—"}</span>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            </section>
-          )}
-
-          {/* Schriftverkehr — alle E-Mails an den Kunden (MailQueue) */}
-          <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-            <h2 className="text-lg font-semibold text-warm-text mb-3">Schriftverkehr ({mails.length})</h2>
-            {mails.length === 0 ? (
-              <p className="text-sm text-warm-muted">Noch keine E-Mails zu dieser Buchung.</p>
-            ) : (() => {
-              const renderMail = (m: (typeof mails)[number]) => {
-                const st =
-                  typeof m.Approval_Status === "object" && m.Approval_Status
-                    ? m.Approval_Status.value
-                    : (m.Approval_Status as string | null);
-                const statusText = m.Sent_am
-                  ? `✓ gesendet ${fmtDate(m.Sent_am)}`
-                  : st === "Auto_Reply" || st === "Approved"
-                    ? "wird versendet…"
-                    : st || "offen";
-                return (
-                  <details key={m.id} className="rounded-lg border border-warm-border bg-warm-bg/40">
-                    <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
-                      <span className="text-sm text-warm-text font-medium">{m.Subject || "(kein Betreff)"}</span>
-                      <span className="text-xs text-warm-muted whitespace-nowrap">{statusText}</span>
-                    </summary>
-                    <div className="px-3 pb-3 pt-1 border-t border-warm-border">
-                      <pre className="whitespace-pre-wrap break-words text-xs text-warm-muted font-sans leading-relaxed">{m.Body || "(kein Inhalt)"}</pre>
-                    </div>
-                  </details>
-                );
-              };
-              return (
-                <div className="space-y-2">
-                  {mails.slice(0, 5).map(renderMail)}
-                  {mails.length > 5 && (
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-sm text-warm-muted hover:text-warm-text px-1 py-1">
-                        Alle {mails.length} E-Mails anzeigen
-                      </summary>
-                      <div className="space-y-2 mt-2">{mails.slice(5).map(renderMail)}</div>
-                    </details>
-                  )}
-                </div>
-              );
-            })()}
-          </section>
-        </div>
-
-        <div className="space-y-6">
           {/* Zahlungen (Preis-Breakdown + Bezahlt/Offen + Historie zusammengeführt) */}
           {(() => {
             const gesamt =
@@ -500,6 +419,87 @@ Vertrag
             );
           })()}
 
+          {/* Notizen */}
+          {buchung.Notizen && (
+            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
+              <h2 className="text-lg font-semibold text-warm-text mb-3">Notizen</h2>
+              <p className="text-sm text-warm-muted whitespace-pre-wrap">{buchung.Notizen}</p>
+            </section>
+          )}
+
+          {/* Rechnungen */}
+          {rechnungen.length > 0 && (
+            <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
+              <h2 className="text-lg font-semibold text-warm-text mb-3">Rechnungen ({rechnungen.length})</h2>
+              <div className="space-y-2">
+                {rechnungen.map((r) => (
+                  <Link
+                    key={r.id}
+                    href={`/admin/rechnungen/${r.id}`}
+                    className="block p-3 rounded-lg border border-warm-border hover:bg-accent-50/40 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-3 flex-wrap">
+                      <div className="text-sm">
+                        <span className="font-mono text-warm-text">{r.Rechnungsnummer}</span>
+                        {r.Typ_Erweitert?.value && (
+                          <span className="ml-2 text-xs text-warm-muted">{r.Typ_Erweitert.value}</span>
+                        )}
+                      </div>
+                      <div className="text-sm text-warm-text font-medium">{fmtEur(r.Betrag_Gesamt)}</div>
+                      <span className="text-xs text-warm-muted">{r.Status?.value ?? "—"}</span>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Schriftverkehr — alle E-Mails an den Kunden (MailQueue) */}
+          <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
+            <h2 className="text-lg font-semibold text-warm-text mb-3">Schriftverkehr ({mails.length})</h2>
+            {mails.length === 0 ? (
+              <p className="text-sm text-warm-muted">Noch keine E-Mails zu dieser Buchung.</p>
+            ) : (() => {
+              const renderMail = (m: (typeof mails)[number]) => {
+                const st =
+                  typeof m.Approval_Status === "object" && m.Approval_Status
+                    ? m.Approval_Status.value
+                    : (m.Approval_Status as string | null);
+                const statusText = m.Sent_am
+                  ? `✓ gesendet ${fmtDate(m.Sent_am)}`
+                  : st === "Auto_Reply" || st === "Approved"
+                    ? "wird versendet…"
+                    : st || "offen";
+                return (
+                  <details key={m.id} className="rounded-lg border border-warm-border bg-warm-bg/40">
+                    <summary className="cursor-pointer px-3 py-2 flex items-center justify-between gap-3 flex-wrap">
+                      <span className="text-sm text-warm-text font-medium">{m.Subject || "(kein Betreff)"}</span>
+                      <span className="text-xs text-warm-muted whitespace-nowrap">{statusText}</span>
+                    </summary>
+                    <div className="px-3 pb-3 pt-1 border-t border-warm-border">
+                      <pre className="whitespace-pre-wrap break-words text-xs text-warm-muted font-sans leading-relaxed">{m.Body || "(kein Inhalt)"}</pre>
+                    </div>
+                  </details>
+                );
+              };
+              return (
+                <div className="space-y-2">
+                  {mails.slice(0, 5).map(renderMail)}
+                  {mails.length > 5 && (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-sm text-warm-muted hover:text-warm-text px-1 py-1">
+                        Alle {mails.length} E-Mails anzeigen
+                      </summary>
+                      <div className="space-y-2 mt-2">{mails.slice(5).map(renderMail)}</div>
+                    </details>
+                  )}
+                </div>
+              );
+            })()}
+          </section>
+        </div>
+
+        <div className="space-y-6">
           {/* Checkliste — UI-Helfer fuer Manuel */}
           {(() => {
             const checklistState: Record<string, { checked: boolean; ts: string }> = (() => {

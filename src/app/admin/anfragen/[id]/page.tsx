@@ -353,13 +353,6 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             </div>
           </section>
 
-          {/* Anfrage-Text */}
-          {angebot.Anfragetext && (
-            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
-              <h2 className="text-lg font-semibold text-white mb-3">Anfrage-Text</h2>
-              <p className="text-sm text-gray-300 whitespace-pre-wrap">{angebot.Anfragetext}</p>
-            </section>
-          )}
 
           {/* Positionen — editierbar */}
           <PositionsEditor buchungId={buchungId} initialPositionen={positionItems} artikelOptions={artikelOptions} />
@@ -374,6 +367,17 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             aufbauSummeEur={aufbauSummeEur}
           />
 
+        </div>
+
+        <div className="space-y-6">
+          {/* Anfrage-Text */}
+          {angebot.Anfragetext && (
+            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-lg font-semibold text-white mb-3">Anfrage-Text</h2>
+              <p className="text-sm text-gray-300 whitespace-pre-wrap">{angebot.Anfragetext}</p>
+            </section>
+          )}
+
           {/* Notizen */}
           {buchung.Notizen && (
             <section className="p-5 rounded-xl bg-white/5 border border-white/10">
@@ -381,9 +385,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
               <p className="text-sm text-gray-400 whitespace-pre-wrap">{buchung.Notizen}</p>
             </section>
           )}
-        </div>
 
-        <div className="space-y-6">
           {/* Preise */}
           <section className="p-5 rounded-xl bg-gold-500/5 border border-gold-500/20">
             <h2 className="text-lg font-semibold text-white mb-3">Preise</h2>

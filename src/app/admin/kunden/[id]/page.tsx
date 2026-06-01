@@ -103,7 +103,7 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
         {kunde.Firma && <p className="text-sm text-warm-muted mt-1">{kunde.Firma}</p>}
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-6">
+      <div className="grid lg:grid-cols-2 gap-6">
         <div className="space-y-6">
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
             <h2 className="text-lg font-semibold text-warm-text mb-3">Kontakt</h2>
@@ -173,7 +173,7 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
           />
         </div>
 
-        <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
             <h2 className="text-lg font-semibold text-warm-text mb-3">Buchungen ({buchungen.length})</h2>
             {buchungen.length === 0 ? (
