@@ -69,7 +69,7 @@ function buildMail(
 ): { subject: string; body: string } {
   const linkLine = stripeLink
     ? `Am bequemsten online:\n${stripeLink}\n\n`
-    : `Sie können bequem online über Ihren Kundenbereich zahlen (Link unten) — oder bar bei der Übergabe.\n\n`;
+    : `Sie können bequem online über Ihren Kundenbereich zahlen (Link unten).\n\n`;
   const memberBlock = meinBereichUrl
     ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
     : "";
@@ -87,7 +87,7 @@ function buildMail(
     opening = `Ihr Event am ${datum} ist in wenigen Tagen.`;
   }
 
-  const core = `Damit die Übergabe entspannt klappt, wäre die Restzahlung von ${betragFmt} EUR vorab gut. Alternativ können Sie auch bar oder per EC-Karte bei der Übergabe zahlen — kurze WhatsApp reicht, dann nehme ich es so auf.`;
+  const core = `Damit die Übergabe entspannt klappt, wäre die Restzahlung von ${betragFmt} EUR vorab über den Zahlungslink gut.`;
 
   const pscript = `Falls die Restzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
 
