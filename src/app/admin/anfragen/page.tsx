@@ -93,8 +93,9 @@ function formatRange(von: string | null, bis: string | null): string {
   return `${vonStr} – ${bisStr}`;
 }
 
-export default async function AnfragenPage() {
+export default async function AnfragenPage({ searchParams }: { searchParams: Promise<{ sort?: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
+  const { sort = "datum" } = await searchParams;
 
   const [buchungenAll, angeboteAll, kundenAll] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
@@ -109,17 +110,16 @@ export default async function AnfragenPage() {
     return true;
   });
 
-  // Sortierung: zuerst Bestaetigt (frisch akzeptierte Anfragen), dann Angebot_versendet, dann neue Anfragen
-  const STATUS_ORDER: Record<string, number> = {
-    Bestaetigt: 0,
-    Angebot_versendet: 1,
-    Angebot_erstellt: 2,
-    Anfrage: 3,
+  const kundenById = new Map(kundenAll.results.map((k) => [k.id, k]));
+  const kundeName = (b: BuchungRow): string => {
+    const k = kundenById.get(b.Kunde_Link?.[0]?.id ?? -1);
+    return k ? `${k.Nachname} ${k.Vorname}`.trim().toLowerCase() : "";
   };
+  // Sortierung nach Wahl: Startdatum (Default, aufsteigend) | Name (A–Z) | Mietbetrag (absteigend)
   offen.sort((a, b) => {
-    const sA = STATUS_ORDER[a.Status_Erweitert?.value || ""] ?? 99;
-    const sB = STATUS_ORDER[b.Status_Erweitert?.value || ""] ?? 99;
-    if (sA !== sB) return sA - sB;
+    if (sort === "name") return kundeName(a).localeCompare(kundeName(b));
+    if (sort === "betrag")
+      return (parseFloat(b.Preis_Artikel || "0") || 0) - (parseFloat(a.Preis_Artikel || "0") || 0);
     return (a.Event_datum_von || "").localeCompare(b.Event_datum_von || "");
   });
 
@@ -128,7 +128,6 @@ export default async function AnfragenPage() {
     const bid = a.Buchung_Link?.[0]?.id;
     if (bid && !angebotByBuchungId.has(bid)) angebotByBuchungId.set(bid, a);
   }
-  const kundenById = new Map(kundenAll.results.map((k) => [k.id, k]));
 
   return (
     <div className="space-y-6">
@@ -146,6 +145,31 @@ export default async function AnfragenPage() {
           + Neue Anfrage anlegen
         </Link>
       </div>
+
+      {offen.length > 0 && (
+        <div className="flex items-center gap-2 text-sm flex-wrap">
+          <span className="text-gray-500">Sortieren:</span>
+          {(
+            [
+              ["datum", "Startdatum"],
+              ["name", "Name"],
+              ["betrag", "Mietbetrag"],
+            ] as const
+          ).map(([key, label]) => (
+            <Link
+              key={key}
+              href={key === "datum" ? "/admin/anfragen" : `/admin/anfragen?sort=${key}`}
+              className={`px-3 py-1 rounded-lg transition-colors ${
+                sort === key
+                  ? "bg-gold-500/20 text-gold-300"
+                  : "text-gray-400 hover:text-white hover:bg-white/5"
+              }`}
+            >
+              {label}
+            </Link>
+          ))}
+        </div>
+      )}
 
       {offen.length === 0 ? (
         <div className="p-8 rounded-xl bg-white/5 border border-white/10 text-center text-gray-400">
