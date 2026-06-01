@@ -79,7 +79,8 @@ export default function AGB() {
               hinterlegten Zahlungslink. Die Restzahlung erfolgt ebenfalls online per
               Karte über den hinterlegten Zahlungslink. Die Kaution wird per Karte als
               Vorautorisierung hinterlegt und nach beanstandungsfreier Rückgabe wieder
-              freigegeben.
+              freigegeben. Abweichende Zahlungsweisen (z.&nbsp;B. Barzahlung) sind nur
+              nach vorheriger Absprache möglich.
             </p>
 
             <h2>§ 4 Widerrufsrecht</h2>
