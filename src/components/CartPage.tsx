@@ -803,7 +803,7 @@ export default function CartPage() {
                 </div>
                 {totalKaution > 0 && (
                   <p className="text-xs text-gray-500 leading-relaxed pt-1">
-                    Davon Kaution {formatEur(totalKaution)} — wird nach Rückgabe zurückerstattet.
+                    Davon Kaution {formatEur(totalKaution)}: wird bei der Übergabe als Stripe-Vorautorisierung auf deiner Karte vorgemerkt (es wird nichts abgebucht) und nach schadenfreier Rückgabe automatisch wieder freigegeben.
                   </p>
                 )}
                 {aufAnfrageCount > 0 && (

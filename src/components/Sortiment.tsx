@@ -345,6 +345,17 @@ export default function Sortiment() {
                     <div className="flex-1 h-px bg-gradient-to-r from-gold-500/30 to-transparent" />
                   </div>
 
+                  {category.slug === "zelte" && (
+                    <div className="mb-8 -mt-3 flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-200 text-sm">
+                      <svg className="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                      </svg>
+                      <span>
+                        <strong className="font-semibold">Wichtig:</strong> Faltzelte nur auf ebenem, festem und waagerechtem Untergrund aufbauen. Auf schiefem oder unebenem Grund kann das Zelt beschädigt werden.
+                      </span>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
                     {products.map((product) => {
                       const avail = lookupAvailability(product.name);
