@@ -73,6 +73,7 @@ export default function TerminePanel({
           <label className="block text-xs text-warm-muted mb-1">Übergabe-Termin</label>
           <input
             type="datetime-local"
+            step={1800}
             value={uebergabe}
             onChange={(e) => setUebergabe(e.target.value)}
             className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
@@ -85,6 +86,7 @@ export default function TerminePanel({
           <label className="block text-xs text-warm-muted mb-1">Rückgabe-Termin</label>
           <input
             type="datetime-local"
+            step={1800}
             value={rueckgabe}
             onChange={(e) => setRueckgabe(e.target.value)}
             className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"

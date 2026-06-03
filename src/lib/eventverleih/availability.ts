@@ -21,6 +21,46 @@ interface BuchungLite {
   Status_Erweitert: { value: string } | null;
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
+  Rueckgabe_Termin: string | null;
+}
+
+/**
+ * Prüf-Puffer NACH der Rückgabe: der Artikel ist erst nach der Schaden-Prüfung wieder
+ * verfügbar (Manuel braucht ~2 Werktage). Wird auf das effektive Blockier-Ende addiert.
+ */
+const PRUEF_PUFFER_TAGE = 2;
+
+function berlinDateOf(iso: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Berlin",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+function addDays(ymd: string, n: number): string {
+  const d = new Date(ymd + "T00:00:00Z");
+  if (isNaN(d.getTime())) return ymd;
+  d.setUTCDate(d.getUTCDate() + n);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Effektives Blockier-Ende einer Buchung: Artikel sind aus dem Bestand, bis sie zurück
+ * UND geprüft sind. = max(Event-Ende, Rückgabe-Termin) + Prüf-Puffer. Behebt das
+ * Überbuchungs-Risiko bei spät vereinbarter Rückgabe (z.B. wegen Urlaub).
+ */
+function blockEndDate(b: BuchungLite): string | null {
+  const ends: string[] = [];
+  if (b.Event_datum_bis) ends.push(b.Event_datum_bis.slice(0, 10));
+  if (b.Rueckgabe_Termin) ends.push(berlinDateOf(b.Rueckgabe_Termin));
+  if (ends.length === 0) {
+    if (!b.Event_datum_von) return null;
+    ends.push(b.Event_datum_von.slice(0, 10));
+  }
+  const maxEnd = ends.sort().pop()!;
+  return addDays(maxEnd, PRUEF_PUFFER_TAGE);
 }
 
 interface BuchungsPositionLite {
@@ -148,7 +188,7 @@ export async function getAvailability(
   for (const b of buchungenRes.results) {
     const status = b.Status_Erweitert?.value || "";
     if (!HARD_STATI.has(status)) continue;
-    if (!rangeOverlaps(b.Event_datum_von, b.Event_datum_bis, von, bis)) continue;
+    if (!rangeOverlaps(b.Event_datum_von, blockEndDate(b), von, bis)) continue;
     hartBuchungIds.add(b.id);
   }
 
@@ -276,7 +316,7 @@ export async function getCommittedDemand(
   for (const b of buchungenRes.results) {
     if (excludeBuchungId && b.id === excludeBuchungId) continue;
     if (!COMMITTED_STATI.has(b.Status_Erweitert?.value || "")) continue;
-    if (!rangeOverlaps(b.Event_datum_von, b.Event_datum_bis, von, bis)) continue;
+    if (!rangeOverlaps(b.Event_datum_von, blockEndDate(b), von, bis)) continue;
     committedIds.add(b.id);
   }
 
