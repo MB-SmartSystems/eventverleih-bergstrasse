@@ -243,6 +243,20 @@ export default async function UebergabenPage() {
                     {tel}
                   </a>
                 )}
+                {(() => {
+                  const pos = posByBuchung.get(b.id) ?? [];
+                  if (pos.length === 0) return null;
+                  return (
+                    <div className="mt-3 rounded-lg border border-warm-border bg-warm-bg/40 p-3">
+                      <p className="text-[10px] uppercase tracking-wider text-warm-muted mb-1.5">Draußen beim Kunden</p>
+                      <ul className="space-y-0.5 text-sm text-warm-text">
+                        {pos.map((p) => (
+                          <li key={p.id}>{p.anzahl}× {p.name}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  );
+                })()}
                 <RueckgabeCardActions
                   buchungId={b.id}
                   positionen={posByBuchung.get(b.id) ?? []}
