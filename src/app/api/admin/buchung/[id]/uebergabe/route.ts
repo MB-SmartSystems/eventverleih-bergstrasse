@@ -16,7 +16,7 @@
  * Audit-Log-Eintrag wird erstellt.
  */
 import { NextRequest, NextResponse } from "next/server";
-import { updateRow, createRow, TABLES } from "@/lib/baserow/client";
+import { updateRow, createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { isAuthenticated } from "@/lib/auth";
 
@@ -74,6 +74,64 @@ export async function POST(
       });
     } catch (e) {
       console.error("[uebergabe audit-log]", e);
+    }
+
+    // "Übergabe erfolgt"-Mail an den Kunden (Auto_Reply, idempotent), inkl. Artikelliste
+    // + Kaution-Status (bar erhalten / hinterlegt / bitte noch zahlen). Fail-soft.
+    try {
+      const b = await getRow<{
+        Kaution_Soll_Eur: string | number | null;
+        Kaution_Hinterlegt_am: string | null;
+        Stripe_Kaution_Link: string | null;
+        Kunde_Link: Array<{ id: number; value: string }> | null;
+      }>(TABLES.Buchungen, buchungId);
+      const kundeId = b.Kunde_Link?.[0]?.id;
+      const idemKey = `B${buchungId}-uebergabe_erfolgt`;
+      if (kundeId) {
+        const kunde = await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kundeId);
+        const dup = await listRows<{ id: number; Idempotency_Key?: string }>(TABLES.MailQueue, { search: idemKey, size: 5 });
+        const alreadySent = dup.results.find((m) => m.Idempotency_Key === idemKey);
+        if (kunde.Email && !alreadySent) {
+          const [posAll, artAll] = await Promise.all([
+            listAllRows<{ id: number; Anzahl: string | null; Artikel_Link: Array<{ id: number }> | null; Buchung_Link: Array<{ id: number }> | null }>(TABLES.Buchungs_Position),
+            listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
+          ]);
+          const nameById = new Map(artAll.results.map((a) => [a.id, a.Bezeichnung]));
+          const lines = posAll.results
+            .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
+            .map((p) => `- ${parseFloat(p.Anzahl ?? "1") || 1}× ${nameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel"}`);
+
+          const kautionSoll = parseFloat(String(b.Kaution_Soll_Eur ?? "0")) || 0;
+          const eur = (n: number) => n.toFixed(2).replace(".", ",");
+          let kautionLine = "";
+          if (kautionSoll > 0) {
+            if (body.kaution_methode === "bar" && Number(body.kaution_eur) > 0) {
+              kautionLine = `\n\nDie Kaution (${eur(kautionSoll)} EUR) habe ich bar erhalten — Sie bekommen sie nach der Rückgabe vollständig zurück.`;
+            } else if (body.kaution_methode === "stripe_preauth" || b.Kaution_Hinterlegt_am) {
+              kautionLine = `\n\nIhre Kaution (${eur(kautionSoll)} EUR) ist als Vormerkung hinterlegt — sie wird nach der Rückgabe ohne Schäden automatisch wieder aufgelöst.`;
+            } else {
+              const link = (b.Stripe_Kaution_Link || "").trim();
+              kautionLine = `\n\nBitte denken Sie noch an die Kaution (${eur(kautionSoll)} EUR) — Sie bekommen sie nach der Rückgabe vollständig zurück.${link ? `\nAm einfachsten hier hinterlegen:\n${link}` : ""}`;
+            }
+          }
+
+          const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
+          const mailBody = `Hallo ${kundeName},\n\nIhre Mietartikel sind übergeben:\n${lines.join("\n")}${kautionLine}\n\nViel Freude bei Ihrer Feier! Den Rückgabe-Termin halten wir wie besprochen fest.\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+
+          await createRow(TABLES.MailQueue, {
+            Erstellt_am: new Date().toISOString(),
+            Buchung_Link: [buchungId],
+            Kunde_Link: [kundeId],
+            Template_Key: "uebergabe_erfolgt",
+            Subject: "Übergabe erfolgt — Ihre Mietartikel",
+            Body: mailBody,
+            Approval_Status: "Auto_Reply",
+            Idempotency_Key: idemKey,
+          });
+        }
+      }
+    } catch (e) {
+      console.error("[uebergabe mail]", e);
     }
 
     invalidateAvailabilityCache();

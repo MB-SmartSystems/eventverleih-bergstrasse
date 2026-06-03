@@ -342,8 +342,8 @@ Vertrag
               id: p.id,
               name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
               anzahl: parseFloat(p.Anzahl ?? "1"),
+              eingepackt: !!p.Eingepackt,
             }))}
-            uebergabeAdresse={buchung.Uebergabe_Adresse ?? buchung.Lieferadresse ?? undefined}
             kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0") || undefined}
           />
         </section>

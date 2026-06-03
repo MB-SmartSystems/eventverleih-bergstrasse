@@ -7,12 +7,12 @@ interface Position {
   id: number;
   name: string;
   anzahl: number;
+  eingepackt?: boolean;
 }
 
 interface UebergabeDialogProps {
   buchungId: number;
   positionen: Position[];
-  uebergabeAdresse?: string;
   kautionSollEur?: number;
 }
 
@@ -20,29 +20,22 @@ interface ChecklistItem {
   position_id: number;
   name: string;
   ok: boolean;
-  notiz?: string;
 }
 
-export default function UebergabeDialog({
-  buchungId,
-  positionen,
-  uebergabeAdresse,
-  kautionSollEur,
-}: UebergabeDialogProps) {
+export default function UebergabeDialog({ buchungId, positionen, kautionSollEur }: UebergabeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [fotoUrls, setFotoUrls] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
+  // Checkliste aus der Packliste vorausgefüllt (eingepackt = schon ok)
   const [checkliste, setCheckliste] = useState<ChecklistItem[]>(
-    positionen.map((p) => ({ position_id: p.id, name: p.name, ok: false })),
+    positionen.map((p) => ({ position_id: p.id, name: p.name, ok: !!p.eingepackt })),
   );
-  const [adresse, setAdresse] = useState(uebergabeAdresse || "");
   const [kautionMethode, setKautionMethode] = useState<"stripe_preauth" | "bar" | "keine">(
-    kautionSollEur ? "stripe_preauth" : "keine",
+    kautionSollEur ? "bar" : "keine",
   );
-  const [kautionEur, setKautionEur] = useState(kautionSollEur || 0);
   const [notiz, setNotiz] = useState("");
 
   async function uploadFoto(file: File) {
@@ -65,9 +58,7 @@ export default function UebergabeDialog({
   }
 
   function setOk(positionId: number, ok: boolean) {
-    setCheckliste((prev) =>
-      prev.map((c) => (c.position_id === positionId ? { ...c, ok } : c)),
-    );
+    setCheckliste((prev) => prev.map((c) => (c.position_id === positionId ? { ...c, ok } : c)));
   }
 
   async function handleSubmit() {
@@ -80,9 +71,8 @@ export default function UebergabeDialog({
         body: JSON.stringify({
           foto_urls: fotoUrls,
           checkliste,
-          uebergabe_adresse: adresse,
           kaution_methode: kautionMethode,
-          kaution_eur: kautionEur,
+          kaution_eur: kautionMethode === "keine" ? 0 : kautionSollEur || 0,
           notiz,
         }),
       });
@@ -124,10 +114,63 @@ export default function UebergabeDialog({
         </div>
 
         <div className="p-4 space-y-5">
-          {/* Foto-Upload */}
+          {/* Checkliste — aus Packliste vorausgefüllt */}
           <div>
             <label className="block text-sm font-medium text-warm-text mb-2">
-              Fotos vom Zustand ({fotoUrls.length})
+              Übergeben ({checkliste.filter((c) => c.ok).length}/{checkliste.length})
+              <span className="text-xs text-warm-muted ml-2">aus Packliste vorausgefüllt</span>
+            </label>
+            <div className="space-y-1">
+              {checkliste.map((c) => (
+                <label key={c.position_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-warm-bg/60 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={c.ok}
+                    onChange={(e) => setOk(c.position_id, e.target.checked)}
+                    className="w-5 h-5 rounded border-warm-border text-accent"
+                  />
+                  <span className={c.ok ? "line-through text-warm-muted" : "text-warm-text"}>{c.name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          {/* Kaution — Betrag sichtbar, Methode wählen */}
+          {(kautionSollEur ?? 0) > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-warm-text mb-1">
+                Kaution: <span className="font-semibold">{(kautionSollEur ?? 0).toFixed(2).replace(".", ",")} €</span>
+              </label>
+              <div className="flex gap-2 mb-1 flex-wrap">
+                {(["bar", "stripe_preauth", "keine"] as const).map((m) => (
+                  <button
+                    key={m}
+                    type="button"
+                    onClick={() => setKautionMethode(m)}
+                    className={`px-3 py-1.5 rounded-lg text-sm border ${
+                      kautionMethode === m
+                        ? "bg-accent text-white border-accent"
+                        : "bg-warm-surface text-warm-muted border-warm-border"
+                    }`}
+                  >
+                    {m === "bar" ? "Bar erhalten" : m === "stripe_preauth" ? "Stripe-Hold" : "Noch offen"}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-warm-muted">
+                {kautionMethode === "bar"
+                  ? "Du sammelst die Kaution bar ein — der Kunde bekommt das in der Übergabe-Mail bestätigt."
+                  : kautionMethode === "stripe_preauth"
+                    ? "Kaution wurde/wird per Stripe-Link hinterlegt (Vormerkung)."
+                    : "Kaution noch offen — der Kunde wird in der Übergabe-Mail an den Stripe-Link erinnert."}
+              </p>
+            </div>
+          )}
+
+          {/* Foto-Upload (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-warm-text mb-2">
+              Fotos vom Zustand (optional, {fotoUrls.length})
             </label>
             <input
               type="file"
@@ -152,71 +195,9 @@ export default function UebergabeDialog({
             )}
           </div>
 
-          {/* Checkliste */}
-          <div>
-            <label className="block text-sm font-medium text-warm-text mb-2">
-              Checkliste ({checkliste.filter((c) => c.ok).length}/{checkliste.length})
-            </label>
-            <div className="space-y-1">
-              {checkliste.map((c) => (
-                <label key={c.position_id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-warm-bg/60 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={c.ok}
-                    onChange={(e) => setOk(c.position_id, e.target.checked)}
-                    className="w-5 h-5 rounded border-warm-border text-accent"
-                  />
-                  <span className={c.ok ? "line-through text-warm-muted" : "text-warm-text"}>{c.name}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          {/* Übergabe-Adresse */}
-          <div>
-            <label className="block text-sm font-medium text-warm-text mb-1">Übergabe-Adresse</label>
-            <textarea
-              value={adresse}
-              onChange={(e) => setAdresse(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-              placeholder="Straße, Ort"
-            />
-          </div>
-
-          {/* Kaution */}
-          <div>
-            <label className="block text-sm font-medium text-warm-text mb-1">Kaution</label>
-            <div className="flex gap-2 mb-2 flex-wrap">
-              {(["stripe_preauth", "bar", "keine"] as const).map((m) => (
-                <button
-                  key={m}
-                  type="button"
-                  onClick={() => setKautionMethode(m)}
-                  className={`px-3 py-1.5 rounded-lg text-sm border ${
-                    kautionMethode === m
-                      ? "bg-accent text-white border-accent"
-                      : "bg-warm-surface text-warm-muted border-warm-border"
-                  }`}
-                >
-                  {m === "stripe_preauth" ? "Stripe-Hold" : m === "bar" ? "Bar" : "Keine"}
-                </button>
-              ))}
-            </div>
-            {kautionMethode !== "keine" && (
-              <input
-                type="number"
-                value={kautionEur}
-                onChange={(e) => setKautionEur(Number(e.target.value))}
-                className="w-full px-3 py-2 rounded-lg border border-warm-border text-sm"
-                placeholder="Betrag in EUR"
-              />
-            )}
-          </div>
-
           {/* Notiz */}
           <div>
-            <label className="block text-sm font-medium text-warm-text mb-1">Notiz (optional)</label>
+            <label className="block text-sm font-medium text-warm-text mb-1">Notiz (optional, intern)</label>
             <textarea
               value={notiz}
               onChange={(e) => setNotiz(e.target.value)}
