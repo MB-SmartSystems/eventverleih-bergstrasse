@@ -80,7 +80,7 @@ function fmtEur(v: string | null): string {
 
 export default async function BuchungenPage({ searchParams }: { searchParams: Promise<{ filter?: string; sort?: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
-  const { filter = "alle", sort } = await searchParams;
+  const { filter = "anstehend", sort } = await searchParams;
   const heute = new Date().toISOString().slice(0, 10);
   // Default-Sortierung je Ansicht: "Anstehend" aufsteigend (nächstes zuerst), sonst absteigend (neueste zuerst)
   const defaultSort = filter === "anstehend" ? "event_asc" : "event_desc";
@@ -111,7 +111,7 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
 
   const buildHref = (f: string, s?: string) => {
     const params = new URLSearchParams();
-    if (f !== "alle") params.set("filter", f);
+    if (f !== "anstehend") params.set("filter", f);
     const natural = f === "anstehend" ? "event_asc" : "event_desc";
     if (s && s !== natural) params.set("sort", s);
     const qs = params.toString();
