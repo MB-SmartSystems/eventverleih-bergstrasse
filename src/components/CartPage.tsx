@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useCart } from "./CartContext";
 import DateRangeSheet from "./DateRangeSheet";
-import { formatGerman, rangeDays } from "@/lib/eventverleih/constants";
+import { formatGerman, rangeDays, rundeKaution } from "@/lib/eventverleih/constants";
 import type { RentalProduct, ProductsData } from "@/lib/types";
 
 function normalize(s: string): string {
@@ -131,7 +131,7 @@ export default function CartPage() {
   }, [items, products]);
 
   const totalMiete = itemPricing.reduce((s, p) => s + (p.mietsumme ?? 0), 0);
-  const totalKaution = itemPricing.reduce((s, p) => s + p.kautionsumme, 0);
+  const totalKaution = rundeKaution(itemPricing.reduce((s, p) => s + p.kautionsumme, 0));
   const aufbauSumme = itemPricing.reduce((s, p) => s + p.aufbauSummeProItem, 0);
   const totalAufbau = aufbauKomplett ? aufbauSumme : 0;
 

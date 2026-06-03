@@ -25,6 +25,7 @@ import { randomUUID } from "crypto";
 import { createRow, deleteRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { getAvailability } from "@/lib/eventverleih/availability";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { rundeKaution } from "@/lib/eventverleih/constants";
 
 interface CartItemPayload {
   name: string;
@@ -247,7 +248,7 @@ export async function POST(req: NextRequest) {
       }
     }
     const mietsumme = matched.reduce((s, m) => s + m.position_summe, 0);
-    const kautionSumme = matched.reduce((s, m) => s + m.kaution_pro_stueck * m.anzahl, 0);
+    const kautionSumme = rundeKaution(matched.reduce((s, m) => s + m.kaution_pro_stueck * m.anzahl, 0));
     const aufbauSumme = payload.aufbau_komplett
       ? matched.reduce((s, m) => s + m.aufbau_pauschale * m.anzahl, 0)
       : 0;
