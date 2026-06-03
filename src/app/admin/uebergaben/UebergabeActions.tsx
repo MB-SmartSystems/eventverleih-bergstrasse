@@ -160,7 +160,7 @@ export default function UebergabeActions({
                   disabled={busy === "pack-" + key}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border text-left transition-colors disabled:opacity-50 ${
                     checked
-                      ? "bg-green-50 border-green-200 text-warm-text"
+                      ? "bg-warm-bg border-warm-border text-warm-text"
                       : "bg-warm-bg border-warm-border text-warm-text hover:bg-accent-50"
                   }`}
                 >
