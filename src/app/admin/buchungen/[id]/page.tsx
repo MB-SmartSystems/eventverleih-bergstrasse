@@ -19,6 +19,7 @@ import KautionErstattenPanel from "./KautionErstattenPanel";
 import RechnungErstellenButton from "./RechnungErstellenButton";
 import ZahlungsPanel from "./ZahlungsPanel";
 import UebergabeDialog from "./UebergabeDialog";
+import PackListe from "./PackListe";
 import RuecknahmeDialog from "./RuecknahmeDialog";
 import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
@@ -201,6 +202,14 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const bezahlt = bezahltEur(buchung);
   const offen = Math.max(0, gesamt - bezahlt);
 
+  // Packliste (geteilt: Übergabe-Bereich + Checkliste unten) — persistiert über Position.Eingepackt
+  const packItems = positionen.map((p) => {
+    const aid = p.Artikel_Link?.[0]?.id;
+    const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "Artikel";
+    const anzahl = parseFloat(p.Anzahl ?? "1");
+    return { positionId: p.id, label: `${anzahl}× ${name}`, checked: !!p.Eingepackt };
+  });
+
   const eventRange =
     buchung.Event_datum_bis && buchung.Event_datum_bis !== buchung.Event_datum_von
       ? `${fmtDate(buchung.Event_datum_von)} – ${fmtDate(buchung.Event_datum_bis)}`
@@ -302,6 +311,7 @@ Vertrag
       {(status === "Reserviert" || status === "Bestaetigt") && (
         <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
           <h2 className="text-lg font-semibold text-warm-text">Übergabe</h2>
+          <PackListe buchungId={buchung.id} packItems={packItems} />
           <UebergabeDialog
             buchungId={buchung.id}
             positionen={positionen.map((p) => ({
@@ -585,17 +595,6 @@ Vertrag
           ...m,
           checked: checklistState[m.key]?.checked ?? false,
         }));
-
-        const packItems = positionen.map((p) => {
-          const aid = p.Artikel_Link?.[0]?.id;
-          const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "Artikel";
-          const anzahl = parseFloat(p.Anzahl ?? "1");
-          return {
-            positionId: p.id,
-            label: `${anzahl}× ${name}`,
-            checked: !!p.Eingepackt,
-          };
-        });
 
         return (
           <BuchungChecklist
