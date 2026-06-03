@@ -28,6 +28,7 @@ export const TABLES = {
   MailQueue: 969,
   Audit_Log: 970,
   Pakete: 971,
+  Sperrzeiten: 973,
 } as const;
 
 function authHeaders(): HeadersInit {

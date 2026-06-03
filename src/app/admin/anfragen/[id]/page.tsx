@@ -14,6 +14,7 @@ import EventDatumEditor from "./EventDatumEditor";
 import UpdateVersandPanel from "./UpdateVersandPanel";
 import { parseSnapshot, diffAgainstLive } from "@/lib/angebot-snapshot";
 import { getCommittedDemand } from "@/lib/eventverleih/availability";
+import { getSperrzeiten, checkSperrzeitKonflikt } from "@/lib/eventverleih/sperrzeiten";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -92,6 +93,11 @@ function fmtEur(v: string | null | undefined): string {
   return `${parseFloat(v).toFixed(2).replace(".", ",")} €`;
 }
 
+function fmtD(ymd: string): string {
+  const [y, m, d] = ymd.split("-");
+  return `${d}.${m}.${y}`;
+}
+
 export default async function AnfrageDetailPage({ params }: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
 
@@ -154,6 +160,13 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
   const status = angebot.Status?.value || "Offen";
   const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
+
+  // Sperrzeit-Check (Urlaub): fällt Übergabe/Rückgabe in einen gesperrten Zeitraum?
+  const sperrKonflikte = checkSperrzeitKonflikt(
+    buchung.Event_datum_von,
+    buchung.Event_datum_bis,
+    await getSperrzeiten(),
+  );
 
   // ServicesEditor-Daten vorbereiten
   // Aufbau-Summe = Summe(Anzahl × Aufbau_Pauschale aus Artikel-Stamm) — egal ob Aufbau bisher gebucht
@@ -302,6 +315,22 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
           </ul>
           <p className="text-xs text-amber-200/70 mt-2">
             Annehmen geht trotzdem (vorab-reserviert, blockt nicht) — verbindlich wird die Buchung erst mit der ersten Anzahlung (first-to-pay-wins).
+          </p>
+        </section>
+      )}
+
+      {sperrKonflikte.length > 0 && (
+        <section className="p-4 rounded-xl bg-red-500/10 border border-red-500/40">
+          <h2 className="text-sm font-semibold text-red-200 mb-2">⚠ Sperrzeit-Konflikt (Urlaub)</h2>
+          <ul className="text-xs text-red-100 space-y-1">
+            {sperrKonflikte.map((k, i) => (
+              <li key={i}>
+                <strong>{k.was}</strong> am {fmtD(k.datum)} fällt in eine Sperrzeit — {k.sperrzeit.grund} ({fmtD(k.sperrzeit.von)}–{fmtD(k.sperrzeit.bis)}).
+              </li>
+            ))}
+          </ul>
+          <p className="text-xs text-red-200/70 mt-2">
+            Nur ein Hinweis — du kannst trotzdem annehmen. Prüf, ob Übergabe/Rückgabe an einem anderen Tag machbar ist.
           </p>
         </section>
       )}
