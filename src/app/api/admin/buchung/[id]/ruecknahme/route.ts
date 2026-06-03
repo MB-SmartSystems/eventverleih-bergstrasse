@@ -1,23 +1,20 @@
 /**
- * POST /api/admin/buchung/[id]/ruecknahme
+ * POST /api/admin/buchung/[id]/ruecknahme  — Moment 1 der Rückgabe (am Treffpunkt)
  *
  * Body JSON: {
- *   foto_urls: string[],
- *   schaden: Array<{ position_id?: number, beschreibung: string, betrag_eur: number }>,
- *   schaden_betrag_eur: number,     // Summe (kann auch frei gesetzt werden)
- *   kaution_aufloesung: "cancel" | "capture_full" | "capture_partial",
- *   kaution_capture_eur?: number,
+ *   foto_urls?: string[],
+ *   vollstaendigkeit?: Array<{ position_id: number, name: string, anzahl: number, status: "da"|"fehlt" }>,
  *   notiz?: string,
  *   ruecknahme_datum?: string,
  * }
  *
- * Setzt Status_Erweitert = "Zurueckgegeben", speichert alle Felder.
- * Wenn capture_partial/capture_full: Stripe-Capture via lib/stripe/payment-links.
+ * Setzt Status_Erweitert = "Zurueckgegeben", speichert Vollständigkeits-Checkliste + Fotos.
+ * KEINE Kaution-Auflösung, KEINE Schaden-Erfassung, KEINE Mail — das passiert in Moment 2
+ * (kaution-erstatten). Kaution bleibt offen → 2-Werktage-Prüffrist startet, wenn Kaution > 0.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getRow, updateRow, createRow, TABLES } from "@/lib/baserow/client";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
-import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -36,67 +33,30 @@ export async function POST(
   try {
     const body = await req.json();
     const fotoUrls = Array.isArray(body.foto_urls) ? body.foto_urls : [];
-    const schaden = Array.isArray(body.schaden) ? body.schaden : [];
-    const schadenBetrag = Number(body.schaden_betrag_eur || 0);
-    const kautionAufloesung = body.kaution_aufloesung as
-      | "cancel"
-      | "capture_full"
-      | "capture_partial"
-      | undefined;
+    const vollstaendigkeit = Array.isArray(body.vollstaendigkeit) ? body.vollstaendigkeit : [];
+    const fehlend = vollstaendigkeit.filter(
+      (v: { status?: string }) => v?.status === "fehlt",
+    );
 
-    // Stripe-Kaution behandeln (wenn Pre-Auth gesetzt)
-    const buchung = await getRow<{
-      Stripe_Kaution_PaymentIntent: string | null;
-      Kaution_Soll_Eur: number | null;
-    }>(TABLES.Buchungen, buchungId);
-
-    let stripeResult: string | null = null;
-    if (buchung.Stripe_Kaution_PaymentIntent && kautionAufloesung) {
-      try {
-        if (kautionAufloesung === "cancel") {
-          await cancelKaution(buchung.Stripe_Kaution_PaymentIntent);
-          stripeResult = "kaution_canceled";
-        } else if (kautionAufloesung === "capture_full") {
-          await captureKaution(buchung.Stripe_Kaution_PaymentIntent);
-          stripeResult = "kaution_captured_full";
-        } else if (kautionAufloesung === "capture_partial") {
-          const capEur = Number(body.kaution_capture_eur || schadenBetrag);
-          if (capEur > 0) {
-            await captureKaution(buchung.Stripe_Kaution_PaymentIntent, capEur);
-            stripeResult = `kaution_captured_${capEur}eur`;
-          }
-        }
-      } catch (e) {
-        console.error("[ruecknahme stripe]", e);
-        return NextResponse.json(
-          { error: "stripe_failed", detail: String(e).slice(0, 200) },
-          { status: 500 },
-        );
-      }
-    }
+    const buchung = await getRow<{ Kaution_Soll_Eur: number | string | null }>(
+      TABLES.Buchungen,
+      buchungId,
+    );
+    const kautionSoll = parseFloat(String(buchung.Kaution_Soll_Eur ?? "0")) || 0;
 
     const patch: Record<string, unknown> = {
       Status_Erweitert: "Zurueckgegeben",
       Ruecknahme_Foto_URLs: JSON.stringify(fotoUrls),
-      Ruecknahme_Schaden_JSON: JSON.stringify(schaden),
+      Ruecknahme_Vollstaendigkeit_JSON: JSON.stringify(vollstaendigkeit),
       Ruecknahme_Datum: body.ruecknahme_datum || new Date().toISOString().slice(0, 10),
     };
 
-    // Wenn keine sofortige Kaution-Aufloesung gewuenscht: 2-Werktage-Pruefphase starten
-    if (!kautionAufloesung && buchung.Kaution_Soll_Eur) {
+    // Kaution bleibt offen → 2-Werktage-Prüffrist starten (Schaden-Check folgt in Moment 2)
+    if (kautionSoll > 0) {
       const prueffrist = new Date();
-      prueffrist.setDate(prueffrist.getDate() + 2); // pragmatisch +2 Tage (echte Werktage-Logik spaeter)
+      prueffrist.setDate(prueffrist.getDate() + 2); // pragmatisch +2 Tage
       patch.Kaution_Pruefung_Status = "offen";
       patch.Kaution_Prueffrist_bis = prueffrist.toISOString().slice(0, 10);
-    }
-    if (schadenBetrag > 0) {
-      patch.Schaden_Betrag_Eur = schadenBetrag;
-      patch.Schaden_Dokumentiert_am = new Date().toISOString().slice(0, 10);
-      patch.Schaden_Foto_URLs = JSON.stringify(fotoUrls);
-    }
-    if (kautionAufloesung === "cancel" && buchung.Kaution_Soll_Eur) {
-      patch.Kaution_Rueckzahlung_Eur = buchung.Kaution_Soll_Eur;
-      patch.Kaution_Rueckzahlung_am = new Date().toISOString().slice(0, 10);
     }
 
     await updateRow(TABLES.Buchungen, buchungId, patch);
@@ -105,15 +65,14 @@ export async function POST(
     try {
       await createRow(TABLES.Audit_Log, {
         Name: `Ruecknahme Buchung #${buchungId}`,
-        Aktion: schadenBetrag > 0 ? "Schaden_dokumentiert" : "Ruecknahme",
+        Aktion: "Ruecknahme",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: String(buchungId),
         Akteur: "Backoffice",
         Details: JSON.stringify({
-          schaden_betrag: schadenBetrag,
-          schaden_count: schaden.length,
+          positionen: vollstaendigkeit.length,
+          fehlend: fehlend.map((f: { name?: string; anzahl?: number }) => `${f.anzahl ?? ""}× ${f.name ?? ""}`.trim()),
           foto_count: fotoUrls.length,
-          stripe: stripeResult,
           notiz: body.notiz || "",
         }),
         Aktiv: true,
@@ -123,7 +82,7 @@ export async function POST(
     }
 
     invalidateAvailabilityCache();
-    return NextResponse.json({ ok: true, stripe: stripeResult });
+    return NextResponse.json({ ok: true, fehlend: fehlend.length });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
     return NextResponse.json({ error: "internal", detail: msg.slice(0, 200) }, { status: 500 });

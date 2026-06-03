@@ -12,34 +12,23 @@ interface Position {
 interface RuecknahmeDialogProps {
   buchungId: number;
   positionen: Position[];
-  hasKautionPreAuth: boolean;
-  kautionSollEur?: number;
 }
 
-interface SchadenItem {
-  position_id?: number;
-  beschreibung: string;
-  betrag_eur: number;
-}
-
-export default function RuecknahmeDialog({
-  buchungId,
-  positionen,
-  hasKautionPreAuth,
-  kautionSollEur,
-}: RuecknahmeDialogProps) {
+/**
+ * Moment 1 der Rückgabe — am Treffpunkt, auf dem Handy.
+ * NUR Vollständigkeit pro Artikel (da/fehlt) + optional Fotos. KEINE Schaden-Erfassung,
+ * KEINE Kaution-Auflösung, KEINE Mail. Status → "Zurueckgegeben", Kaution bleibt offen
+ * (2-Werktage-Prüffrist). Schäden prüfen + Kaution abrechnen + Abschluss-Mail = Moment 2
+ * (Kaution-Erstatten-Panel).
+ */
+export default function RuecknahmeDialog({ buchungId, positionen }: RuecknahmeDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [fotoUrls, setFotoUrls] = useState<string[]>([]);
-  const [zustand, setZustand] = useState<Record<number, "ok" | "fehlt" | "schaden">>({});
-  const [schaden, setSchaden] = useState<SchadenItem[]>([]);
-  const [kautionAufloesung, setKautionAufloesung] = useState<"cancel" | "capture_full" | "capture_partial">(
-    "cancel",
-  );
-  const [kautionCaptureEur, setKautionCaptureEur] = useState(0);
+  const [vollst, setVollst] = useState<Record<number, "da" | "fehlt">>({});
   const [notiz, setNotiz] = useState("");
 
   async function uploadFoto(file: File) {
@@ -61,31 +50,24 @@ export default function RuecknahmeDialog({
     }
   }
 
-  function addSchaden() {
-    setSchaden((prev) => [...prev, { beschreibung: "", betrag_eur: 0 }]);
-  }
-  function updateSchaden(i: number, patch: Partial<SchadenItem>) {
-    setSchaden((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
-  }
-  function removeSchaden(i: number) {
-    setSchaden((prev) => prev.filter((_, idx) => idx !== i));
-  }
-
-  const schadenSumme = schaden.reduce((sum, s) => sum + (s.betrag_eur || 0), 0);
+  const fehltCount = positionen.filter((p) => vollst[p.id] === "fehlt").length;
 
   async function handleSubmit() {
     setSubmitting(true);
     setError("");
     try {
+      const vollstaendigkeit = positionen.map((p) => ({
+        position_id: p.id,
+        name: p.name,
+        anzahl: p.anzahl,
+        status: vollst[p.id] === "fehlt" ? "fehlt" : "da",
+      }));
       const res = await fetch(`/api/admin/buchung/${buchungId}/ruecknahme`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           foto_urls: fotoUrls,
-          schaden,
-          schaden_betrag_eur: schadenSumme,
-          kaution_aufloesung: kautionAufloesung,
-          kaution_capture_eur: kautionCaptureEur,
+          vollstaendigkeit,
           notiz,
         }),
       });
@@ -127,10 +109,58 @@ export default function RuecknahmeDialog({
         </div>
 
         <div className="p-4 space-y-5">
-          {/* Fotos */}
+          <p className="text-sm text-warm-muted">
+            Geh die Artikel mit dem Kunden durch und hake ab, was zurück ist. Schäden prüfst du
+            später in Ruhe — die Kaution rechnest du erst danach ab.
+          </p>
+
+          {/* Vollständigkeit pro Position */}
           <div>
             <label className="block text-sm font-medium text-warm-text mb-2">
-              Fotos vom Zustand bei Rückgabe ({fotoUrls.length})
+              Alles zurück? {fehltCount > 0 && <span className="text-red-600">({fehltCount} fehlt)</span>}
+            </label>
+            <div className="space-y-1">
+              {positionen.map((p) => {
+                const st = vollst[p.id] === "fehlt" ? "fehlt" : "da";
+                return (
+                  <div key={p.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-warm-border">
+                    <span className="text-sm text-warm-text flex-1">
+                      {p.anzahl}× {p.name}
+                    </span>
+                    <div className="flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setVollst((prev) => ({ ...prev, [p.id]: "da" }))}
+                        className={`px-3 py-1 rounded text-xs font-medium border ${
+                          st === "da"
+                            ? "bg-green-600 text-white border-green-600"
+                            : "bg-warm-surface text-warm-muted border-warm-border"
+                        }`}
+                      >
+                        Da
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setVollst((prev) => ({ ...prev, [p.id]: "fehlt" }))}
+                        className={`px-3 py-1 rounded text-xs font-medium border ${
+                          st === "fehlt"
+                            ? "bg-red-600 text-white border-red-600"
+                            : "bg-warm-surface text-warm-muted border-warm-border"
+                        }`}
+                      >
+                        Fehlt
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Fotos (optional) */}
+          <div>
+            <label className="block text-sm font-medium text-warm-text mb-2">
+              Fotos (optional, {fotoUrls.length})
             </label>
             <input
               type="file"
@@ -151,120 +181,9 @@ export default function RuecknahmeDialog({
             )}
           </div>
 
-          {/* Zustand pro Position */}
-          <div>
-            <label className="block text-sm font-medium text-warm-text mb-2">Zustand pro Position</label>
-            <div className="space-y-1">
-              {positionen.map((p) => (
-                <div key={p.id} className="flex items-center justify-between gap-2 p-2 rounded-lg border border-warm-border">
-                  <span className="text-sm text-warm-text flex-1">{p.name}</span>
-                  <select
-                    value={zustand[p.id] || "ok"}
-                    onChange={(e) =>
-                      setZustand((prev) => ({ ...prev, [p.id]: e.target.value as "ok" | "fehlt" | "schaden" }))
-                    }
-                    className="text-xs px-2 py-1 rounded border border-warm-border"
-                  >
-                    <option value="ok">OK</option>
-                    <option value="fehlt">Fehlt</option>
-                    <option value="schaden">Schaden</option>
-                  </select>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Schaden-Liste */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <label className="block text-sm font-medium text-warm-text">
-                Schäden (Summe: {schadenSumme.toFixed(2)} €)
-              </label>
-              <button
-                type="button"
-                onClick={addSchaden}
-                className="text-xs text-accent-dark hover:underline"
-              >
-                + Schaden erfassen
-              </button>
-            </div>
-            {schaden.length === 0 ? (
-              <p className="text-xs text-warm-muted italic">Keine Schäden — alles in Ordnung.</p>
-            ) : (
-              <div className="space-y-2">
-                {schaden.map((s, i) => (
-                  <div key={i} className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Beschreibung"
-                      value={s.beschreibung}
-                      onChange={(e) => updateSchaden(i, { beschreibung: e.target.value })}
-                      className="flex-1 px-3 py-2 rounded-lg border border-warm-border text-sm"
-                    />
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="EUR"
-                      value={s.betrag_eur}
-                      onChange={(e) => updateSchaden(i, { betrag_eur: Number(e.target.value) })}
-                      className="w-24 px-3 py-2 rounded-lg border border-warm-border text-sm"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeSchaden(i)}
-                      className="text-red-600 px-2"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Kaution-Auflösung */}
-          {hasKautionPreAuth && (
-            <div>
-              <label className="block text-sm font-medium text-warm-text mb-1">
-                Kaution-Hold ({kautionSollEur} €) auflösen
-              </label>
-              <div className="flex gap-2 flex-wrap">
-                {(["cancel", "capture_full", "capture_partial"] as const).map((m) => (
-                  <button
-                    key={m}
-                    type="button"
-                    onClick={() => {
-                      setKautionAufloesung(m);
-                      if (m === "capture_partial" && schadenSumme > 0) {
-                        setKautionCaptureEur(schadenSumme);
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-lg text-sm border ${
-                      kautionAufloesung === m
-                        ? "bg-accent text-white border-accent"
-                        : "bg-warm-surface text-warm-muted border-warm-border"
-                    }`}
-                  >
-                    {m === "cancel" ? "Komplett zurück" : m === "capture_full" ? "Komplett einbehalten" : "Teil einbehalten"}
-                  </button>
-                ))}
-              </div>
-              {kautionAufloesung === "capture_partial" && (
-                <input
-                  type="number"
-                  step="0.01"
-                  value={kautionCaptureEur}
-                  onChange={(e) => setKautionCaptureEur(Number(e.target.value))}
-                  className="mt-2 w-full px-3 py-2 rounded-lg border border-warm-border text-sm"
-                  placeholder="Einbehaltener Betrag in EUR"
-                />
-              )}
-            </div>
-          )}
-
           {/* Notiz */}
           <div>
-            <label className="block text-sm font-medium text-warm-text mb-1">Notiz (optional)</label>
+            <label className="block text-sm font-medium text-warm-text mb-1">Notiz (optional, intern)</label>
             <textarea
               value={notiz}
               onChange={(e) => setNotiz(e.target.value)}

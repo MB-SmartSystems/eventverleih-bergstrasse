@@ -16,6 +16,7 @@ interface BuchungRow {
   id: number;
   Status_Erweitert: { value: string } | null;
   Event_datum_bis: string | null;
+  Kaution_Rueckzahlung_am: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
 
@@ -60,6 +61,13 @@ export async function runReviewReminder(): Promise<{
   for (const b of all.results) {
     const status = b.Status_Erweitert?.value || "";
     if (status !== "Zurueckgegeben" && status !== "Abgerechnet") continue;
+    // Kaution bereits abgerechnet → die Abschluss-Mail (kaution-erstatten) hat die
+    // Kommunikation inkl. Bewertungsbitte (bei voller Erstattung) schon uebernommen.
+    // Kein verzoegerter Doppel-Ask.
+    if (b.Kaution_Rueckzahlung_am) {
+      result.skipped_duplicate++;
+      continue;
+    }
     const tage = daysSince(b.Event_datum_bis);
     if (tage < 3 || tage > 10) {
       result.skipped_fenster++;

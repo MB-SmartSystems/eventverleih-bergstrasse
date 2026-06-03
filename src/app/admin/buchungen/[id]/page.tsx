@@ -324,8 +324,6 @@ Vertrag
               name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
               anzahl: parseFloat(p.Anzahl ?? "1"),
             }))}
-            hasKautionPreAuth={!!buchung.Stripe_Kaution_PaymentIntent}
-            kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0") || undefined}
           />
         </section>
       )}

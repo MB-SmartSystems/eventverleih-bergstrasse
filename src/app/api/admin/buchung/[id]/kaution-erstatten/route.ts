@@ -16,6 +16,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { eurMail } from "@/lib/eventverleih/zahlung";
+import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
 
 export const dynamic = "force-dynamic";
 
@@ -145,6 +146,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       console.error("[kaution-erstatten] audit-log fehlgeschlagen:", e);
     }
 
+    // Beleg sicherstellen (für Link in der Abschluss-Mail) — non-blocking
+    let belegUrl: string | null = null;
+    try {
+      const existing = await findRechnungForBuchung(buchungId);
+      if (existing?.url) {
+        belegUrl = existing.url;
+      } else {
+        const r = await createRechnungForBuchung(buchungId, { sendMail: false });
+        if (r.ok) belegUrl = r.url;
+        else console.error("[kaution-erstatten] Beleg nicht erstellt:", r.error);
+      }
+    } catch (e) {
+      console.error("[kaution-erstatten] Beleg-Schritt fehlgeschlagen:", e);
+    }
+
     // Mail an Kunde
     const kundeId = buchung.Kunde_Link?.[0]?.id;
     if (kundeId) {
@@ -160,6 +176,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       } else {
         subject = `Kaution Buchung #${buchungId} — kompletter Einzug wegen Schaden`;
         mailBody = `Hallo ${kundeName},\n\nbei der Prüfung der Artikel gab es einen Schaden, dessen Höhe die Kaution erreicht oder übersteigt. Daher wird die Kaution komplett einbehalten.\n\nKaution einbehalten: ${eurMail(kautionSoll)} EUR\n${body.schaden_notiz ? `\nSchaden-Notiz: ${body.schaden_notiz}\n` : ""}\nBei Rückfragen oder Klärungsbedarf melden Sie sich bitte direkt bei mir: WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
+      }
+
+      // Beleg-Link (alle Faelle) + Bewertungsbitte (nur bei voller Erstattung = zufriedener Kunde)
+      // vor die Grußformel einsetzen, sodass es EINE saubere Abschluss-Mail bleibt.
+      const reviewUrl = (process.env.GOOGLE_REVIEW_URL || "").trim();
+      const belegBlock = belegUrl ? `Ihren Beleg finden Sie hier:\n${belegUrl}\n\n` : "";
+      const reviewBlock =
+        action === "voll" && reviewUrl
+          ? `Wenn Ihnen alles gefallen hat, würde mir eine kurze Google-Bewertung sehr helfen (gern mit Foto Ihrer Feier):\n${reviewUrl}\n\n`
+          : "";
+      const tail = `${belegBlock}${reviewBlock}`;
+      if (tail) {
+        mailBody = mailBody.replace("Mit freundlichen Grüßen", `${tail}Mit freundlichen Grüßen`);
       }
 
       try {
