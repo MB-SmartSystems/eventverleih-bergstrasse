@@ -99,6 +99,7 @@ export default function ZahlungsPanel({
     const fmt = current ? new Date(current).toLocaleDateString("de-DE") : null;
     const summe = summeFuer(typ);
     const offen = Math.max(0, soll - summe);
+    const bereitsBezahlt = !!current || (soll > 0 && summe >= soll);
     return (
       <div className="space-y-2 p-3 rounded-lg bg-warm-bg/40 border border-warm-border">
         <div className="flex items-baseline gap-2">
@@ -114,45 +115,51 @@ export default function ZahlungsPanel({
                 </>
               )}
             </div>
-            {fmt && summe === 0 && <div className="text-xs text-green-700">✓ erhalten am {fmt}</div>}
+            {bereitsBezahlt && (
+              <div className="text-xs text-green-700">
+                ✓ {typ === "kaution" ? "hinterlegt" : "bezahlt"}{fmt ? ` am ${fmt}` : ""}
+              </div>
+            )}
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="number"
-            step="0.01"
-            min="0"
-            value={betrag[typ]}
-            onChange={(e) => setBetrag({ ...betrag, [typ]: e.target.value })}
-            placeholder="Betrag €"
-            disabled={submitting !== null}
-            className="w-24 px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
-          />
-          <select
-            value={methode[typ]}
-            onChange={(e) => setMethode({ ...methode, [typ]: e.target.value as Methode })}
-            disabled={submitting !== null}
-            className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
-          >
-            <option value="Bar">Bar</option>
-            <option value="Ueberweisung">Überweisung</option>
-            <option value="Stripe">Stripe</option>
-          </select>
-          <input
-            type="date"
-            value={datum[typ]}
-            onChange={(e) => setDatum({ ...datum, [typ]: e.target.value })}
-            disabled={submitting !== null}
-            className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
-          />
-          <button
-            onClick={() => setze(typ)}
-            disabled={submitting !== null}
-            className="px-3 py-1.5 rounded bg-accent text-white text-xs font-medium hover:bg-accent-dark disabled:opacity-40"
-          >
-            {submitting === typ ? "…" : "Erfassen"}
-          </button>
-        </div>
+        {!bereitsBezahlt && (
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="number"
+              step="0.01"
+              min="0"
+              value={betrag[typ]}
+              onChange={(e) => setBetrag({ ...betrag, [typ]: e.target.value })}
+              placeholder="Betrag €"
+              disabled={submitting !== null}
+              className="w-24 px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+            />
+            <select
+              value={methode[typ]}
+              onChange={(e) => setMethode({ ...methode, [typ]: e.target.value as Methode })}
+              disabled={submitting !== null}
+              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+            >
+              <option value="Bar">Bar</option>
+              <option value="Ueberweisung">Überweisung</option>
+              <option value="Stripe">Stripe</option>
+            </select>
+            <input
+              type="date"
+              value={datum[typ]}
+              onChange={(e) => setDatum({ ...datum, [typ]: e.target.value })}
+              disabled={submitting !== null}
+              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+            />
+            <button
+              onClick={() => setze(typ)}
+              disabled={submitting !== null}
+              className="px-3 py-1.5 rounded bg-accent text-white text-xs font-medium hover:bg-accent-dark disabled:opacity-40"
+            >
+              {submitting === typ ? "…" : "Erfassen"}
+            </button>
+          </div>
+        )}
       </div>
     );
   }

@@ -83,6 +83,7 @@ export async function POST(
         Kaution_Soll_Eur: string | number | null;
         Kaution_Hinterlegt_am: string | null;
         Stripe_Kaution_Link: string | null;
+        Rueckgabe_Termin: string | null;
         Kunde_Link: Array<{ id: number; value: string }> | null;
       }>(TABLES.Buchungen, buchungId);
       const kundeId = b.Kunde_Link?.[0]?.id;
@@ -115,8 +116,23 @@ export async function POST(
             }
           }
 
+          const rt = b.Rueckgabe_Termin
+            ? new Date(b.Rueckgabe_Termin).toLocaleString("de-DE", {
+                timeZone: "Europe/Berlin",
+                weekday: "long",
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              }) + " Uhr"
+            : null;
+          const rueckgabeLine = rt
+            ? `\n\nRückgabe-Termin: ${rt} (Treffpunkt Grillhütte Sandwiese).`
+            : `\n\nDen Rückgabe-Termin halten wir wie besprochen fest.`;
+
           const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
-          const mailBody = `Hallo ${kundeName},\n\nIhre Mietartikel sind übergeben:\n${lines.join("\n")}${kautionLine}\n\nViel Freude bei Ihrer Feier! Den Rückgabe-Termin halten wir wie besprochen fest.\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+          const mailBody = `Hallo ${kundeName},\n\nIhre Mietartikel sind übergeben:\n${lines.join("\n")}${kautionLine}${rueckgabeLine}\n\nViel Freude bei Ihrer Feier!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
           await createRow(TABLES.MailQueue, {
             Erstellt_am: new Date().toISOString(),
