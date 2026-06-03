@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import PwaRegister from './_pwa/PwaRegister';
@@ -93,7 +93,43 @@ function LoginForm({ onLoggedIn }: { onLoggedIn: () => void }) {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(224);
+  const [isDesktop, setIsDesktop] = useState(false);
+  const draggingRef = useRef(false);
   const pathname = usePathname();
+
+  useEffect(() => {
+    const saved = parseInt(localStorage.getItem('admin_sidebar_w') || '', 10);
+    if (saved >= 180 && saved <= 420) setSidebarWidth(saved);
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const upd = () => setIsDesktop(mq.matches);
+    upd();
+    mq.addEventListener('change', upd);
+    return () => mq.removeEventListener('change', upd);
+  }, []);
+
+  const startResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'col-resize';
+    let latest = 224;
+    const move = (ev: MouseEvent) => {
+      if (!draggingRef.current) return;
+      latest = Math.min(420, Math.max(180, ev.clientX));
+      setSidebarWidth(latest);
+    };
+    const up = () => {
+      draggingRef.current = false;
+      document.body.style.userSelect = '';
+      document.body.style.cursor = '';
+      window.removeEventListener('mousemove', move);
+      window.removeEventListener('mouseup', up);
+      localStorage.setItem('admin_sidebar_w', String(latest));
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }, []);
 
   const checkAuth = useCallback(async () => {
     try {
@@ -190,10 +226,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside
-        className={`fixed top-14 left-0 bottom-0 z-30 w-56 bg-warm-surface border-r border-warm-border transition-transform duration-200 overflow-hidden lg:translate-x-0 ${
+        style={{ width: sidebarWidth }}
+        className={`fixed top-14 left-0 bottom-0 z-30 bg-warm-surface border-r border-warm-border transition-transform duration-200 overflow-hidden lg:translate-x-0 ${
           sidebarOpen ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
+        {/* Resize-Griff (nur Desktop) — Breite mit der Maus ziehen */}
+        <div
+          onMouseDown={startResize}
+          className="hidden lg:block absolute top-0 right-0 bottom-0 w-1.5 cursor-col-resize hover:bg-accent/40 transition-colors"
+          title="Breite ziehen"
+        />
         <nav className="p-3 space-y-1">
           {navItems.map((item) => {
             const isActive = pathname === item.href || pathname?.startsWith(item.href + '/');
@@ -211,7 +254,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
                   <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                 </svg>
-                {item.label}
+                <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
@@ -219,7 +262,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main content */}
-      <main className="pt-14 lg:pl-56">
+      <main className="pt-14 lg:pl-56" style={isDesktop ? { paddingLeft: sidebarWidth } : undefined}>
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>

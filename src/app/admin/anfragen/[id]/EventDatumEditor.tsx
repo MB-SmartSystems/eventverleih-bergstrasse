@@ -1,6 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import DateRangePicker from "@/components/DateRangePicker";
+
+function fmtD(ymd: string): string {
+  const [y, m, d] = ymd.split("-");
+  return d && m && y ? `${d}.${m}.${y}` : ymd;
+}
 
 export default function EventDatumEditor({
   buchungId,
@@ -62,27 +68,24 @@ export default function EventDatumEditor({
       {error && (
         <div className="mb-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>
       )}
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Mietbeginn (Abholung/Lieferung)</label>
-          <input
-            type="date"
-            value={von}
-            onChange={(e) => setVon(e.target.value)}
-            disabled={submitting}
-            className="w-full px-3 py-2 rounded bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50"
-          />
-        </div>
-        <div>
-          <label className="block text-xs text-gray-400 mb-1">Mietende (Rückgabe)</label>
-          <input
-            type="date"
-            value={bis}
-            onChange={(e) => setBis(e.target.value)}
-            disabled={submitting}
-            className="w-full px-3 py-2 rounded bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:ring-1 focus:ring-gold-500/50"
-          />
-        </div>
+      <div>
+        <DateRangePicker
+          variant="public"
+          allowPast
+          rangeVon={von || null}
+          rangeBis={bis || null}
+          onChange={(v, b) => {
+            setVon(v || "");
+            setBis(b || "");
+          }}
+        />
+        <p className="text-xs text-gray-400 mt-1">
+          {von && bis
+            ? `Mietzeitraum: ${fmtD(von)} – ${fmtD(bis)}`
+            : von
+              ? `Mietbeginn: ${fmtD(von)} — jetzt Mietende klicken`
+              : "Mietbeginn und Mietende im Kalender klicken."}
+        </p>
       </div>
       <button
         onClick={save}
