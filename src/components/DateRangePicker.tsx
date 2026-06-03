@@ -18,6 +18,10 @@ export interface DateRangePickerProps {
   variant?: "public" | "admin";
   /** Override responsive default (1 Monat mobile, 2 Monate desktop). */
   numberOfMonths?: number;
+  /** Max. Range-Laenge. Default = MAX_RANGE_DAYS (Mietdauer). Fuer Sperrzeiten hochsetzen. */
+  maxRangeDays?: number;
+  /** Vergangene Tage erlauben (Admin-Sperrzeiten brauchen das ggf. nicht, default je variant). */
+  allowPast?: boolean;
 }
 
 export default function DateRangePicker({
@@ -26,6 +30,8 @@ export default function DateRangePicker({
   onChange,
   variant = "public",
   numberOfMonths,
+  maxRangeDays = MAX_RANGE_DAYS,
+  allowPast,
 }: DateRangePickerProps) {
   const [error, setError] = useState<string | null>(null);
   const [months, setMonths] = useState<number>(numberOfMonths ?? 1);
@@ -60,7 +66,7 @@ export default function DateRangePicker({
   }, []);
 
   const disabledMatcher =
-    variant === "public" ? { before: tomorrow } : undefined;
+    variant === "public" && !allowPast ? { before: tomorrow } : undefined;
 
   // Eigene Zwei-Klick-Logik (unabhaengig von react-day-picker v10, das bei EINEM Klick
   // via addToRange schon eine komplette {from,to}-Range liefert → Sheet schloss sofort).
@@ -87,8 +93,8 @@ export default function DateRangePicker({
     if (isoToDate(bis).getTime() < isoToDate(von).getTime()) {
       [von, bis] = [bis, von];
     }
-    if (rangeDays(von, bis) > MAX_RANGE_DAYS) {
-      setError(`Maximal ${MAX_RANGE_DAYS} Tage Mietdauer.`);
+    if (rangeDays(von, bis) > maxRangeDays) {
+      setError(`Maximal ${maxRangeDays} Tage${variant === "public" ? " Mietdauer" : ""}.`);
       onChange(von, null); // "bis" verwerfen, "von" behalten — Kalender bleibt offen
       return;
     }

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import DateRangePicker from "@/components/DateRangePicker";
 
 interface Sperrzeit {
   id: number;
@@ -77,25 +78,26 @@ export default function SperrzeitForm({ initial }: { initial: Sperrzeit[] }) {
       {/* Neue Sperrzeit */}
       <section className="p-5 rounded-xl bg-warm-surface border border-warm-border space-y-3">
         <h2 className="text-lg font-semibold text-warm-text">Neue Sperrzeit</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs text-warm-muted mb-1">Von</label>
-            <input
-              type="date"
-              value={von}
-              onChange={(e) => setVon(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-            />
-          </div>
-          <div>
-            <label className="block text-xs text-warm-muted mb-1">Bis</label>
-            <input
-              type="date"
-              value={bis}
-              onChange={(e) => setBis(e.target.value)}
-              className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
-            />
-          </div>
+        <div>
+          <label className="block text-xs text-warm-muted mb-2">Zeitraum wählen (Start, dann Ende klicken)</label>
+          <DateRangePicker
+            variant="admin"
+            allowPast
+            maxRangeDays={366}
+            rangeVon={von || null}
+            rangeBis={bis || null}
+            onChange={(v, b) => {
+              setVon(v || "");
+              setBis(b || "");
+            }}
+          />
+          <p className="text-xs text-warm-muted mt-1">
+            {von && bis
+              ? `Gewählt: ${fmt(von)} – ${fmt(bis)}`
+              : von
+                ? `Start: ${fmt(von)} — jetzt Enddatum klicken`
+                : "Start- und Enddatum im Kalender klicken."}
+          </p>
         </div>
         <div>
           <label className="block text-xs text-warm-muted mb-1">Grund</label>
