@@ -1,0 +1,158 @@
+/**
+ * Termin-Erinnerung — erinnert ~1 Tag vor der Übergabe an Datum/Uhrzeit/Treffpunkt,
+ * inkl. Kaution-Hinweis + Stripe-Link, falls die Kaution noch offen ist.
+ *
+ * Als LIB (KEIN eigener Vercel-Cron — Hobby-Plan limitiert Crons), Sub-Pass im
+ * restzahlung-reminder-Cron (morgens). Idempotent je Buchung (B<id>-termin_erinnerung).
+ * Approval_Status=Auto_Reply → wird automatisch versendet.
+ *
+ * Zeitangabe IMMER in Europe/Berlin formatieren (Server läuft UTC).
+ */
+import { listAllRows, listRows, getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createKautionCheckoutSession } from "@/lib/stripe/payment-links";
+
+const TZ = "Europe/Berlin";
+
+interface BuchungRow {
+  id: number;
+  Status_Erweitert: { value: string } | null;
+  Uebergabe_Termin: string | null;
+  Uebergabe_Adresse: string | null;
+  Lieferadresse: string | null;
+  Kaution_Soll_Eur: string | number | null;
+  Kaution_Hinterlegt_am: string | null;
+  Stripe_Kaution_Link: string | null;
+  Kunde_Link: Array<{ id: number; value: string }> | null;
+}
+
+function parseDec(v: string | number | null | undefined): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v));
+  return isNaN(n) ? 0 : n;
+}
+
+/** YYYY-MM-DD in Berlin-Zeit. */
+function berlinDate(d: Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d);
+}
+
+/** „Mittwoch, 03.06.2026 um 11:00 Uhr" in Berlin-Zeit. */
+function berlinDateTime(iso: string): string {
+  const d = new Date(iso);
+  const s = d.toLocaleString("de-DE", {
+    timeZone: TZ,
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  return `${s} Uhr`;
+}
+
+export async function runTerminReminder(): Promise<{
+  pruefte: number;
+  mails: number;
+  skipped_duplicate: number;
+  fehler: number;
+}> {
+  const result = { pruefte: 0, mails: 0, skipped_duplicate: 0, fehler: 0 };
+  const all = await listAllRows<BuchungRow>(TABLES.Buchungen);
+  const morgen = berlinDate(new Date(Date.now() + 86_400_000));
+
+  for (const b of all.results) {
+    const status = b.Status_Erweitert?.value || "";
+    if (status !== "Bestaetigt" && status !== "Reserviert") continue;
+    if (!b.Uebergabe_Termin) continue;
+    // Übergabe ist morgen (Berlin-Datum)?
+    if (berlinDate(new Date(b.Uebergabe_Termin)) !== morgen) continue;
+
+    result.pruefte++;
+
+    const idemKey = `B${b.id}-termin_erinnerung`;
+    const existing = await listRows<{ id: number; Idempotency_Key?: string }>(TABLES.MailQueue, {
+      search: idemKey,
+      size: 5,
+    });
+    if (existing.results.find((m) => m.Idempotency_Key === idemKey)) {
+      result.skipped_duplicate++;
+      continue;
+    }
+
+    const kundeId = b.Kunde_Link?.[0]?.id;
+    if (!kundeId) continue;
+    let kunde: { Vorname?: string; Nachname?: string; Email?: string };
+    try {
+      kunde = await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kundeId);
+    } catch {
+      continue;
+    }
+    if (!kunde.Email) continue;
+    const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
+
+    const terminText = berlinDateTime(b.Uebergabe_Termin);
+    const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
+
+    // Kaution-Hinweis nur, wenn Kaution offen
+    const kautionSoll = parseDec(b.Kaution_Soll_Eur);
+    const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
+    let kautionBlock = "";
+    if (kautionOffen) {
+      let link = (b.Stripe_Kaution_Link || "").trim();
+      if (!link) {
+        try {
+          const s = await createKautionCheckoutSession({
+            buchungId: b.id,
+            amountEur: kautionSoll,
+            kundeName: kundeName || "Kunde",
+          });
+          link = s.url;
+          await updateRow(TABLES.Buchungen, b.id, { Stripe_Kaution_Link: link });
+        } catch (e) {
+          console.error("[termin-reminder] kaution-link fehlgeschlagen:", e);
+        }
+      }
+      const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      kautionBlock =
+        `\n\nNoch offen ist die Kaution (${betrag} EUR) — diese bekommen Sie nach der Rückgabe vollständig zurück. ` +
+        `Wir buchen nichts ab, Stripe merkt den Betrag nur auf Ihrer Karte vor.` +
+        (link ? `\nAm einfachsten vorab hier hinterlegen:\n${link}` : "") +
+        `\nBar bei der Übergabe ist natürlich auch möglich.`;
+    }
+
+    const subject = "Erinnerung an Ihren Übergabe-Termin morgen";
+    const body =
+      `Hallo ${kundeName},\n\n` +
+      `eine kurze Erinnerung an unseren Übergabe-Termin:\n` +
+      `${terminText}\n${ort}.` +
+      `${kautionBlock}\n\n` +
+      `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
+      `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+
+    try {
+      await createRow(TABLES.MailQueue, {
+        Erstellt_am: new Date().toISOString(),
+        Buchung_Link: [b.id],
+        Kunde_Link: [kundeId],
+        Template_Key: "termin_erinnerung",
+        Subject: subject,
+        Body: body,
+        Approval_Status: "Auto_Reply",
+        Idempotency_Key: idemKey,
+      });
+      result.mails++;
+    } catch (e) {
+      result.fehler++;
+      console.error("[termin-reminder] mail-insert fehlgeschlagen:", e);
+    }
+  }
+
+  return result;
+}

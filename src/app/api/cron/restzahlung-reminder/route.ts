@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { runAnzahlungReminder } from "@/lib/eventverleih/anzahlung-reminder";
+import { runTerminReminder } from "@/lib/eventverleih/termin-reminder";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export const dynamic = "force-dynamic";
@@ -199,7 +200,15 @@ export async function GET(req: NextRequest) {
       console.error("[restzahlung-reminder] anzahlung-pass fehlgeschlagen:", e);
     }
 
-    return NextResponse.json({ ok: true, heute, result, anzahlung });
+    // Sub-Pass: Termin-Erinnerung (~1 Tag vor Übergabe, inkl. Kaution-Hinweis), fail-soft
+    let termin: Record<string, unknown> = {};
+    try {
+      termin = await runTerminReminder();
+    } catch (e) {
+      console.error("[restzahlung-reminder] termin-pass fehlgeschlagen:", e);
+    }
+
+    return NextResponse.json({ ok: true, heute, result, anzahlung, termin });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown";
     console.error("[restzahlung-reminder] failure:", msg);

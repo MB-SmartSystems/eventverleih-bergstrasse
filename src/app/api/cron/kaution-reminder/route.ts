@@ -5,9 +5,11 @@
  *  - Event in genau T-5 Tagen, Kaution_Soll_Eur > 0, Hold noch nicht platziert
  *  - mailt den Stripe-Kaution-Hold-Link (Pre-Auth) via Helper queueKautionHoldMail
  *
- * Warum T-5 (nicht bei Bestaetigung): der Pre-Auth-Hold haelt nur 7 Tage
+ * Warum ~T-5 (nicht bei Bestaetigung): der Pre-Auth-Hold haelt nur 7 Tage
  * (mit Extended-Auth bis ~30 Tage). Bei Bestaetigung Wochen vor dem Event
  * waere der Hold laengst verfallen. ~5 Tage vorher deckt Uebergabe + Rueckgabe ab.
+ * Fenster T-5..T-0 (nicht exakt T-5), damit auch Buchungen, die WENIGER als 5 Tage
+ * vor dem Event bestaetigt werden, die Auto-Mail genau einmal bekommen (Idempotency-Key).
  *
  * Stabiler Idempotency-Key B<id>-kaution_hold_auto → genau EIN Auto-Versand.
  * Manueller Re-Send weiter ueber den Admin-Button (date-suffixed Key) moeglich.
@@ -71,7 +73,10 @@ export async function GET(req: NextRequest) {
       if (b.Kaution_Hinterlegt_am) continue;
       if (!b.Event_datum_von) continue;
       if (parseDec(b.Kaution_Soll_Eur) <= 0) continue;
-      if (daysBetween(b.Event_datum_von) !== TAGE_VOR_EVENT) continue;
+      // Fenster: ab T-5 bis zum Event-Tag (T-0). Frueh-Buchungen feuern am ersten Tag
+      // im Fenster (T-5), Spaet-Buchungen sofort — Idempotency-Key haelt es bei genau 1 Mail.
+      const tageBis = daysBetween(b.Event_datum_von);
+      if (tageBis < 0 || tageBis > TAGE_VOR_EVENT) continue;
 
       result.pruefte++;
 
