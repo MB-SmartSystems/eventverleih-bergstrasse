@@ -1,15 +1,17 @@
 /**
- * /admin/uebergaben — Mobile-fokussierte Übergabe-Ansicht
+ * /admin/uebergaben — Mobile-fokussierte Ansicht für unterwegs.
  *
- * Für unterwegs: anstehende + aktive Buchungen (nächste 7 Tage + aktuell draußen),
- * je Buchung die PACKLISTE (Artikel × Anzahl), Zahlungs-/Kautions-Status und ein
- * direkter Link zur Detailseite, wo Barzahlung quittiert + Übergabe/Rücknahme
- * bestätigt werden (ZahlungsPanel / UebergabeDialog — funktionieren am Handy).
+ * Zwei Blöcke:
+ *  1. "Anstehende Übergaben" (Bestätigt/Reserviert, Termin in den nächsten 7 Tagen)
+ *     → Packliste + Bar-Zahlung + "Übergabe markieren" (UebergabeActions)
+ *  2. "Draußen — Rückgabe fällig" (Übergeben/In Miete) → Schnellfeld Rückgabe-Termin
+ *     (Google-Kalender-Sync) + "Rückgabe markieren" (RueckgabeCardActions)
  */
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
 import UebergabeActions from "./UebergabeActions";
+import RueckgabeCardActions from "./RueckgabeCardActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -21,6 +23,7 @@ interface BuchungRow {
   Event_datum_von: string | null;
   Event_datum_bis: string | null;
   Uebergabe_Termin: string | null;
+  Rueckgabe_Termin: string | null;
   Anzahlung_Soll_Eur: string | number | null;
   Anzahlung_Bezahlt_am: string | null;
   Restzahlung_Soll_Eur: string | number | null;
@@ -46,7 +49,8 @@ interface KundeRow {
   Telefon?: string;
 }
 
-const AKTIV = new Set(["Bestaetigt", "Reserviert", "Uebergeben", "In_Miete"]);
+const ANSTEHEND = new Set(["Bestaetigt", "Reserviert"]);
+const DRAUSSEN = new Set(["Uebergeben", "In_Miete"]);
 
 function num(v: string | number | null | undefined): number {
   if (v === null || v === undefined) return 0;
@@ -104,60 +108,66 @@ export default async function UebergabenPage() {
   const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
   const kundeById = new Map(kundenAll.results.map((k) => [k.id, k]));
 
-  // Packliste je Buchung
+  // Packliste (für Übergabe) + Positionen (für Rückgabe-Dialog) je Buchung
   const packByBuchung = new Map<number, Array<{ positionId: number; label: string; checked: boolean }>>();
+  const posByBuchung = new Map<number, Array<{ id: number; name: string; anzahl: number }>>();
   for (const p of positionenAll.results) {
     const bid = p.Buchung_Link?.[0]?.id;
     if (!bid) continue;
     const aid = p.Artikel_Link?.[0]?.id;
     const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—";
     const anzahl = parseInt(p.Anzahl ?? "1", 10) || 1;
-    const list = packByBuchung.get(bid) ?? [];
-    list.push({ positionId: p.id, label: `${anzahl}× ${name}`, checked: false });
-    packByBuchung.set(bid, list);
+    const pl = packByBuchung.get(bid) ?? [];
+    pl.push({ positionId: p.id, label: `${anzahl}× ${name}`, checked: false });
+    packByBuchung.set(bid, pl);
+    const pos = posByBuchung.get(bid) ?? [];
+    pos.push({ id: p.id, name, anzahl });
+    posByBuchung.set(bid, pos);
   }
 
-  // Relevante Buchungen: aktiv + (Termin in den nächsten 7 Tagen / heute / überfällig) ODER aktuell draußen
-  const relevant = buchungenAll.results
+  const anstehend = buchungenAll.results
     .filter((b) => {
-      const s = b.Status_Erweitert?.value || "";
-      if (!AKTIV.has(s)) return false;
-      if (s === "Uebergeben" || s === "In_Miete") return true; // aktuell draußen → immer zeigen
+      if (!ANSTEHEND.has(b.Status_Erweitert?.value || "")) return false;
       const d = daysFromToday(b.Event_datum_von);
-      return d !== null && d >= -1 && d <= 7; // anstehende Übergaben (inkl. heute/morgen)
+      return d !== null && d >= -1 && d <= 7;
     })
     .sort((a, b) => (a.Event_datum_von || "").localeCompare(b.Event_datum_von || ""));
 
+  const draussen = buchungenAll.results
+    .filter((b) => DRAUSSEN.has(b.Status_Erweitert?.value || ""))
+    .sort((a, b) => (a.Rueckgabe_Termin || a.Event_datum_bis || "").localeCompare(b.Rueckgabe_Termin || b.Event_datum_bis || ""));
+
+  function header(b: BuchungRow) {
+    const kunde = b.Kunde_Link?.[0]?.id ? kundeById.get(b.Kunde_Link[0].id) : null;
+    const kundeName = kunde
+      ? `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim()
+      : b.Kunde_Link?.[0]?.value || "—";
+    const tel = kunde?.Telefon?.trim();
+    const status = b.Status_Erweitert?.value || "";
+    return { kundeName, tel, status };
+  }
+
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="space-y-6 max-w-2xl">
       <div>
-        <h1 className="font-display text-2xl font-semibold text-warm-text">Übergaben</h1>
-        <p className="text-sm text-warm-muted mt-0.5">
-          Anstehende & laufende Buchungen mit Packliste — fürs Handy unterwegs.
-        </p>
+        <h1 className="font-display text-2xl font-semibold text-warm-text">Übergaben & Rückgaben</h1>
+        <p className="text-sm text-warm-muted mt-0.5">Fürs Handy unterwegs.</p>
       </div>
 
-      {relevant.length === 0 ? (
-        <div className="p-6 rounded-xl bg-warm-surface border border-warm-border text-center text-warm-muted text-sm">
-          Keine anstehenden Übergaben in den nächsten 7 Tagen.
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {relevant.map((b) => {
-            const status = b.Status_Erweitert?.value || "";
-            const kunde = b.Kunde_Link?.[0]?.id ? kundeById.get(b.Kunde_Link[0].id) : null;
-            const kundeName = kunde
-              ? `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim()
-              : b.Kunde_Link?.[0]?.value || "—";
-            const tel = kunde?.Telefon?.trim();
-            const pack = packByBuchung.get(b.id) ?? [];
+      {/* Anstehende Übergaben */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-warm-muted">Anstehende Übergaben</h2>
+        {anstehend.length === 0 ? (
+          <div className="p-4 rounded-xl bg-warm-surface border border-warm-border text-center text-warm-muted text-sm">
+            Keine anstehenden Übergaben in den nächsten 7 Tagen.
+          </div>
+        ) : (
+          anstehend.map((b) => {
+            const { kundeName, tel, status } = header(b);
             const dTage = daysFromToday(b.Event_datum_von);
             const dLabel =
               dTage === 0 ? "HEUTE" : dTage === 1 ? "morgen" : dTage !== null && dTage < 0 ? `${-dTage}d überfällig` : dTage !== null ? `in ${dTage}d` : "";
-
             const kautionSoll = num(b.Kaution_Soll_Eur);
-            const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
-
             return (
               <div key={b.id} className="rounded-xl border border-warm-border bg-warm-surface p-4">
                 <div className="flex items-start justify-between gap-3 mb-2">
@@ -178,28 +188,71 @@ export default async function UebergabenPage() {
                     {STATUS_LABEL[status] ?? status}
                   </span>
                 </div>
-
                 {tel && (
                   <a href={`tel:${tel.replace(/\s/g, "")}`} className="text-sm text-accent">
                     {tel}
                   </a>
                 )}
-
                 <UebergabeActions
                   buchungId={b.id}
-                  packItems={pack}
+                  packItems={packByBuchung.get(b.id) ?? []}
                   anzahlungOffen={num(b.Anzahlung_Soll_Eur) > 0 && !b.Anzahlung_Bezahlt_am}
                   anzahlungSoll={num(b.Anzahlung_Soll_Eur)}
                   restzahlungOffen={num(b.Restzahlung_Soll_Eur) > 0 && !b.Restzahlung_Bezahlt_am}
                   restzahlungSoll={num(b.Restzahlung_Soll_Eur)}
-                  kautionOffen={kautionOffen}
+                  kautionOffen={kautionSoll > 0 && !b.Kaution_Hinterlegt_am}
                   kautionSoll={kautionSoll}
                 />
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </section>
+
+      {/* Draußen — Rückgabe fällig */}
+      <section className="space-y-3">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-warm-muted">Draußen — Rückgabe</h2>
+        {draussen.length === 0 ? (
+          <div className="p-4 rounded-xl bg-warm-surface border border-warm-border text-center text-warm-muted text-sm">
+            Aktuell ist nichts draußen.
+          </div>
+        ) : (
+          draussen.map((b) => {
+            const { kundeName, tel, status } = header(b);
+            return (
+              <div key={b.id} className="rounded-xl border border-warm-border bg-warm-surface p-4">
+                <div className="flex items-start justify-between gap-3 mb-2">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-warm-text">{kundeName}</div>
+                    <div className="text-sm text-warm-muted">
+                      Event: {fmtDate(b.Event_datum_von)}
+                      {b.Event_datum_bis && b.Event_datum_bis !== b.Event_datum_von ? ` – ${fmtDate(b.Event_datum_bis)}` : ""}
+                    </div>
+                    {b.Rueckgabe_Termin && (
+                      <div className="text-sm text-accent font-medium mt-0.5">
+                        Rückgabe: {fmtDateTime(b.Rueckgabe_Termin)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="shrink-0 text-xs px-2 py-1 rounded bg-warm-bg border border-warm-border text-warm-muted">
+                    {STATUS_LABEL[status] ?? status}
+                  </span>
+                </div>
+                {tel && (
+                  <a href={`tel:${tel.replace(/\s/g, "")}`} className="text-sm text-accent">
+                    {tel}
+                  </a>
+                )}
+                <RueckgabeCardActions
+                  buchungId={b.id}
+                  positionen={posByBuchung.get(b.id) ?? []}
+                  rueckgabeInitial={b.Rueckgabe_Termin}
+                />
+              </div>
+            );
+          })
+        )}
+      </section>
     </div>
   );
 }
