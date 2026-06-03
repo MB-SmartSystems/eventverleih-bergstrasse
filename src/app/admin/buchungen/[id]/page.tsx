@@ -129,6 +129,7 @@ function fmtDateTime(d: string | null | undefined): string {
   if (isNaN(date.getTime())) return "—";
   const hasTime = /\d{2}:\d{2}/.test(d);
   return date.toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -201,6 +202,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
     numv(buchung.Preis_Aufbau);
   const bezahlt = bezahltEur(buchung);
   const offen = Math.max(0, gesamt - bezahlt);
+  const kautionSoll = numv(buchung.Kaution_Soll_Eur);
 
   // Packliste (geteilt: Übergabe-Bereich + Checkliste unten) — persistiert über Position.Eingepackt
   const packItems = positionen.map((p) => {
@@ -273,17 +275,39 @@ Vertrag
               )}
             </div>
           )}
-          <div className="text-right">
-            <div className="text-xs uppercase tracking-wider text-warm-muted">Bezahlt / Offen</div>
-            <div className="mt-1 text-lg font-semibold">
-              <span className={bezahlt >= gesamt && gesamt > 0 ? "text-green-700" : "text-warm-text"}>
-                {bezahlt.toFixed(2).replace(".", ",")} €
-              </span>
-              <span className="text-warm-muted"> · </span>
-              <span className={offen === 0 ? "text-green-700" : "text-amber-700"}>
-                offen {offen.toFixed(2).replace(".", ",")} €
-              </span>
+          <div className="text-right space-y-2">
+            <div>
+              <div className="text-xs uppercase tracking-wider text-warm-muted">Miete bezahlt / offen</div>
+              <div className="mt-0.5 text-lg font-semibold">
+                <span className={bezahlt >= gesamt && gesamt > 0 ? "text-green-700" : "text-warm-text"}>
+                  {bezahlt.toFixed(2).replace(".", ",")} €
+                </span>
+                <span className="text-warm-muted"> · </span>
+                <span className={offen === 0 ? "text-green-700" : "text-amber-700"}>
+                  offen {offen.toFixed(2).replace(".", ",")} €
+                </span>
+              </div>
             </div>
+            {kautionSoll > 0 && (
+              <div>
+                <div className="text-xs uppercase tracking-wider text-warm-muted">Kaution</div>
+                <div className="mt-0.5">
+                  {buchung.Kaution_Rueckzahlung_am ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-green-100 text-green-700">
+                      {fmtEur(buchung.Kaution_Rueckzahlung_Eur ?? buchung.Kaution_Soll_Eur)} zurück · {fmtDate(buchung.Kaution_Rueckzahlung_am)}
+                    </span>
+                  ) : buchung.Kaution_Hinterlegt_am ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-blue-100 text-blue-700">
+                      {fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt · {fmtDate(buchung.Kaution_Hinterlegt_am)}
+                    </span>
+                  ) : (
+                    <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-amber-100 text-amber-800">
+                      {fmtEur(buchung.Kaution_Soll_Eur)} — noch offen
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

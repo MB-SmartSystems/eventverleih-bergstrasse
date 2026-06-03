@@ -36,6 +36,7 @@ function fmtTermin(d: string | null | undefined): string {
   // Wenn keine Uhrzeit-Info (reines Datum), nur Datum zeigen
   const hasTime = /\d{2}:\d{2}/.test(d);
   return date.toLocaleString("de-DE", {
+    timeZone: "Europe/Berlin",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
