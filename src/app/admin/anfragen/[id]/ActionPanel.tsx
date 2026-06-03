@@ -1,12 +1,23 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
+type Done = { title: string; sub: string; tone: "green" | "blue" | "red" };
+
+const TONE: Record<Done["tone"], string> = {
+  green: "bg-green-500/10 border-green-500/30 text-green-200",
+  blue: "bg-blue-500/10 border-blue-500/30 text-blue-200",
+  red: "bg-red-500/10 border-red-500/30 text-red-200",
+};
+
 export default function ActionPanel({ angebotId, hasPrices }: { angebotId: number; hasPrices: boolean }) {
+  const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [done, setDone] = useState<Done | null>(null);
   const [showAnmerkungInput, setShowAnmerkungInput] = useState(false);
   const [anmerkung, setAnmerkung] = useState("");
   const [showAblehnenInput, setShowAblehnenInput] = useState(false);
@@ -15,15 +26,27 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
   const [ablehnenNotiz, setAblehnenNotiz] = useState("");
   const [ablehnenOhneMail, setAblehnenOhneMail] = useState(false);
 
+  function optimisticFor(action: Action): Done {
+    if (action === "rueckruf") {
+      return { title: "Rückruf vorgeschlagen", sub: "Die Mail geht im Hintergrund raus.", tone: "blue" };
+    }
+    return {
+      title: "Angebot ist beim Kunden",
+      sub: "Er kann auf der Public-Seite akzeptieren. Die Mail geht im Hintergrund raus.",
+      tone: "green",
+    };
+  }
+
   async function exec(action: Action, anmerkungText?: string) {
-    if (submitting) return;
+    if (submitting || done) return;
     if ((action === "freigeben" || action === "freigeben_anmerkung") && !hasPrices) {
       if (!confirm("Es sind keine Preise gesetzt. Trotzdem freigeben? (Kunde sieht leere Preisübersicht)")) return;
     }
-    if (action === "ablehnen" && !confirm("Anfrage wirklich ablehnen? Kunde bekommt höfliche Absage-Mail.")) return;
 
-    setSubmitting(true);
+    // Sofort optimistisch umschalten — der Versand läuft im Hintergrund.
     setError("");
+    setDone(optimisticFor(action));
+    setSubmitting(true);
     try {
       const res = await fetch(`/api/admin/anfrage/${angebotId}/action`, {
         method: "POST",
@@ -33,25 +56,32 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || `HTTP ${res.status}`);
+        setDone(null); // Fehler → zurück zu den Buttons
       } else {
-        // Reload page
-        window.location.reload();
+        router.refresh(); // weicher Sync (kein Full-Reload)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+      setDone(null);
     } finally {
       setSubmitting(false);
     }
   }
 
   async function execAblehnen() {
-    if (submitting) return;
+    if (submitting || done) return;
     const msg = ablehnenOhneMail
       ? "Anfrage OHNE Mail ablehnen? Der Kunde wird NICHT benachrichtigt."
       : "Anfrage ablehnen? Der Kunde bekommt eine höfliche Absage-Mail.";
     if (!confirm(msg)) return;
-    setSubmitting(true);
+
     setError("");
+    setDone({
+      title: "Anfrage abgelehnt",
+      sub: ablehnenOhneMail ? "Es geht keine Mail an den Kunden." : "Die höfliche Absage geht im Hintergrund raus.",
+      tone: "red",
+    });
+    setSubmitting(true);
     try {
       const res = await fetch(`/api/admin/anfrage/${angebotId}/action`, {
         method: "POST",
@@ -67,14 +97,29 @@ export default function ActionPanel({ angebotId, hasPrices }: { angebotId: numbe
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         setError(data.error || `HTTP ${res.status}`);
+        setDone(null);
       } else {
-        window.location.reload();
+        router.refresh();
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+      setDone(null);
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // Optimistischer Zustand: Buttons weg, Hinweis sofort sichtbar.
+  if (done) {
+    return (
+      <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+        <h2 className="text-lg font-semibold text-white mb-3">Status</h2>
+        <div className={`p-3 rounded-lg border ${TONE[done.tone]}`}>
+          <div className="text-sm font-medium">✓ {done.title}</div>
+          <div className="text-xs mt-1 opacity-90">{done.sub}</div>
+        </div>
+      </section>
+    );
   }
 
   return (
