@@ -18,6 +18,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateRow, createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
+import { cancelKaution } from "@/lib/stripe/payment-links";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -54,6 +55,20 @@ export async function POST(
     }
 
     await updateRow(TABLES.Buchungen, buchungId, patch);
+
+    // Sicherung: Kaution bar/keine genommen, aber ein Stripe-Hold liegt noch auf der Karte
+    // → Hold freigeben (kein Doppel-Block beim Kunden). Fail-soft.
+    if (body.kaution_methode === "bar" || body.kaution_methode === "keine") {
+      try {
+        const cur = await getRow<{ Stripe_Kaution_PaymentIntent: string | null }>(TABLES.Buchungen, buchungId);
+        if (cur.Stripe_Kaution_PaymentIntent) {
+          await cancelKaution(cur.Stripe_Kaution_PaymentIntent);
+          await updateRow(TABLES.Buchungen, buchungId, { Stripe_Kaution_PaymentIntent: null });
+        }
+      } catch (e) {
+        console.error("[uebergabe] stripe-hold-cancel fehlgeschlagen:", e);
+      }
+    }
 
     // Audit-Log-Eintrag
     try {
