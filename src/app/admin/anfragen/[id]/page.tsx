@@ -370,6 +370,29 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
         </div>
 
         <div className="space-y-6">
+          {/* Aktionen — primär, ganz oben */}
+          {status === "Offen" ? (
+            <ActionPanel angebotId={angebot.id} hasPrices={!!buchung.Preis_Artikel && parseFloat(buchung.Preis_Artikel) > 0} />
+          ) : (
+            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
+              <h2 className="text-lg font-semibold text-white mb-3">Status</h2>
+              {status === "Versendet" && (
+                <p className="text-sm text-yellow-300">Angebot ist beim Kunden — er kann auf der Public-Seite akzeptieren.</p>
+              )}
+              {status === "Akzeptiert" && (
+                <p className="text-sm text-green-300">
+                  ✓ Kunde hat akzeptiert am {angebot.Akzeptiert_am?.slice(0, 10) || "?"}
+                </p>
+              )}
+              {status === "Abgelehnt" && (
+                <div className="text-sm text-red-300">
+                  <p>✗ Abgelehnt am {angebot.Abgelehnt_am?.slice(0, 10) || "?"}</p>
+                  {angebot.Abgelehnt_Grund && <p className="text-xs text-gray-400 mt-2">{angebot.Abgelehnt_Grund}</p>}
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Anfrage-Text */}
           {angebot.Anfragetext && (
             <section className="p-5 rounded-xl bg-white/5 border border-white/10">
@@ -447,28 +470,6 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
             )}
           </section>
 
-          {/* Aktionen */}
-          {status === "Offen" ? (
-            <ActionPanel angebotId={angebot.id} hasPrices={!!buchung.Preis_Artikel && parseFloat(buchung.Preis_Artikel) > 0} />
-          ) : (
-            <section className="p-5 rounded-xl bg-white/5 border border-white/10">
-              <h2 className="text-lg font-semibold text-white mb-3">Status</h2>
-              {status === "Versendet" && (
-                <p className="text-sm text-yellow-300">Angebot ist beim Kunden — er kann auf der Public-Seite akzeptieren.</p>
-              )}
-              {status === "Akzeptiert" && (
-                <p className="text-sm text-green-300">
-                  ✓ Kunde hat akzeptiert am {angebot.Akzeptiert_am?.slice(0, 10) || "?"}
-                </p>
-              )}
-              {status === "Abgelehnt" && (
-                <div className="text-sm text-red-300">
-                  <p>✗ Abgelehnt am {angebot.Abgelehnt_am?.slice(0, 10) || "?"}</p>
-                  {angebot.Abgelehnt_Grund && <p className="text-xs text-gray-400 mt-2">{angebot.Abgelehnt_Grund}</p>}
-                </div>
-              )}
-            </section>
-          )}
         </div>
       </div>
     </div>
