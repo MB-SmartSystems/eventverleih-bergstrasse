@@ -58,8 +58,9 @@ function parseNum(v: number | string | null | undefined): number {
  *   - Angebot_versendet, >7d       → Erinnerung schicken / nachhaken (amber)
  *   - Angebot_versendet, <=7d      → Wartet auf Kunden-Klick (gray)
  *   - Bestaetigt, keine Anzahlung  → Anzahlung nachhaken (amber/red je nach Alter)
- *   - Reserviert, Event in <14d, keine Restzahlung → Restzahlung mahnen (amber)
- *   - Reserviert, Event morgen     → Uebergabe vorbereiten (blue)
+ *   - Reserviert, Restzahlung offen → Info "faellig bei Uebergabe" (gray, KEIN Mahnen —
+ *     Restzahlung ist laut AGB §3 erst bei Uebergabe faellig, Entscheidung 2026-06-04)
+ *   - Reserviert, Event morgen     → Uebergabe vorbereiten (blue; amber wenn Restzahlung offen)
  *   - Uebergeben                   → Auf Rueckgabe warten (gray)
  *   - In_Miete, datum_bis vergangen → Rueckgabe ueberfaellig (red)
  *   - Zurueckgegeben, Kaution offen → Kaution freigeben oder einbehalten (amber)
@@ -100,11 +101,15 @@ export function getNextAction(b: BuchungForAction): NextAction {
     }
 
     case "Reserviert": {
+      const restOffen = !hasRestzahlung && parseNum(b.Restzahlung_Soll_Eur) > 0;
       if (eventInDays !== null && eventInDays <= 1) {
+        if (restOffen) {
+          return { label: "Uebergabe vorbereiten — Restzahlung offen (bar/online)", tone: "amber" };
+        }
         return { label: "Uebergabe vorbereiten / Vertrag drucken", tone: "blue" };
       }
-      if (eventInDays !== null && eventInDays < 14 && !hasRestzahlung && parseNum(b.Restzahlung_Soll_Eur) > 0) {
-        return { label: `Restzahlung mahnen (Event in ${eventInDays}d)`, tone: "amber" };
+      if (restOffen) {
+        return { label: "Restzahlung offen — faellig bei Uebergabe", tone: "gray" };
       }
       return { label: "Buchung laeuft — naechste Aktion bei Uebergabe", tone: "gray" };
     }

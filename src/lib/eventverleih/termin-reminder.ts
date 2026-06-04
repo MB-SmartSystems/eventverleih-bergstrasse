@@ -22,6 +22,9 @@ interface BuchungRow {
   Kaution_Soll_Eur: string | number | null;
   Kaution_Hinterlegt_am: string | null;
   Stripe_Kaution_Link: string | null;
+  Restzahlung_Soll_Eur: string | number | null;
+  Restzahlung_Bezahlt_am: string | null;
+  Stripe_Restzahlung_Link: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
 
@@ -100,6 +103,19 @@ export async function runTerminReminder(): Promise<{
     const terminText = berlinDateTime(b.Uebergabe_Termin);
     const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
 
+    // Restzahlung-Hinweis nur, wenn offen — fällig erst bei Übergabe, vorab = Komfort-Option
+    const restSoll = parseDec(b.Restzahlung_Soll_Eur);
+    const restOffen = restSoll > 0 && !b.Restzahlung_Bezahlt_am;
+    let restBlock = "";
+    if (restOffen) {
+      const restBetrag = restSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const restLink = (b.Stripe_Restzahlung_Link || "").trim();
+      restBlock =
+        `\n\nDie Restzahlung (${restBetrag} EUR) ist bei der Übergabe fällig — ` +
+        `gerne vorab online oder bar vor Ort, beides ist in Ordnung.` +
+        (restLink ? `\nOnline-Zahlungslink:\n${restLink}` : "");
+    }
+
     // Kaution-Hinweis nur, wenn Kaution offen
     const kautionSoll = parseDec(b.Kaution_Soll_Eur);
     const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
@@ -132,7 +148,7 @@ export async function runTerminReminder(): Promise<{
       `Hallo ${kundeName},\n\n` +
       `eine kurze Erinnerung an unseren Übergabe-Termin:\n` +
       `${terminText}\n${ort}.` +
-      `${kautionBlock}\n\n` +
+      `${restBlock}${kautionBlock}\n\n` +
       `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
       `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
