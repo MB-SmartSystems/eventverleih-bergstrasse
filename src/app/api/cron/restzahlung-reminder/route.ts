@@ -77,8 +77,8 @@ function buildMail(
   const opening = `Ihr Event am ${datum} steht vor der Tür — wir freuen uns drauf.`;
 
   const core =
-    `Kurz zur Info: Die Restzahlung von ${betragFmt} EUR ist erst bei der Übergabe fällig. ` +
-    `Sie können sie gerne vorab online begleichen oder einfach bar bei der Übergabe — beides ist völlig in Ordnung.`;
+    `Kurz zur Info: Die Restzahlung von ${betragFmt} EUR ist spätestens zur Übergabe fällig. ` +
+    `Am einfachsten begleichen Sie sie vorab bequem online über Ihren Zahlungslink.`;
 
   const pscript = `Falls die Restzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
 

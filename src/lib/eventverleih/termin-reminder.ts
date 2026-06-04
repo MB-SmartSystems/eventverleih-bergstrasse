@@ -111,9 +111,9 @@ export async function runTerminReminder(): Promise<{
       const restBetrag = restSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const restLink = (b.Stripe_Restzahlung_Link || "").trim();
       restBlock =
-        `\n\nDie Restzahlung (${restBetrag} EUR) ist bei der Übergabe fällig — ` +
-        `gerne vorab online oder bar vor Ort, beides ist in Ordnung.` +
-        (restLink ? `\nOnline-Zahlungslink:\n${restLink}` : "");
+        `\n\nDie Restzahlung (${restBetrag} EUR) ist spätestens zur Übergabe fällig — ` +
+        `am einfachsten vorab bequem online.` +
+        (restLink ? `\nIhr Zahlungslink:\n${restLink}` : "");
     }
 
     // Kaution-Hinweis nur, wenn Kaution offen
@@ -139,8 +139,7 @@ export async function runTerminReminder(): Promise<{
       kautionBlock =
         `\n\nNoch offen ist die Kaution (${betrag} EUR) — diese bekommen Sie nach der Rückgabe vollständig zurück. ` +
         `Wir buchen nichts ab, Stripe merkt den Betrag nur auf Ihrer Karte vor.` +
-        (link ? `\nAm einfachsten vorab hier hinterlegen:\n${link}` : "") +
-        `\nBar bei der Übergabe ist natürlich auch möglich.`;
+        (link ? `\nAm einfachsten vorab hier hinterlegen:\n${link}` : "");
     }
 
     const subject = "Erinnerung an Ihren Übergabe-Termin morgen";

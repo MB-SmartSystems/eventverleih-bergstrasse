@@ -104,7 +104,7 @@ export function getNextAction(b: BuchungForAction): NextAction {
       const restOffen = !hasRestzahlung && parseNum(b.Restzahlung_Soll_Eur) > 0;
       if (eventInDays !== null && eventInDays <= 1) {
         if (restOffen) {
-          return { label: "Uebergabe vorbereiten — Restzahlung offen (bar/online)", tone: "amber" };
+          return { label: "Uebergabe vorbereiten — Restzahlung offen", tone: "amber" };
         }
         return { label: "Uebergabe vorbereiten / Vertrag drucken", tone: "blue" };
       }
