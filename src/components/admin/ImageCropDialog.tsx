@@ -9,9 +9,9 @@
 import { useCallback, useState } from 'react';
 import Cropper, { Area } from 'react-easy-crop';
 
-const PRESETS: { label: string; aspect: number }[] = [
-  { label: 'Karte (1,23:1)', aspect: 1.23 },
-  { label: 'Quadrat (1:1)', aspect: 1 },
+const PRESETS: { label: string; aspect: number; standard?: boolean }[] = [
+  // Standard = exakt das Anzeigeformat der Produktkarten (aspect-square in Sortiment.tsx)
+  { label: 'Quadrat (1:1)', aspect: 1, standard: true },
   { label: '4:3', aspect: 4 / 3 },
   { label: '16:9', aspect: 16 / 9 },
   { label: 'Hochformat (3:4)', aspect: 3 / 4 },
@@ -48,7 +48,7 @@ export default function ImageCropDialog({
 }) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
-  const [aspect, setAspect] = useState(1.23);
+  const [aspect, setAspect] = useState(1);
   const [areaPixels, setAreaPixels] = useState<Area | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
@@ -97,9 +97,18 @@ export default function ImageCropDialog({
               }`}
             >
               {p.label}
+              {p.standard && (
+                <span className="ml-1.5 px-1.5 py-0.5 rounded-full bg-white/20 text-[10px] font-semibold uppercase tracking-wide">
+                  Standard
+                </span>
+              )}
             </button>
           ))}
         </div>
+        <p className="px-4 pt-2 text-xs text-warm-muted">
+          Quadrat ist das Anzeigeformat der Produktkarten auf der Website — so siehst du beim
+          Zuschneiden genau den Ausschnitt, den Kunden sehen.
+        </p>
 
         {/* Cropper */}
         <div className="relative h-[50vh] min-h-[280px] m-4 rounded-lg overflow-hidden bg-black/80">
