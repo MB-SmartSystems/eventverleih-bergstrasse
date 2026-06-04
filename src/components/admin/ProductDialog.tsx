@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import type { GalleryProduct, ProductCategory } from '@/lib/types';
 import { resizeImage } from '@/lib/image-utils';
+import ImageCropDialog from './ImageCropDialog';
 
 interface ProductDialogProps {
   open: boolean;
@@ -38,6 +39,12 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   const [removeImages, setRemoveImages] = useState<string[]>([]);
   const [newFiles, setNewFiles] = useState<File[]>([]);
   const [newPreviews, setNewPreviews] = useState<string[]>([]);
+
+  // Zuschnitt-Editor: Quelle (Objekt-URL, nie fremde URL → kein Canvas-Tainting) + Ziel
+  const [cropState, setCropState] = useState<
+    | { src: string; srcIsTemp: boolean; target: { type: 'existing'; url: string } | { type: 'new'; index: number } }
+    | null
+  >(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -94,6 +101,47 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
   function handleRemoveExisting(url: string) {
     setExistingImages(prev => prev.filter(u => u !== url));
     setRemoveImages(prev => [...prev, url]);
+  }
+
+  /** Zuschnitt öffnen — bestehende Bilder werden als Blob geholt (CORS/Tainting-sicher). */
+  async function openCrop(img: { type: 'existing' | 'new'; url: string; index: number }) {
+    if (img.type === 'new') {
+      setCropState({ src: newPreviews[img.index], srcIsTemp: false, target: { type: 'new', index: img.index } });
+      return;
+    }
+    setProcessing(true);
+    try {
+      const res = await fetch(img.url);
+      if (!res.ok) throw new Error('Bild konnte nicht geladen werden');
+      const blob = await res.blob();
+      setCropState({ src: URL.createObjectURL(blob), srcIsTemp: true, target: { type: 'existing', url: img.url } });
+    } catch {
+      setError('Bild konnte nicht zum Zuschneiden geladen werden');
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function closeCrop() {
+    if (cropState?.srcIsTemp) URL.revokeObjectURL(cropState.src);
+    setCropState(null);
+  }
+
+  function handleCropped(blob: Blob) {
+    if (!cropState) return;
+    const file = new File([blob], `zuschnitt-${Date.now()}.jpg`, { type: 'image/jpeg' });
+    const preview = URL.createObjectURL(file);
+    if (cropState.target.type === 'new') {
+      const idx = cropState.target.index;
+      URL.revokeObjectURL(newPreviews[idx]);
+      setNewFiles(prev => prev.map((f, i) => (i === idx ? file : f)));
+      setNewPreviews(prev => prev.map((u, i) => (i === idx ? preview : u)));
+    } else {
+      // Bestehendes Bild: Original entfernen, Zuschnitt als neues Bild anhängen
+      handleRemoveExisting(cropState.target.url);
+      setNewFiles(prev => [...prev, file]);
+      setNewPreviews(prev => [...prev, preview]);
+    }
   }
 
   function handleRemoveNew(index: number) {
@@ -307,6 +355,16 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                       </div>
                       {/* Action buttons below thumbnail */}
                       <div className="flex items-center justify-center gap-0.5 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => openCrop(img)}
+                          className="p-0.5 rounded hover:bg-warm-bg text-warm-muted hover:text-warm-text transition-colors"
+                          title="Bild zuschneiden"
+                        >
+                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 3v13.5A1.5 1.5 0 009 18h12M3 7.5h13.5A1.5 1.5 0 0118 9v12" />
+                          </svg>
+                        </button>
                         {idx > 0 && (
                           <button
                             type="button"
@@ -672,6 +730,11 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
           </div>
         </form>
       </div>
+
+      {/* Zuschnitt-Editor */}
+      {cropState && (
+        <ImageCropDialog open imageUrl={cropState.src} onClose={closeCrop} onCropped={handleCropped} />
+      )}
     </div>
   );
 }
