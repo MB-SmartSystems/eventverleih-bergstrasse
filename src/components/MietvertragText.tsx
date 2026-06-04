@@ -11,7 +11,7 @@ export default function MietvertragText() {
   return (
     <article className="prose prose-sm prose-gray max-w-none text-gray-800 space-y-4 [&_h2]:text-gray-900 [&_h3]:text-gray-900 [&_p]:text-gray-800 [&_strong]:text-gray-900 [&_table]:text-gray-800 [&_th]:text-gray-700 [&_a]:text-gray-900 [&_a]:underline">
       <h2 className="text-xl font-bold text-gray-900">Mietvertrag — Bedingungen</h2>
-      <p className="text-xs text-gray-500">Stand: 13.05.2026 · Version 1.0</p>
+      <p className="text-xs text-gray-500">Stand: 04.06.2026 · Version 1.1</p>
 
       <h3>§ 1 Vertragsgegenstand</h3>
       <p>
@@ -64,7 +64,15 @@ export default function MietvertragText() {
         Ihnen ab — Sie werden also rechtzeitig informiert, falls eine Helfer-Bereitstellung nötig wird.
       </p>
 
-      <h3>§ 5 Wetter-Vorbehalt und Aufbau-Verweigerungsrecht</h3>
+      <h3>§ 5 Aufbau und Standsicherheit von Zelten</h3>
+      <p>
+        Zelte dürfen nur auf ebenem, festem und waagerechtem Untergrund aufgebaut werden. Jedes Zelt ist verpflichtend
+        mit Gewichten oder Bodenankern und Spanngurten zu sichern; ohne sichere Befestigung erfolgt keine Übergabe. Der
+        Aufbau bei starkem Wind oder Unwetter ist untersagt (3×3 m: mind. 2 Personen, 3×6 m: mind. 4 Personen). Schäden
+        durch Aufbau auf ungeeignetem Untergrund oder fehlende Sicherung gehen zu Lasten des Mieters (§ 7).
+      </p>
+
+      <h3>§ 6 Wetter-Vorbehalt und Aufbau-Verweigerungsrecht</h3>
       <p>
         Bei amtlicher Sturm- oder Unwetterwarnung des Deutschen Wetterdienstes (ab DWD-Stufe 2, prognostizierter Wind
         über 50 km/h) am Tag des Aufbaus oder der Veranstaltung behält sich der Vermieter aus Sicherheitsgründen das
@@ -76,14 +84,14 @@ export default function MietvertragText() {
         Empfindliche Artikel sind vor Witterung zu schützen.
       </p>
 
-      <h3>§ 6 Mieterhaftung während der Mietzeit</h3>
+      <h3>§ 7 Mieterhaftung während der Mietzeit</h3>
       <p>
         Der Mieter haftet ab dem Zeitpunkt der Übergabe bis zur Rückgabe für sämtliche Schäden, Verlust oder Diebstahl der
         gemieteten Gegenstände — unabhängig vom Verschulden Dritter. Bei Schaden oder Verlust eines Gegenstandes ist der
         jeweils gültige Wiederbeschaffungspreis zu erstatten.
       </p>
 
-      <h3>§ 7 Rückgabe</h3>
+      <h3>§ 8 Rückgabe</h3>
       <p>
         Die Rückgabe erfolgt vollständig und in dem bei Übergabe dokumentierten Zustand. Sämtliche Bestandteile,
         Spannriemen, Heringe, Zubehör müssen mitgegeben werden. Fehlende Teile werden nach Ablauf von 48 Stunden mit dem
@@ -96,7 +104,7 @@ export default function MietvertragText() {
         Vermieter von Diebstahl aus und behält sich rechtliche Schritte vor.
       </p>
 
-      <h3>§ 8 Reinigung</h3>
+      <h3>§ 9 Reinigung</h3>
       <p>
         Gegenstände sind in dem bei Übergabe übernommenen Zustand zurückzugeben — insbesondere frei von Speiseresten,
         Schmutz und groben Verschmutzungen. Wird ein Gegenstand verschmutzt zurückgegeben, fallen die folgenden
@@ -125,7 +133,7 @@ export default function MietvertragText() {
         </tbody>
       </table>
 
-      <h3>§ 9 Schadens-Abwicklung</h3>
+      <h3>§ 10 Schadens-Abwicklung</h3>
       <p>
         Bei Beschädigung über die normale Gebrauchsabnutzung hinaus wird der Schaden bei der Rückgabe gemeinsam
         dokumentiert (Foto-Pflicht). Der Vermieter informiert den Mieter binnen 14 Tagen nach Rückgabe über die finalen
@@ -134,20 +142,20 @@ export default function MietvertragText() {
         verpflichtet.
       </p>
 
-      <h3>§ 10 Heizstrahler und Gasflaschen</h3>
+      <h3>§ 11 Heizstrahler und Gasflaschen</h3>
       <p>
         Heizstrahler und Gasflaschen werden gemäß DGUV-Information 110-010 vermietet. Der Mieter wird bei der Übergabe
         eingewiesen und bestätigt die Einweisung. Der Betrieb erfolgt ausschließlich im Freien, mit Abstand zu brennbaren
         Materialien (min. 2 m), auf ebenem Untergrund und nur in Anwesenheit eines volljährigen Verantwortlichen.
       </p>
 
-      <h3>§ 11 Nutzung im Bestimmungsrahmen</h3>
+      <h3>§ 12 Nutzung im Bestimmungsrahmen</h3>
       <p>
         Eine Untervermietung oder Weitergabe an Dritte ist ohne Zustimmung des Vermieters nicht zulässig. Grillen und
         offene Flammen unter Zelten sind aus Sicherheitsgründen untersagt.
       </p>
 
-      <h3>§ 12 Geltung der AGB</h3>
+      <h3>§ 13 Geltung der AGB</h3>
       <p>
         Ergänzend zu diesen Vertragsbedingungen gelten die{" "}
         <a href="/agbs" target="_blank" rel="noreferrer" className="underline">
