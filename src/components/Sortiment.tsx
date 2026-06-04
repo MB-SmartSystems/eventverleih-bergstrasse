@@ -101,7 +101,7 @@ function ProductCard({
           <p className="text-gray-400 text-sm">{product.description}</p>
         )}
         {product.name.toLowerCase().includes("faltzelt") && (
-          <p className="mt-2 flex items-start gap-1.5 text-[11px] leading-snug text-amber-300/90">
+          <p className="mt-2 flex items-start gap-1.5 text-sm leading-snug text-gray-400">
             <svg className="w-3.5 h-3.5 mt-px flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
             </svg>
@@ -243,7 +243,7 @@ export default function Sortiment() {
       body: JSON.stringify({ von, bis }),
     })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j: { items?: Array<{ artikel_name: string; available: boolean; restzahl: number; bestand_gesamt: number }> } | null) => {
+      .then((j: { items?: Array<{ artikel_name: string; available: boolean; restzahl: number; bestand_gesamt: number; on_request?: boolean }> } | null) => {
         if (cancelled || !j?.items) return;
         const m = new Map<string, AvailabilityEntry>();
         for (const it of j.items) {
@@ -252,6 +252,7 @@ export default function Sortiment() {
               available: it.available,
               restzahl: it.restzahl,
               bestand_gesamt: it.bestand_gesamt,
+              on_request: it.on_request,
             });
           }
         }
