@@ -94,7 +94,7 @@ function ProductCard({
         )}
       </button>
       <div className="p-4 md:p-5 flex flex-col flex-1">
-        <h4 className="font-semibold text-white text-lg mb-1">
+        <h4 className="font-semibold text-white text-lg mb-1 break-words">
           {product.name}
         </h4>
         {product.description && (
@@ -111,7 +111,7 @@ function ProductCard({
 
         <div className="mt-auto pt-3">
           <div className="flex items-baseline gap-2 mb-3">
-            <span className="text-gold-400 text-2xl font-bold">
+            <span className="text-gold-400 text-2xl font-bold whitespace-nowrap">
               {product.price}
             </span>
             <span className="text-gray-500 text-xs">{product.priceUnit}</span>
@@ -178,7 +178,7 @@ function ProductCard({
                     : "border-gold-500/30 text-gold-400 hover:bg-gold-500/10"
                 }`}
               >
-                {isUnavailable ? "Bitte anderen Termin wählen" : "+ Zur Anfrage hinzufügen"}
+                {isUnavailable ? "Bitte anderen Termin wählen" : "+ Zum Warenkorb hinzufügen"}
               </button>
             </>
           ) : (
