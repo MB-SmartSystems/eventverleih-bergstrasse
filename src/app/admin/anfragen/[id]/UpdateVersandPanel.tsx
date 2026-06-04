@@ -19,6 +19,30 @@ export default function UpdateVersandPanel({
   const [anmerkung, setAnmerkung] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [resending, setResending] = useState(false);
+  const [resendOk, setResendOk] = useState("");
+
+  // Unverändertes Angebot nochmal mailen (Kunde hat Mail gelöscht/nicht erhalten)
+  async function resend() {
+    if (!confirm("Angebots-Mail unverändert erneut an den Kunden senden?")) return;
+    setResending(true);
+    setError("");
+    setResendOk("");
+    try {
+      const res = await fetch(`/api/admin/angebot/${angebotId}/erneut-senden`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const d = await res.json();
+      if (!res.ok) setError([d.error, d.detail].filter(Boolean).join(" — "));
+      else setResendOk(`Mail geht in Kürze raus an ${d.email || "den Kunden"}.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+    } finally {
+      setResending(false);
+    }
+  }
 
   async function send() {
     if (!confirm(`Soll Version ${snapshotVersion + 1} an den Kunden gesendet werden?`)) return;
@@ -148,6 +172,23 @@ export default function UpdateVersandPanel({
           ✓ Kundenansicht ist synchron mit dem aktuellen Buchungsstand.
         </p>
       )}
+
+      {/* Wiederversand (unverändert) — z.B. Kunde hat die Mail gelöscht */}
+      {resendOk && (
+        <div className="mt-3 p-2 rounded bg-green-500/10 border border-green-500/30 text-green-300 text-xs">
+          ✓ {resendOk}
+        </div>
+      )}
+      {error && !hasDiffs && (
+        <div className="mt-3 p-2 rounded bg-red-500/10 border border-red-500/30 text-red-300 text-xs">{error}</div>
+      )}
+      <button
+        onClick={resend}
+        disabled={resending || submitting}
+        className="mt-3 w-full py-2 rounded border border-white/15 bg-white/5 hover:bg-white/10 text-gray-200 text-sm font-medium transition-colors disabled:opacity-40"
+      >
+        {resending ? "Sende …" : "✉ Angebot erneut per E-Mail senden (unverändert)"}
+      </button>
     </section>
   );
 }
