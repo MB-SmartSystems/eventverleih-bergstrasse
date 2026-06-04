@@ -38,6 +38,8 @@ interface AvailabilityEntry {
   available: boolean;
   restzahl: number;
   bestand_gesamt: number;
+  /** Bestellbar-Artikel (Bestand 0, Bestand_Bestellbar=true): buchbar, Beschaffung nach Anfrage. */
+  on_request?: boolean;
 }
 
 function ProductCard({
@@ -293,7 +295,11 @@ export default function Sortiment() {
   const lookupAvailability = (name: string): { state: AvailabilityState; restzahl?: number } => {
     const entry = lookupEntry(name);
     if (entry === undefined) return { state: "unknown" };
-    if (!entry.available || entry.restzahl === 0) return { state: "unavailable", restzahl: 0 };
+    if (!entry.available) return { state: "unavailable", restzahl: 0 };
+    // Bestellbare Artikel (on_request): nahtlos buchbar — kein "belegt"-/Knapp-Badge,
+    // die Beschaffungs-Pruefung passiert backendseitig auf der Anfrage.
+    if (entry.on_request) return { state: "available" };
+    if (entry.restzahl === 0) return { state: "unavailable", restzahl: 0 };
     // Knapp: restzahl <= bestand_gesamt / 2
     if (entry.bestand_gesamt > 0 && entry.restzahl <= entry.bestand_gesamt / 2) {
       return { state: "knapp", restzahl: entry.restzahl };
