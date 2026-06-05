@@ -17,6 +17,7 @@ import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { eurMail } from "@/lib/eventverleih/zahlung";
 import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 
 export const dynamic = "force-dynamic";
 
@@ -166,7 +167,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (kundeId) {
       let subject = "";
       let mailBody = "";
-      const kundeName = buchung.Kunde_Link?.[0]?.value || "";
+      // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+      const kundeName = await kundeNameAusLink(buchung.Kunde_Link);
       if (action === "voll") {
         subject = `Kaution Buchung #${buchungId} — voll zurückerstattet`;
         mailBody = `Hallo ${kundeName},\n\nIch habe die Artikel geprüft — alles in Ordnung. Ihre Kaution wird in voller Höhe (${eurMail(kautionSoll)} EUR) zurückerstattet:\n\n${piId ? "- Stripe-Hold wurde freigegeben — kein Betrag wurde abgebucht." : "- Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nVielen Dank für Ihre Buchung — wir freuen uns auf den nächsten Termin!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;

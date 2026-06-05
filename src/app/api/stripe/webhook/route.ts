@@ -17,6 +17,7 @@ import { getStripe, getWebhookSecret } from "@/lib/stripe/client";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 import Stripe from "stripe";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
@@ -104,7 +105,8 @@ async function processReservierungsZahlung(
   try {
     const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
     const kid = b.Kunde_Link?.[0]?.id;
-    const kname = b.Kunde_Link?.[0]?.value || "";
+    // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+    const kname = await kundeNameAusLink(b.Kunde_Link);
     if (kid && paymentType === "komplettzahlung") {
       await createRow(TABLES.MailQueue, {
         Erstellt_am: new Date().toISOString(),
@@ -201,7 +203,8 @@ export async function POST(req: NextRequest) {
           try {
             const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(TABLES.Buchungen, buchungId);
             const kid = b.Kunde_Link?.[0]?.id;
-            const kname = b.Kunde_Link?.[0]?.value || "";
+            // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+            const kname = await kundeNameAusLink(b.Kunde_Link);
             if (kid) {
               await createRow(TABLES.MailQueue, {
                 Erstellt_am: new Date().toISOString(),

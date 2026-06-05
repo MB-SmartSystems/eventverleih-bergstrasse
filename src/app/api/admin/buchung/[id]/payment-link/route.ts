@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { createPaymentLink, createKautionCheckoutSession } from "@/lib/stripe/payment-links";
 import { isAuthenticated } from "@/lib/auth";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 
 export const dynamic = "force-dynamic";
 
@@ -82,7 +83,8 @@ export async function POST(
       );
     }
 
-    const kundeName = buchung.Kunde_Link?.[0]?.value || "Kunde";
+    // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+    const kundeName = await kundeNameAusLink(buchung.Kunde_Link, "Kunde");
 
     if (type === "kaution") {
       const session = await createKautionCheckoutSession({

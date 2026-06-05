@@ -8,6 +8,7 @@
 import { NextRequest } from "next/server";
 import { getRow, TABLES } from "@/lib/baserow/client";
 import { isAuthenticated } from "@/lib/auth";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 import { renderProtokollHtml, type ProtokollContext } from "@/lib/protokoll-html";
 
 export const dynamic = "force-dynamic";
@@ -76,9 +77,11 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ id: string
   const hasUebergabe = !!(b.Uebergabe_Datum || b.Uebergabe_Checkliste_JSON || b.Uebergabe_Foto_URLs);
   const hasRuecknahme = !!(b.Ruecknahme_Datum || b.Ruecknahme_Schaden_JSON || b.Ruecknahme_Foto_URLs);
 
+  // NICHT Kunde_Link.value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+  const kundeName = await kundeNameAusLink(b.Kunde_Link, "(unbekannt)");
   const context: ProtokollContext = {
     buchungNr: String(b.Buchung_ID || buchungId),
-    kundeName: b.Kunde_Link?.[0]?.value || "(unbekannt)",
+    kundeName,
     zeitraum: `${fmtDate(b.Event_datum_von)} – ${fmtDate(b.Event_datum_bis)}`,
     uebergabe: hasUebergabe
       ? {

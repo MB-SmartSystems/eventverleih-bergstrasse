@@ -16,6 +16,7 @@ import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { recalcBuchung } from "@/lib/buchung-recalc";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
+import { kundeNameById } from "@/lib/eventverleih/kunde-name";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -278,14 +279,9 @@ async function handle(
       const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstraße";
       const vertragsUrl = `${origin}/vertrag/${token}`;
 
-      // Kundenname fuer persoenliche Anrede + Stripe-Link-Beschreibung
-      let kundeName = "";
-      try {
-        const k = await getRow<{ Vorname?: string; Nachname?: string }>(TABLES.Kunden, kundeId);
-        kundeName = `${k?.Vorname ?? ""} ${k?.Nachname ?? ""}`.trim();
-      } catch (e) {
-        console.error("[vertrag-akzeptieren] Kunde-Name-Lookup fehlgeschlagen:", e);
-      }
+      // Kundenname fuer persoenliche Anrede + Stripe-Link-Beschreibung (Helper mit Retry —
+      // ein transienter Lookup-Fail hatte schon eine "Hallo ,"-Mail erzeugt, MQ 30)
+      const kundeName = await kundeNameById(kundeId);
 
       // Stripe-Zahllinks bei Bestaetigung automatisch erzeugen (fail-soft):
       // Anzahlung + Komplettzahlung, falls noch nicht vorhanden, Betrag > 0 und noch nichts bezahlt.

@@ -12,6 +12,7 @@
  */
 import { getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { createPaymentLink, deactivatePaymentLinksFor } from "@/lib/stripe/payment-links";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 
 type PositionRow = {
   id: number;
@@ -135,7 +136,8 @@ async function refreshStripeLinks(
   // Neuer Komplett = neuer Preis_Artikel + bestehende Liefer-/Abhol-/Aufbau-Werte (recalc setzt nur Artikel)
   const newKomplett = next.preisArtikel + oldLieferung + oldAbholung + oldAufbau;
 
-  const kundeName = pre.Kunde_Link?.[0]?.value || "Kunde";
+  // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
+  const kundeName = await kundeNameAusLink(pre.Kunde_Link, "Kunde");
   const eventDatum = pre.Event_datum_von || "";
 
   // Anzahlungs-Link refreshen
