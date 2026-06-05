@@ -27,3 +27,8 @@ export async function kundeNameById(kid: number | null | undefined, fallback = "
 export async function kundeNameAusLink(link: KundeLink, fallback = ""): Promise<string> {
   return kundeNameById(link?.[0]?.id, fallback);
 }
+
+/** Anrede-Zeile ohne "Hallo ,"-Artefakt, falls der Name doch mal leer ist. */
+export function anredeZeile(name: string): string {
+  return name ? `Hallo ${name},` : "Hallo,";
+}

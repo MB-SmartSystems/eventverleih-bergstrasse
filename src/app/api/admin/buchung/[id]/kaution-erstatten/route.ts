@@ -17,7 +17,7 @@ import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { eurMail } from "@/lib/eventverleih/zahlung";
 import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
-import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
+import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
 
 export const dynamic = "force-dynamic";
 
@@ -171,13 +171,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       const kundeName = await kundeNameAusLink(buchung.Kunde_Link);
       if (action === "voll") {
         subject = `Kaution Buchung #${buchungId} — voll zurückerstattet`;
-        mailBody = `Hallo ${kundeName},\n\nIch habe die Artikel geprüft — alles in Ordnung. Ihre Kaution wird in voller Höhe (${eurMail(kautionSoll)} EUR) zurückerstattet:\n\n${piId ? "- Stripe-Hold wurde freigegeben — kein Betrag wurde abgebucht." : "- Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nVielen Dank für Ihre Buchung — wir freuen uns auf den nächsten Termin!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
+        mailBody = `${anredeZeile(kundeName)}\n\nIch habe die Artikel geprüft — alles in Ordnung. Ihre Kaution wird in voller Höhe (${eurMail(kautionSoll)} EUR) zurückerstattet:\n\n${piId ? "- Stripe-Hold wurde freigegeben — kein Betrag wurde abgebucht." : "- Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nVielen Dank für Ihre Buchung — wir freuen uns auf den nächsten Termin!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
       } else if (action === "teil") {
         subject = `Kaution Buchung #${buchungId} — Teilerstattung wegen Schaden`;
-        mailBody = `Hallo ${kundeName},\n\nLeider gab es bei der Prüfung der Artikel einen Schaden. Schadensbetrag: ${eurMail(schadenEur)} EUR.\n\nDamit wird ein Teil Ihrer Kaution einbehalten:\n  Kaution gesamt: ${eurMail(kautionSoll)} EUR\n  Einbehalten:    ${eurMail(schadenEur)} EUR\n  Erstattung:     ${eurMail(kautionRueckzahlungEur)} EUR\n\n${body.schaden_notiz ? `Schaden-Notiz: ${body.schaden_notiz}\n\n` : ""}${piId ? "Die Erstattung erfolgt automatisch über Stripe in den nächsten 5 Werktagen." : "Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nBei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
+        mailBody = `${anredeZeile(kundeName)}\n\nLeider gab es bei der Prüfung der Artikel einen Schaden. Schadensbetrag: ${eurMail(schadenEur)} EUR.\n\nDamit wird ein Teil Ihrer Kaution einbehalten:\n  Kaution gesamt: ${eurMail(kautionSoll)} EUR\n  Einbehalten:    ${eurMail(schadenEur)} EUR\n  Erstattung:     ${eurMail(kautionRueckzahlungEur)} EUR\n\n${body.schaden_notiz ? `Schaden-Notiz: ${body.schaden_notiz}\n\n` : ""}${piId ? "Die Erstattung erfolgt automatisch über Stripe in den nächsten 5 Werktagen." : "Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nBei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
       } else {
         subject = `Kaution Buchung #${buchungId} — kompletter Einzug wegen Schaden`;
-        mailBody = `Hallo ${kundeName},\n\nbei der Prüfung der Artikel gab es einen Schaden, dessen Höhe die Kaution erreicht oder übersteigt. Daher wird die Kaution komplett einbehalten.\n\nKaution einbehalten: ${eurMail(kautionSoll)} EUR\n${body.schaden_notiz ? `\nSchaden-Notiz: ${body.schaden_notiz}\n` : ""}\nBei Rückfragen oder Klärungsbedarf melden Sie sich bitte direkt bei mir: WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
+        mailBody = `${anredeZeile(kundeName)}\n\nbei der Prüfung der Artikel gab es einen Schaden, dessen Höhe die Kaution erreicht oder übersteigt. Daher wird die Kaution komplett einbehalten.\n\nKaution einbehalten: ${eurMail(kautionSoll)} EUR\n${body.schaden_notiz ? `\nSchaden-Notiz: ${body.schaden_notiz}\n` : ""}\nBei Rückfragen oder Klärungsbedarf melden Sie sich bitte direkt bei mir: WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
       }
 
       // Beleg-Link (alle Faelle) + Bewertungsbitte (nur bei voller Erstattung = zufriedener Kunde)
