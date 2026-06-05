@@ -41,6 +41,24 @@ export const metadata: Metadata = {
   },
 };
 
+// Static Schema.org JSON-LD — hardcoded business data, no user input involved
+const schemaOrgJsonLd = JSON.stringify({
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  name: "Eventverleih Bergstraße",
+  url: "https://eventverleih-bergstrasse.de",
+  telephone: "+4915679521124",
+  email: "info@eventverleih-bergstrasse.de",
+  address: {
+    "@type": "PostalAddress",
+    streetAddress: "Schlesierstraße 19a",
+    addressLocality: "Alsbach-Hähnlein",
+    postalCode: "64665",
+    addressCountry: "DE",
+  },
+  areaServed: "Bergstraße und Umgebung",
+});
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -49,6 +67,11 @@ export default function RootLayout({
   return (
     <html lang="de">
       <body>
+        <script
+          type="application/ld+json"
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: schemaOrgJsonLd }}
+        />
         <Analytics />
         <CartProvider>
           {children}
