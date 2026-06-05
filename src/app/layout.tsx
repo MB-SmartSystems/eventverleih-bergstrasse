@@ -5,9 +5,9 @@ import CartDrawer from "@/components/CartDrawer";
 import Analytics from "@/components/Analytics";
 
 export const metadata: Metadata = {
-  title: "Eventverleih Bergstraße — Zelte & Eventausstattung für Ihre Feste",
+  title: "Eventverleih Bergstraße – Zelte, Tische, Stühle & Beleuchtung mieten",
   description:
-    "Zelte, Tische, Stühle, Beleuchtung und Eventausstattung mieten an der Bergstraße. Zuverlässig, transparent und regional. Jetzt Anfrage senden.",
+    "Partyzelte, Tische, Stühle & Beleuchtung an der Bergstraße mieten – transparente Preise online, direkt anfragen, Lieferung oder Abholung möglich.",
   keywords: [
     "Eventverleih",
     "Zeltverleih",
@@ -31,9 +31,9 @@ export const metadata: Metadata = {
     title: "Eventverleih",
   },
   openGraph: {
-    title: "Eventverleih Bergstraße — Zelte & Eventausstattung",
+    title: "Eventverleih Bergstraße – Zelte, Tische, Stühle & Beleuchtung mieten",
     description:
-      "Zelte, Tische, Stühle und mehr für Ihre Feste und Feiern an der Bergstraße.",
+      "Partyzelte, Tische, Stühle & Beleuchtung an der Bergstraße mieten – transparente Preise online, Lieferung oder Abholung möglich.",
     url: "https://eventverleih-bergstrasse.de",
     siteName: "Eventverleih Bergstraße",
     locale: "de_DE",
