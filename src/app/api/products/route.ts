@@ -1,21 +1,9 @@
 import { NextResponse } from 'next/server';
 import { loadProductsData, ensureSeeded } from '@/lib/blob-data';
 import { listAllRows, TABLES } from '@/lib/baserow/client';
+import { normalizeArtikelName as normalize, tokensMatch } from '@/lib/eventverleih/artikel-match';
 
 export const dynamic = 'force-dynamic';
-
-// Same normalization as in /api/contact/matchArtikel + Sortiment.tsx — keep in sync.
-// Em/En-Dash → ASCII-Hyphen, damit "Gewicht — Metallplatte" matcht "Gewicht-Metallplatte".
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[äöüß]/g, (c) => ({ ä: 'a', ö: 'o', ü: 'u', ß: 'ss' }[c] || c))
-    .replace(/×/g, 'x')
-    .replace(/[—–−]/g, '-')
-    .replace(/[()[\]{}]/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
 
 interface ArtikelPricingRow {
   id: number;
@@ -54,6 +42,10 @@ function matchPricing(
   const entries = Array.from(map.entries());
   for (const [key, row] of entries) {
     if (key.includes(target) || target.includes(key)) return row;
+  }
+  // 3. token-sort match ("Gewicht — Metallplatte" ↔ "Metallplatten-Gewicht")
+  for (const [key, row] of entries) {
+    if (tokensMatch(key, target)) return row;
   }
   return null;
 }

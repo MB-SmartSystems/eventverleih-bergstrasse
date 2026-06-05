@@ -26,6 +26,7 @@ import { createRow, deleteRow, listRows, updateRow, TABLES } from "@/lib/baserow
 import { getAvailability } from "@/lib/eventverleih/availability";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { rundeKaution } from "@/lib/eventverleih/constants";
+import { matchByName } from "@/lib/eventverleih/artikel-match";
 
 interface CartItemPayload {
   name: string;
@@ -107,26 +108,10 @@ function validate(body: unknown): ContactPayload | string {
   return b as ContactPayload;
 }
 
-function normalize(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
-    .replace(/×/g, "x") // Storefront-Catalog nutzt Unicode-Multiplikation, Baserow ASCII
-    .replace(/[—–−]/g, "-") // Em/En-Dash → Hyphen ("Gewicht — Metallplatte" matcht "Gewicht-Metallplatte")
-    .replace(/[()[\]{}]/g, " ") // Klammern → Spaces, damit "Hochzeitsbogen (inkl. Abdeckung)" matcht
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
+// Matching (exact → contains → token-sort) lebt zentral in artikel-match.ts.
+// Token-Stufe ist Pflicht: "Gewicht — Metallplatte" (Shop) ↔ "Metallplatten-Gewicht" (Baserow).
 function matchArtikel(cartName: string, artikel: ArtikelRow[]): ArtikelRow | null {
-  const target = normalize(cartName);
-  // 1. exact match
-  let found = artikel.find((a) => normalize(a.Bezeichnung) === target);
-  if (found) return found;
-  // 2. contains match (z.B. "Faltzelt 3x6" → "Faltzelt 3x6 m")
-  found = artikel.find((a) => normalize(a.Bezeichnung).includes(target) || target.includes(normalize(a.Bezeichnung)));
-  if (found) return found;
-  return null;
+  return matchByName(cartName, artikel, (a) => a.Bezeichnung);
 }
 
 export async function POST(req: NextRequest) {
@@ -464,9 +449,14 @@ Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
 
     // === Schritt 6: Telegram-Notification an Manuel (fire-and-forget, blockt Response nicht)
     // Failure dieser Notification soll Anfrage NICHT in 500 verwandeln
-    const cartSummary = matched.length
+    // Unmatched Items MUESSEN in der Telegram-Notification auftauchen — sonst geht ein
+    // Angebot ohne diese Positionen raus (passiert bei B28: 6× Metallgewicht fehlte).
+    const unmatchedWarnung = unmatched.length
+      ? `\n\nNICHT ZUGEORDNET — manuell pruefen:\n${unmatched.map((u) => `${u} ?!`).join("\n")}`
+      : "";
+    const cartSummary = (matched.length
       ? matched.map((m) => `${m.anzahl}× ${m.bezeichnung} (${m.einzelpreis.toFixed(2)} €)`).join("\n")
-      : payload.nachricht.slice(0, 300);
+      : payload.nachricht.slice(0, 300)) + unmatchedWarnung;
 
     // Vercel Serverless killt fire-and-forget nach Response-Return — daher AWAITEN.
     // Latenz +200-500 ms ist akzeptabel weil Manuel-Notification kritisch ist.

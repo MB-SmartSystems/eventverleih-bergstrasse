@@ -5,32 +5,7 @@ import Image from "next/image";
 import { useCart } from "./CartContext";
 import ProductLightbox from "./ProductLightbox";
 import type { RentalProduct, ProductCategory, ProductsData } from "@/lib/types";
-
-function normalizeName(s: string): string {
-  return s
-    .toLowerCase()
-    .replace(/[äöüß]/g, (c) => ({ ä: "a", ö: "o", ü: "u", ß: "ss" }[c] || c))
-    .replace(/×/g, "x")
-    // Em-dash, En-dash, Minus → hyphen (sonst matched „Gewicht — X" nicht „X-Gewicht")
-    .replace(/[—–−]/g, "-")
-    .replace(/[()[\]{}]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-// Token-Sort-Match: gleiche Tokens unabhaengig von Reihenfolge.
-// „gewicht-metallplatte" vs „metallplatten-gewicht" → Tokens [gewicht, metallplatte(n)]
-// Substring je Token toleriert Plural/Singular („metallplatte" in „metallplatten").
-function tokensMatch(a: string, b: string): boolean {
-  const tokenize = (s: string) =>
-    s.split(/[-\s]+/).filter((t) => t.length >= 3);
-  const ta = tokenize(a);
-  const tb = tokenize(b);
-  if (ta.length === 0 || tb.length === 0) return false;
-  // Jeder Token aus dem kuerzeren Set muss in einem Token aus dem laengeren stecken
-  const [shorter, longer] = ta.length <= tb.length ? [ta, tb] : [tb, ta];
-  return shorter.every((t) => longer.some((l) => l.includes(t) || t.includes(l)));
-}
+import { normalizeArtikelName as normalizeName, tokensMatch } from "@/lib/eventverleih/artikel-match";
 
 type AvailabilityState = "available" | "unavailable" | "unknown" | "knapp";
 
