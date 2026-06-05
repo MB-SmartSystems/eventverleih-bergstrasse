@@ -20,6 +20,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
 
 const TYPEN = new Set(["anzahlung", "restzahlung", "kaution"]);
 const METHODEN = new Set(["Bar", "Ueberweisung", "Stripe"]);
@@ -132,6 +133,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     await updateRow(TABLES.Buchungen, buchungId, patch);
+
+    // Bestätigungs-Mail "Anzahlung erhalten" — egal ob Bar/Überweisung/Stripe.
+    // Nur wenn die Anzahlung das Soll erreicht (= Status springt auf Reserviert);
+    // Teilzahlungen lösen noch keine "verbindlich reserviert"-Mail aus.
+    // Fail-soft: Mail-Fehler darf die erfasste Zahlung nicht in einen 500 verwandeln.
+    if (typ === "anzahlung" && patch.Status_Erweitert === "Reserviert") {
+      try {
+        await queueAnzahlungErhaltenMail(buchungId);
+      } catch (e) {
+        console.error("[zahlung] Anzahlung-Bestätigung fehlgeschlagen:", e);
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       betrag_erfasst: betrag,

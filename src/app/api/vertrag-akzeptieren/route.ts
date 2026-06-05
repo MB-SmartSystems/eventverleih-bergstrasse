@@ -17,6 +17,7 @@ import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { recalcBuchung } from "@/lib/buchung-recalc";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { kundeNameById } from "@/lib/eventverleih/kunde-name";
+import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -381,7 +382,7 @@ Verwendungszweck: ${angebot.Angebotsnummer}
 
 Restzahlung und Kaution folgen vor bzw. bei der Übergabe — bequem online per Zahlungslink.
 
-Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit.
+Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit. ${UEBERGABE_HINWEIS}
 
 Ihren vollständigen Mietvertrag mit allen Bedingungen finden Sie hier:
 ${vertragsUrl}${meinBereichUrl ? `

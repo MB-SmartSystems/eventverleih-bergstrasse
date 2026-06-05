@@ -21,6 +21,11 @@ export default function Impressum() {
               Schlesierstraße 19a<br />
               64665 Alsbach-Hähnlein
             </p>
+            <p className="text-sm text-gray-400">
+              Hinweis: An dieser Adresse befinden sich keine Geschäftsräume — keine
+              Abholung, keine Rückgabe, kein Publikumsverkehr. Übergabe und Rückgabe
+              erfolgen ausschließlich nach Terminvereinbarung an unserem Treffpunkt.
+            </p>
             <p>Vertreten durch: Manuel Büttner</p>
             <p>Rechtsform: Einzelunternehmen</p>
             <p>Nicht im Handelsregister eingetragen.</p>

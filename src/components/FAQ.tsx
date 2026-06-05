@@ -2,6 +2,11 @@
 
 const faqs = [
   {
+    question: "Wo hole ich die Artikel ab und wo gebe ich sie zurück?",
+    answer:
+      "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung an unserem Treffpunkt in Alsbach-Hähnlein — den genauen Ort und die Uhrzeit stimmen wir nach Ihrer Buchung ab. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich. Auf Wunsch liefern wir auch direkt zu Ihnen.",
+  },
+  {
     question: "Muss ich beim Aufbau der Zelte etwas beachten?",
     answer:
       "Ja. 3×3-m-Zelte müssen mindestens zu zweit aufgebaut werden, 3×6-m-Zelte mit vier Personen. Alle Zelte müssen auf ebenem Untergrund stehen und verpflichtend mit Gewichten oder Bodenankern gesichert werden; der Aufbau bei starkem Wind oder Unwetter ist verboten.",

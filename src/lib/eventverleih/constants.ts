@@ -45,3 +45,11 @@ export function formatGermanShort(iso: string): string {
 export function rundeKaution(eur: number): number {
   return Math.ceil(eur - 1e-9);
 }
+
+/**
+ * Standard-Hinweis für Kundenmails (Angebot + Bestätigungen): Übergabe nur nach
+ * Terminvereinbarung am Treffpunkt — Kunden sollen NICHT spontan an der
+ * Geschäftsanschrift (= Privatadresse aus dem Impressum) auftauchen.
+ */
+export const UEBERGABE_HINWEIS =
+  "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung — an unserem Treffpunkt (Grillhütte Sandwiese, Alsbach-Hähnlein) oder per vereinbarter Lieferung. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich.";

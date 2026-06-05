@@ -18,6 +18,7 @@ import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { triggerPdfRender } from "@/lib/eventverleih/pdf-render";
+import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
 type Action = "freigeben" | "freigeben_anmerkung" | "rueckruf" | "ablehnen";
 
@@ -80,6 +81,8 @@ Kaution (nach Rückgabe vollständig erstattet): ${opts.kaution} EUR
 
 Sie können das Angebot online ansehen und mit einem Klick bestätigen:
 ${opts.angebotUrl}
+
+${UEBERGABE_HINWEIS}
 
 Das Angebot ist 14 Tage gültig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
   };

@@ -13,6 +13,7 @@ import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { parseSnapshot } from "@/lib/angebot-snapshot";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
+import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
 const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
@@ -122,6 +123,8 @@ Kaution (nach Rückgabe vollständig erstattet): ${preise.kaution} EUR
 
 Sie können das Angebot online ansehen und mit einem Klick bestätigen:
 ${publicUrl}
+
+${UEBERGABE_HINWEIS}
 
 Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`;
 

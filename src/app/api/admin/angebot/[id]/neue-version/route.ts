@@ -10,6 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
+import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
 const SIGNATURE = `\n\nMit freundlichen Gruessen\nManuel Buettner\n\nEventverleih Bergstrasse\nSchlesierstrasse 19a, 64665 Alsbach-Haehnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
 
@@ -114,6 +115,8 @@ Die aktuelle Mietsumme beträgt ${fmt(snapshot.preis_artikel)} EUR.
 
 Bitte schauen Sie sich die aktualisierten Details an und bestätigen Sie das Angebot erneut, wenn alles passt:
 ${publicUrl}
+
+${UEBERGABE_HINWEIS}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.${SIGNATURE}`;
 

@@ -18,6 +18,8 @@ import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
+import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
+import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 import Stripe from "stripe";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
@@ -114,21 +116,14 @@ async function processReservierungsZahlung(
         Kunde_Link: [kid],
         Template_Key: "komplettzahlung_erhalten",
         Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-        Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+        Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: `B${buchungId}-komplettzahlung_erhalten`,
       });
     } else if (kid && paymentType === "anzahlung") {
-      await createRow(TABLES.MailQueue, {
-        Erstellt_am: new Date().toISOString(),
-        Buchung_Link: [buchungId],
-        Kunde_Link: [kid],
-        Template_Key: "anzahlung_erhalten",
-        Subject: "Anzahlung erhalten — Ihr Termin ist reserviert",
-        Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Anzahlung ist bei uns eingegangen. Ihr Termin ist damit verbindlich für Sie reserviert. Die Restzahlung wird zur Übergabe fällig; wir erinnern Sie rechtzeitig.\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
-        Approval_Status: "Auto_Reply",
-        Idempotency_Key: `B${buchungId}-anzahlung_erhalten`,
-      });
+      // Gemeinsamer Pfad mit dem manuellen Zahlung-Erfassen (Bar/Überweisung) —
+      // gleicher Text, gleicher Idempotency_Key, nie doppelt.
+      await queueAnzahlungErhaltenMail(buchungId);
     }
   } catch (e) {
     console.error("[stripe-webhook] Zahlungs-Bestaetigung fehlgeschlagen:", e);
@@ -212,7 +207,7 @@ export async function POST(req: NextRequest) {
                 Kunde_Link: [kid],
                 Template_Key: "restzahlung_erhalten",
                 Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-                Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt. Wir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+                Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
                 Approval_Status: "Auto_Reply",
                 Idempotency_Key: `B${buchungId}-restzahlung_erhalten`,
               });
