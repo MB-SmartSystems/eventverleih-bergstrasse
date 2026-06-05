@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useCart } from "./CartContext";
 import DateRangeSheet from "./DateRangeSheet";
-import AvailabilityCounter from "./AvailabilityCounter";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export default function HeroBookingPanel() {
@@ -92,11 +91,8 @@ export default function HeroBookingPanel() {
           </svg>
         </button>
 
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 mt-4">
-          <div className="flex-1">
-            <AvailabilityCounter rangeVon={rangeVon} rangeBis={rangeBis} />
-          </div>
-          {hasFullRange && (
+        {hasFullRange && (
+          <div className="mt-4">
             <button
               type="button"
               onClick={handleScrollToSortiment}
@@ -104,8 +100,8 @@ export default function HeroBookingPanel() {
             >
               Sortiment ansehen →
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       <DateRangeSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />
