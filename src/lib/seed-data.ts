@@ -80,7 +80,7 @@ export const SEED_DATA: ProductsData = {
       images: ['/images/products/gewicht-metallplatte.jpg'],
       image: '/images/products/gewicht-metallplatte.jpg',
       name: 'Gewicht — Metallplatte',
-      price: '2 €',
+      price: '2,50 €',
       priceUnit: 'pro Miete (bis zu 5 Tage)',
       tags: [],
       visible: true,
