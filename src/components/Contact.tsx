@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useCart } from "./CartContext";
+import FreitextAnfrageForm from "./FreitextAnfrageForm";
 
 export default function Contact() {
   const { totalItems, hydrated } = useCart();
@@ -109,6 +110,8 @@ export default function Contact() {
                 Verfügbarkeit und einem klaren Angebot.
               </div>
             </div>
+
+            <FreitextAnfrageForm />
           </div>
         </div>
       </div>
