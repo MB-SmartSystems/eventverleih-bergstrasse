@@ -22,7 +22,7 @@ const images = [
   {
     src: "/images/gallery/festtafel-weisse-stuehle-tischdecken.jpg",
     alt: "Lange Festtafel mit weißen Stühlen unter einem Zelt",
-    caption: "Lange Tafel mit Stühlen und Tischdecken unterm Zelt",
+    caption: "Lange Tafel mit Stühlen und Tischdecken unterm Zelt — private Feier",
     link: "#tische",
   },
   {
@@ -34,7 +34,7 @@ const images = [
   {
     src: "/images/gallery/festzelt-festlich-gedeckte-tafel-pflanzen.jpg",
     alt: "Festzelt mit festlich gedeckter Tafel und Pflanzen",
-    caption: "Festlich gedeckte Tafel im Zelt",
+    caption: "Festlich gedeckte Tafel im Zelt — private Feier",
     link: "#tische",
   },
   {
@@ -56,11 +56,12 @@ export default function Gallery() {
             Alles echt. Alles mietbar.
           </p>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-            Unsere Ausstattung im Einsatz
+            Unsere Ausstattung, echt aufgebaut
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Keine Stockfotos — diese Zelte und Garnituren standen wirklich in
-            Gärten an der Bergstraße.
+            Keine Stockfotos: Jedes Bild zeigt genau die Zelte, Tische und
+            Stühle, die Sie bei uns mieten — von uns aufgebaut und
+            fotografiert. So kommt die Ausstattung auch bei Ihnen an.
           </p>
         </div>
 
