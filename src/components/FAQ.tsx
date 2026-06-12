@@ -1,41 +1,42 @@
 "use client";
 
+// Sorgen-Reihenfolge statt Pflichtenkatalog: jede Antwort beginnt mit der
+// Beruhigung, nicht mit der Regel. Die Fakten sind unverändert (AGB-konform).
 const faqs = [
   {
-    question: "Wo hole ich die Artikel ab und wo gebe ich sie zurück?",
+    question: "Welches Zelt passt zu meinem Fest?",
     answer:
-      "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung an unserem Treffpunkt in Alsbach-Hähnlein — den genauen Ort und die Uhrzeit stimmen wir nach Ihrer Buchung ab. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich. Auf Wunsch liefern wir auch direkt zu Ihnen.",
+      "Als Faustregel: Das 3×6-m-Zelt nimmt Tafel und Buffet auf, der 3×3-m-Pavillon reicht für Stehtische und Bar. Im Zweifel schicken Sie uns einfach Anlass, Datum und ungefähre Gästezahl — Sie bekommen einen konkreten Vorschlag zurück.",
   },
   {
-    question: "Muss ich beim Aufbau der Zelte etwas beachten?",
+    question: "Was, wenn am Festtag Regen gemeldet ist?",
     answer:
-      "Ja. 3×3-m-Zelte müssen mindestens zu zweit aufgebaut werden, 3×6-m-Zelte mit vier Personen. Alle Zelte müssen auf ebenem Untergrund stehen und verpflichtend mit Gewichten oder Bodenankern gesichert werden; der Aufbau bei starkem Wind oder Unwetter ist verboten.",
+      "Genau dafür ist das Zelt da: Ihre Gäste sitzen im Trockenen, das Buffet bleibt geschützt, gefeiert wird trotzdem. Nur bei starkem Wind oder Unwetter darf nicht aufgebaut werden — das ist eine Sicherheitsgrenze, keine Schikane.",
   },
   {
-    question: "Brauche ich für ein Zelt zwingend Gewichte oder Bodenanker?",
+    question: "Hält das Zelt bei Wind?",
     answer:
-      "Ja. Jedes Zelt muss mit Gewichten oder Bodenankern und Spanngurten gesichert werden; ohne sichere Befestigung erfolgt keine Übergabe.",
+      "Ja — wenn es richtig steht. Deshalb sind ebener Untergrund und die Sicherung mit Gewichten oder Bodenankern und Spanngurten bei uns Pflicht; ohne sichere Befestigung erfolgt keine Übergabe. Beim Aufbau gilt: 3×3-m-Zelte mindestens zu zweit, 3×6-m-Zelte mit vier Personen.",
   },
   {
-    question:
-      "Was passiert, wenn ein Artikel beschädigt zurückgegeben wird?",
+    question: "Wie läuft die Bezahlung?",
     answer:
-      "Beschädigte oder stark abgenutzte Mietartikel werden mit einer angemessenen Reparaturpauschale und zusätzlich benötigten Ersatzteilen berechnet; die Gesamtkosten werden mit der Kaution verrechnet.",
+      "Bei der Online-Buchung zahlen Sie 30 % an (per Stripe), den Rest erst bei der Übergabe — wenn Sie alles gesehen haben. Dazu kommt eine Kaution als Pfand, die nach der Rückgabe zurückkommt.",
   },
   {
-    question: "Muss Zubehör gereinigt zurückgegeben werden?",
+    question: "Was kostet Absagen?",
     answer:
-      "Ja. Zubehör muss sauber zurückgegeben werden; verschmutztes Material kann zusätzliche Kosten verursachen.",
+      "Je früher Sie umplanen, desto günstiger: bis 7 Tage vorher 50 %, bis 4 Tage 75 %, ab 2 Tage vorher 100 % der Mietsumme (Artikel, ohne Lieferung, Auf- und Abbau). Die gezahlte Anzahlung wird verrechnet; übersteigt die Stornogebühr die Anzahlung, wird die Differenz nachgefordert.",
   },
   {
-    question: "Wie läuft die Rückgabe und Kautionsprüfung ab?",
+    question: "Abholen oder liefern lassen?",
     answer:
-      "Nach der Nutzung bringen Sie die Artikel zurück. Wir prüfen alles innerhalb von 1–2 Tagen und erstatten die Kaution anschließend zurück; bei Schäden oder fehlenden Teilen wird die entsprechende Summe einbehalten.",
+      "Beides geht. Übergabe und Rückgabe erfolgen nach Terminvereinbarung an unserem Treffpunkt in Alsbach-Hähnlein — Ort und Uhrzeit stimmen wir nach Ihrer Buchung ab (eine Abholung an der Geschäftsanschrift ist nicht möglich). Auf Wunsch liefern wir direkt zu Ihnen.",
   },
   {
-    question: "Kann ich meine Reservierung kurzfristig stornieren?",
+    question: "Was gilt bei Rückgabe, Reinigung und Schäden?",
     answer:
-      "Ja, eine Stornierung ist möglich. Es gelten die in den AGB angegebenen Gebühren bezogen auf die Mietsumme (Artikel, ohne Lieferung, Aufbau und Abbau): 7 Tage vorher 50 %, 4 Tage vorher 75 %, 2 Tage vorher 100 %. Die bereits gezahlte Anzahlung wird verrechnet; falls die Stornogebühr die Anzahlung übersteigt, wird die Differenz nachgefordert.",
+      "Geben Sie alles ordentlich und sauber zurück, bekommen Sie die Kaution vollständig wieder — wir prüfen innerhalb von 1–2 Tagen und erstatten dann. Verschmutztes Material kann zusätzliche Kosten verursachen; beschädigte Artikel werden mit einer angemessenen Reparaturpauschale plus Ersatzteilen berechnet und mit der Kaution verrechnet.",
   },
 ];
 
@@ -51,8 +52,8 @@ export default function FAQ() {
             Ihre Fragen an uns
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Wir haben die häufigsten Fragen unserer Kunden gesammelt und
-            beantwortet.
+            Die häufigsten Fragen unserer Kunden — beantwortet in der
+            Reihenfolge, in der sie einem wirklich durch den Kopf gehen.
           </p>
         </div>
 

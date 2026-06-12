@@ -301,8 +301,9 @@ export default function Sortiment() {
             Unser Sortiment
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Zelte, Tische, Stühle, Beleuchtung, Heizung und Zubehör —
-            funktional, verlässlich und für Feste jeder Art geeignet.
+            Zelte, Tische, Stühle, Licht, Wärme und mehr — jeder Artikel mit
+            Tagespreis, alles einzeln mietbar. Sets sind Startpunkte, keine
+            Pflicht.
           </p>
         </div>
 
@@ -326,12 +327,24 @@ export default function Sortiment() {
                 .filter((p) => p.visible !== false && p.category === category.slug)
                 .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
               if (products.length === 0) return null;
+              // ab-Tagespreis der Kategorie — aus echten Artikel-Preisen,
+              // "auf Anfrage"-Artikel (ohne parsbare Zahl) zählen nicht mit.
+              const prices = products
+                .map((p) => p.mietpreisEur ?? parseFloat(p.price.replace(",", ".")))
+                .filter((n): n is number => typeof n === "number" && isFinite(n) && n > 0);
+              const abPreis = prices.length > 0 ? Math.min(...prices) : null;
               return (
                 <div key={category.slug} id={category.slug} className="mb-16 last:mb-0">
-                  <div className="flex items-center gap-4 mb-8">
+                  <div className="flex items-baseline gap-4 mb-8">
                     <h3 className="font-display text-2xl font-semibold text-white">
                       {category.name}
                     </h3>
+                    {abPreis !== null && (
+                      <span className="text-gold-400 text-sm font-medium whitespace-nowrap">
+                        ab {abPreis % 1 === 0 ? abPreis : abPreis.toFixed(2).replace(".", ",")}{" "}
+                        € / Tag
+                      </span>
+                    )}
                     <div className="flex-1 h-px bg-gradient-to-r from-gold-500/30 to-transparent" />
                   </div>
 

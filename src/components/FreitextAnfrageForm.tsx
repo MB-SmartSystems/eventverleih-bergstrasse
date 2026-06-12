@@ -231,7 +231,7 @@ export default function FreitextAnfrageForm() {
               minLength={3}
               value={nachricht}
               onChange={(e) => setNachricht(e.target.value)}
-              placeholder="z.B. Wir feiern eine Hochzeit mit 40 Gästen im Garten und brauchen Zelte, Tische und Stühle …"
+              placeholder="z.B. 50. Geburtstag am 14. August, ca. 30 Gäste im Garten — was brauchen wir?"
               className={`${inputClass} resize-none`}
             />
           </div>

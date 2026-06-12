@@ -98,10 +98,15 @@ export default function HeroBookingPanel() {
               onClick={handleScrollToSortiment}
               className="px-5 py-2.5 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all text-sm whitespace-nowrap"
             >
-              Sortiment ansehen →
+              Verfügbarkeit für mein Datum prüfen →
             </button>
           </div>
         )}
+
+        <p className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-400">
+          30&nbsp;% online anzahlen (Stripe) · Rest bei Übergabe · Abholung in
+          Alsbach-Hähnlein oder Lieferung auf Wunsch
+        </p>
       </div>
 
       <DateRangeSheet open={sheetOpen} onClose={() => setSheetOpen(false)} />

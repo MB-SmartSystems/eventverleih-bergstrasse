@@ -1,9 +1,9 @@
 const steps = [
   {
     number: "01",
-    title: "Anfrage senden",
+    title: "Datum wählen",
     description:
-      "Sie wählen die gewünschten Artikel und senden uns Ihre Anfrage.",
+      "Der Kalender zeigt sofort, was an Ihrem Termin frei ist. Keine Anfrage ins Blaue.",
     icon: (
       <svg
         className="w-8 h-8"
@@ -22,9 +22,9 @@ const steps = [
   },
   {
     number: "02",
-    title: "Angebot erhalten",
+    title: "Online buchen",
     description:
-      "Wir prüfen die Verfügbarkeit und bestätigen Ihre Reservierung.",
+      "30 % Anzahlung (Stripe), Sie bekommen sofort die Bestätigung. Den Großteil zahlen Sie erst bei der Übergabe.",
     icon: (
       <svg
         className="w-8 h-8"
@@ -43,9 +43,9 @@ const steps = [
   },
   {
     number: "03",
-    title: "Abholung oder Lieferung",
+    title: "Übergabe mit Einweisung",
     description:
-      "Zum vereinbarten Zeitpunkt holen Sie die Ausstattung ab oder lassen sie liefern.",
+      "Treffpunkt Alsbach-Hähnlein nach Terminvereinbarung, Lieferung auf Wunsch. Wir zeigen Ihnen das Material und gehen bei Zelten den Standort durch.",
     icon: (
       <svg
         className="w-8 h-8"
@@ -64,9 +64,9 @@ const steps = [
   },
   {
     number: "04",
-    title: "Bis zu 5 Tage nutzen",
+    title: "Feiern & zurückgeben",
     description:
-      "Genügend Zeit für Aufbau, Feste und Feiern — ohne Tagesdruck.",
+      "Bis zu 5 Tage nutzen, Rückgabe nach Termin, Kaution zurück.",
     icon: (
       <svg
         className="w-8 h-8"
@@ -87,7 +87,7 @@ const steps = [
 
 export default function Ablauf() {
   return (
-    <section id="ablauf" className="section-padding bg-navy-800">
+    <section id="ablauf" className="section-padding">
       <div className="container-width">
         <div className="text-center mb-16">
           <p className="text-gold-400 text-sm font-medium tracking-widest uppercase mb-3">
@@ -141,11 +141,18 @@ export default function Ablauf() {
         </div>
 
         <div className="text-center mt-10">
+          <h3 className="font-display text-2xl font-semibold mb-2">
+            Ihr Termin steht? <span className="gold-text">Der Kalender auch.</span>
+          </h3>
+          <p className="text-gray-400 text-sm mb-6 max-w-xl mx-auto">
+            Wir sind ein kleiner regionaler Verleih — die Datumswahl zeigt
+            sofort und ehrlich, was an Ihrem Termin frei ist.
+          </p>
           <a
-            href="#kontakt"
+            href="#datepicker"
             className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-gold-500 to-gold-600 text-navy-900 font-semibold rounded-lg hover:from-gold-400 hover:to-gold-500 transition-all"
           >
-            Jetzt Anfrage starten
+            Verfügbarkeit prüfen
             <svg
               className="w-4 h-4"
               fill="none"

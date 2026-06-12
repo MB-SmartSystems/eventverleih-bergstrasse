@@ -19,12 +19,18 @@ export default function Contact() {
               Kontakt
             </p>
             <h2 className="font-display text-3xl md:text-4xl font-bold mb-6">
-              Lassen Sie uns Ihr Fest planen
+              Erzählen Sie uns von Ihrem Fest
             </h2>
-            <p className="text-gray-400 leading-relaxed mb-10">
-              Sie möchten Zelte oder Eventausstattung für Ihre Feier mieten? Wählen Sie oben Ihre Wunsch-Artikel aus und
-              senden Sie uns die Anfrage über den Warenkorb — wir melden uns mit
-              Verfügbarkeit und einem klaren Angebot.
+            <p className="text-gray-400 leading-relaxed mb-4">
+              Anlass, Datum, ungefähre Gästezahl — mehr brauchen wir nicht für
+              einen konkreten Setup-Vorschlag. Oder Sie wählen Ihre Artikel
+              direkt im Sortiment aus und senden die Anfrage über den
+              Warenkorb.
+            </p>
+            <p className="text-gray-500 text-sm leading-relaxed mb-10">
+              Antwort kommt vom Inhaber, nicht vom Autoresponder — und wir
+              antworten ehrlich, auch wenn die Antwort „das kleinere reicht"
+              heißt.
             </p>
 
             <div className="relative aspect-[16/9] rounded-xl overflow-hidden hidden lg:block">
