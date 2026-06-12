@@ -1,8 +1,8 @@
 // Die fünf Fakten, die Vergleicher suchen — scanbar statt im FAQ vergraben.
 const fakten = [
   {
-    title: "Bis zu 5 Tage mieten",
-    text: "Genug Zeit für Aufbau, Fest und Abbau — ohne Tagesdruck.",
+    title: "Ein Preis, bis zu 5 Tage",
+    text: "Der Mietpreis gilt pauschal — egal ob 1 oder 5 Tage. Genug Zeit für Aufbau, Fest und Abbau.",
   },
   {
     title: "30 % online, Rest bei Übergabe",
@@ -18,7 +18,7 @@ const fakten = [
   },
   {
     title: "Storno-Staffel ohne Überraschung",
-    text: "Bis 7 Tage vorher 50 %, bis 4 Tage 75 %, ab 2 Tage 100 % der Mietsumme.",
+    text: "7 Tage vorher 50 %, 4 Tage vorher 75 %, 2 Tage vorher 100 % der Mietsumme.",
   },
 ];
 

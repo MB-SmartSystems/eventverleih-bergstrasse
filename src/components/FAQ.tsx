@@ -26,7 +26,7 @@ const faqs = [
   {
     question: "Was kostet Absagen?",
     answer:
-      "Je früher Sie umplanen, desto günstiger: bis 7 Tage vorher 50 %, bis 4 Tage 75 %, ab 2 Tage vorher 100 % der Mietsumme (Artikel, ohne Lieferung, Auf- und Abbau). Die gezahlte Anzahlung wird verrechnet; übersteigt die Stornogebühr die Anzahlung, wird die Differenz nachgefordert.",
+      "Je früher Sie umplanen, desto günstiger: 7 Tage vorher 50 %, 4 Tage vorher 75 %, 2 Tage vorher 100 % der Mietsumme (Artikel, ohne Lieferung, Auf- und Abbau). Die gezahlte Anzahlung wird verrechnet; übersteigt die Stornogebühr die Anzahlung, wird die Differenz nachgefordert.",
   },
   {
     question: "Abholen oder liefern lassen?",

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { loadProductsData, ensureSeeded } from '@/lib/blob-data';
+import { SEED_DATA } from '@/lib/seed-data';
 import { listAllRows, TABLES } from '@/lib/baserow/client';
 import { normalizeArtikelName as normalize, tokensMatch } from '@/lib/eventverleih/artikel-match';
 
@@ -58,8 +59,22 @@ function parseDecOrNull(s: string | null | undefined): number | null {
 }
 
 export async function GET() {
-  await ensureSeeded();
-  const data = await loadProductsData();
+  // Der Blob-Store kann gesperrt sein (Vercel-Quota-Suspension, erlebt 06/2026:
+  // "This store has been suspended" → ensureSeeded warf → HTTP 500, Shop tot).
+  // Die öffentliche Route darf daran nie sterben.
+  try {
+    await ensureSeeded();
+  } catch (e) {
+    console.error('[api/products] ensureSeeded fehlgeschlagen (Blob gesperrt?):', e);
+  }
+  let data = await loadProductsData();
+  if (data.products.length === 0 || data.categories.length === 0) {
+    // Blob leer/gesperrt → Repo-Katalog als Notfall-Stand. Nur der öffentliche
+    // Lese-Pfad — der Admin-Schreibpfad behält seine Leer-Daten-Guardrails.
+    // Deep-Clone, weil unten in-place sortiert wird (SEED_DATA bleibt unberührt).
+    console.error('[api/products] Blob leer/gesperrt — serviere Repo-Seed-Fallback');
+    data = JSON.parse(JSON.stringify(SEED_DATA)) as typeof data;
+  }
   data.categories.sort((a, b) => a.order - b.order);
 
   // Filter out invisible products
