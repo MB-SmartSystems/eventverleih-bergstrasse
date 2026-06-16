@@ -2,18 +2,15 @@
  * Stiller Auto-Ablauf offener Anfragen/Angebote (Hobby-Plan: kein eigener Cron —
  * wird vom restzahlung-reminder-Cron mit-ausgeführt).
  *
- * Regel (Manuel, 2026-06-16): Ein Angebot lebt, solange es angenommen werden KANN.
- * Sobald das Event-STARTdatum verstrichen ist und der Kunde weder bestätigt noch
- * angezahlt hat, ist die Anfrage tot — wird automatisch auf "Abgelaufen" gesetzt und
- * verschwindet damit aus der Anfragen-Liste (die filtert auf Anfrage/Angebot_erstellt/
- * Angebot_versendet).
+ * Regel (Manuel, 2026-06-16): Ein Angebot lebt, solange es angenommen werden KANN —
+ * KEINE künstliche 14-Tage-Frist. Erst wenn das Event-STARTdatum verstrichen ist und
+ * weder bestätigt noch angezahlt wurde, ist die Anfrage tot → Status "Abgelaufen",
+ * fällt aus der Anfragen-Liste, Annahme danach geblockt (vertrag-akzeptieren-Gate).
  *
- * WICHTIG: KEINE Kundenmail. Der Kunde hat sich nicht gemeldet — eine "Ihre Anfrage ist
- * abgelaufen"-Mail wäre nur Lärm. Rein interne Aufräum-Aktion.
+ * WICHTIG: KEINE Kundenmail. Reine interne Aufräum-Aktion.
  *
- * Voraussetzung in Baserow: Single-Select-Option "Abgelaufen" muss in BEIDEN Feldern
- * existieren — Buchungen.Status_Erweitert UND Angebote.Status. Fehlt sie, schlägt der
- * updateRow für die Zeile fehl (fail-soft, wird gezählt, nächster Lauf versucht erneut).
+ * Voraussetzung in Baserow: Single-Select-Option "Abgelaufen" in Buchungen.Status_Erweitert
+ * UND Angebote.Status. Fehlt sie, schlägt der updateRow fehl (fail-soft, nächster Lauf erneut).
  */
 import { listAllRows, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 
@@ -27,7 +24,6 @@ interface BuchungRow {
 
 interface AngebotRow {
   id: number;
-  Status: { value: string } | null;
   Akzeptiert_am: string | null;
 }
 
@@ -45,8 +41,7 @@ export async function runAngebotExpiry(): Promise<Record<string, unknown>> {
     if (!OFFENE_STATUS.has(status)) continue;
     if (b.Anzahlung_Bezahlt_am) continue;
     if (!b.Event_datum_von) continue; // ohne Datum nie automatisch ablaufen — bleibt für manuelle Hand
-    const eventVon = b.Event_datum_von.slice(0, 10);
-    if (eventVon >= heute) continue; // Start noch nicht verstrichen → Angebot lebt weiter
+    if (b.Event_datum_von.slice(0, 10) >= heute) continue; // Event-Start noch nicht vorbei → lebt weiter
 
     result.pruefte++;
 
@@ -62,7 +57,7 @@ export async function runAngebotExpiry(): Promise<Record<string, unknown>> {
     if (buchungAktuell.Anzahlung_Bezahlt_am) continue;
     if (!OFFENE_STATUS.has(buchungAktuell.Status_Erweitert?.value || "")) continue;
 
-    // Verknüpftes Angebot prüfen: wurde es zwischenzeitlich akzeptiert, NICHT ablaufen lassen.
+    // Verknüpftes Angebot: zwischenzeitlich akzeptiert? Dann NICHT ablaufen lassen.
     const angebotId = b.Angebote?.[0]?.id;
     if (angebotId) {
       try {
@@ -73,7 +68,6 @@ export async function runAngebotExpiry(): Promise<Record<string, unknown>> {
         }
       } catch (e) {
         console.error("[angebot-expiry] angebot-fetch fehlgeschlagen:", e);
-        // fail-soft: Buchung trotzdem ablaufen lassen, Angebot beim nächsten Lauf
       }
     }
 

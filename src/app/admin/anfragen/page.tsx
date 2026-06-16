@@ -40,7 +40,9 @@ type AngebotRow = {
   Angebotsnummer: string;
   Anfragetext: string | null;
   Anfragedatum: string | null;
+  Angebotsdatum: string | null;
   Akzeptiert_am: string | null;
+  Nachgehakt_am: string | null;
   Buchung_Link: Array<{ id: number; value: string }>;
 };
 
@@ -197,7 +199,13 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
               Kaution_Hinterlegt_am: b.Kaution_Hinterlegt_am,
               Kaution_Rueckzahlung_am: b.Kaution_Rueckzahlung_am,
               Akzeptiert_am: angebot?.Akzeptiert_am || null,
+              Angebotsdatum: angebot?.Angebotsdatum || null,
             });
+            // Wie lange wartet ein versendetes Angebot schon auf die Bestätigung?
+            const tageOffen =
+              statusKey === "Angebot_versendet" && angebot?.Angebotsdatum
+                ? Math.floor((Date.now() - new Date(angebot.Angebotsdatum).getTime()) / 86_400_000)
+                : null;
             return (
               <div
                 key={b.id}
@@ -218,6 +226,15 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
                         )}
                         {angebot?.Anfragedatum && (
                           <span className="text-xs text-gray-500">Anfrage vom {fmtDateDe(angebot.Anfragedatum)}</span>
+                        )}
+                        {tageOffen !== null && (
+                          <span
+                            className={`text-xs px-2 py-1 rounded font-medium ${
+                              tageOffen >= 10 ? "bg-amber-500/20 text-amber-200" : "bg-white/10 text-gray-300"
+                            }`}
+                          >
+                            seit {tageOffen} {tageOffen === 1 ? "Tag" : "Tagen"} offen
+                          </span>
                         )}
                       </div>
                       <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-gold-200 transition-colors">
@@ -243,7 +260,13 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
                     </div>
                   </div>
                 </Link>
-                <AnfrageQuickActions angebotId={angebot?.id ?? null} status={statusKey} />
+                <AnfrageQuickActions
+                  angebotId={angebot?.id ?? null}
+                  status={statusKey}
+                  angebotsdatum={angebot?.Angebotsdatum ?? null}
+                  eventVon={b.Event_datum_von}
+                  nachgehaktAm={angebot?.Nachgehakt_am ?? null}
+                />
               </div>
             );
           })}

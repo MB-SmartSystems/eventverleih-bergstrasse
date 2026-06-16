@@ -13,7 +13,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { parseSnapshot } from "@/lib/angebot-snapshot";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Token_Public: string;
       Status: { value: string } | null;
       Akzeptiert_am: string | null;
+      Nachgehakt_am: string | null;
       Snapshot_JSON: string | null;
       Buchung_Link: Array<{ id: number }>;
       Kunde_Link: Array<{ id: number }>;
@@ -68,6 +69,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     if (angebot.Akzeptiert_am) {
       return NextResponse.json({ error: "Angebot wurde bereits angenommen" }, { status: 422 });
     }
+    // Cooldown: nicht öfter als alle 3 Tage nachhaken (sonst nervt es Kunde + dich)
+    if (angebot.Nachgehakt_am) {
+      const tage = Math.floor((Date.now() - new Date(angebot.Nachgehakt_am).getTime()) / 86_400_000);
+      if (tage < 3) {
+        return NextResponse.json(
+          { error: `Erst vor ${tage} Tag(en) nachgehakt — bitte mindestens 3 Tage warten` },
+          { status: 429 },
+        );
+      }
+    }
 
     const [buchung, kunde] = await Promise.all([
       getRow<Buchung>(TABLES.Buchungen, buchungId),
@@ -90,7 +101,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
     const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
 
-vor ein paar Tagen habe ich Ihnen Ihr Angebot für Ihren Termin${datumStr} zugeschickt – ich wollte kurz nachfragen, ob alles passt oder ob noch Fragen offen sind.
+vor einigen Tagen habe ich Ihnen Ihr Angebot für Ihren Termin${datumStr} zugeschickt – ich wollte kurz nachfragen, ob alles passt oder ob noch Fragen offen sind.
 
 Falls Sie es annehmen möchten: Sie können das Angebot online mit einem Klick bestätigen und direkt die Anzahlung (30 %) leisten. Erst damit sind die Artikel für Ihren Termin verbindlich reserviert – bis dahin kann sie leider auch jemand anderes anfragen.
 
@@ -112,6 +123,15 @@ Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATU
       // Zeitstempel im Key: jeder bewusste Klick = eigene Mail (Dedup nur gegen Doppel-Submit)
       Idempotency_Key: `A${angebotId}-nachhaken-${Date.now()}`,
     });
+
+    // Nachhak-Datum für Cooldown + Anzeige merken (fail-soft — Mail ist das Wichtige)
+    try {
+      await updateRow(TABLES.Angebote, angebotId, {
+        Nachgehakt_am: new Date().toISOString().slice(0, 10),
+      });
+    } catch (e) {
+      console.error("[nachhaken] Nachgehakt_am-Update fehlgeschlagen:", e);
+    }
 
     return NextResponse.json({ ok: true, email: kunde.Email, url: publicUrl });
   } catch (e) {

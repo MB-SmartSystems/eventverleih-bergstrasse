@@ -14,15 +14,22 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { darfNachgehaktWerden } from "@/lib/eventverleih/next-action";
 
 type Expander = null | "anmerkung" | "ablehnen";
 
 export default function AnfrageQuickActions({
   angebotId,
   status,
+  angebotsdatum = null,
+  eventVon = null,
+  nachgehaktAm = null,
 }: {
   angebotId: number | null;
   status: string;
+  angebotsdatum?: string | null;
+  eventVon?: string | null;
+  nachgehaktAm?: string | null;
 }) {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
@@ -36,6 +43,30 @@ export default function AnfrageQuickActions({
 
   // Ohne verknüpftes Angebot greifen die Endpoints nicht — dann kein Schnell-Aktions-UI.
   if (!angebotId) return null;
+
+  // Nachhak-Regeln: ab Tag 10 seit Versand ODER Event ≤3 Tage; Cooldown 3 Tage.
+  const daysSince = (d: string | null): number | null =>
+    d ? Math.floor((Date.now() - new Date(d).getTime()) / 86_400_000) : null;
+  const seitVersand = daysSince(angebotsdatum);
+  const eventInDays = eventVon
+    ? Math.floor((new Date(eventVon).getTime() - Date.now()) / 86_400_000)
+    : null;
+  const darfNachhaken = darfNachgehaktWerden(angebotsdatum, eventInDays);
+  const cooldownTage = daysSince(nachgehaktAm);
+  const cooldownAktiv = cooldownTage !== null && cooldownTage < 3;
+  const nachhakFreiAb =
+    angebotsdatum && !darfNachhaken
+      ? new Date(new Date(angebotsdatum).getTime() + 10 * 86_400_000).toLocaleDateString("de-DE", {
+          day: "2-digit",
+          month: "2-digit",
+        })
+      : null;
+  const nachhakDisabled = !darfNachhaken || cooldownAktiv;
+  const nachhakHint = cooldownAktiv
+    ? `zuletzt vor ${cooldownTage} T.`
+    : !darfNachhaken
+      ? `ab ${nachhakFreiAb ?? "Tag 10"}`
+      : "";
 
   async function post(url: string, payload: Record<string, unknown>, okMsg: string, refresh: boolean) {
     if (submitting) return;
@@ -86,22 +117,24 @@ export default function AnfrageQuickActions({
         {isVersendet ? (
           <>
             <button
-              disabled={submitting}
+              disabled={submitting || nachhakDisabled}
+              title={nachhakDisabled ? `Nachhaken ${nachhakHint}` : "Freundliche Erinnerung an den Kunden"}
               onClick={() =>
                 post(`/api/admin/angebot/${angebotId}/nachhaken`, {}, "Nachhak-Mail gesendet", false)
               }
               className={`${btn} bg-gold-500/20 hover:bg-gold-500/30 border-gold-500/30 text-gold-200`}
             >
-              Nachhaken
+              Nachhaken{nachhakHint ? ` (${nachhakHint})` : ""}
             </button>
             <button
               disabled={submitting}
+              title="Nur falls der Kunde die Mail verloren hat — sendet das Angebot unverändert erneut"
               onClick={() =>
                 post(`/api/admin/angebot/${angebotId}/erneut-senden`, {}, "Angebot erneut gesendet", false)
               }
-              className={`${btn} bg-blue-500/20 hover:bg-blue-500/30 border-blue-500/30 text-blue-200`}
+              className="px-2 py-1.5 rounded-lg text-[11px] text-gray-400 hover:text-gray-200 hover:bg-white/5 border border-transparent transition-all disabled:opacity-50"
             >
-              Erneut senden
+              Mail verloren? Erneut senden
             </button>
           </>
         ) : (

@@ -27,6 +27,7 @@ export interface BuchungForAction {
   Kaution_Hinterlegt_am?: string | null;
   Kaution_Rueckzahlung_am?: string | null;
   Akzeptiert_am?: string | null;
+  Angebotsdatum?: string | null;
 }
 
 const DAY_MS = 86_400_000;
@@ -36,6 +37,29 @@ function daysFromNow(dateStr: string | null | undefined): number | null {
   const d = new Date(dateStr);
   if (isNaN(d.getTime())) return null;
   return Math.floor((d.getTime() - Date.now()) / DAY_MS);
+}
+
+/** Wie viele Tage liegt ein vergangenes Datum zurück (z.B. Versanddatum)? */
+function daysSince(dateStr: string | null | undefined): number | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return null;
+  return Math.floor((Date.now() - d.getTime()) / DAY_MS);
+}
+
+/**
+ * Darf für ein versendetes, noch offenes Angebot nachgehakt werden?
+ * Regel: ab 10 Tagen seit Versand ODER wenn das Event ≤3 Tage entfernt ist
+ * (Kurzfrist-Fall, sonst käme das Nachhaken nie rechtzeitig).
+ */
+export function darfNachgehaktWerden(angebotsdatum: string | null | undefined, eventInDays: number | null): boolean {
+  const seitVersand = daysSince(angebotsdatum);
+  // Mindestabstand: nie am selben/nächsten Tag nachhaken — der Kunde hatte noch keine Zeit.
+  // (Deckt "heute gebucht, morgen Übergabe" ab: kein Nachhak-Druck.)
+  if (seitVersand === null || seitVersand < 2) return false;
+  const langGenug = seitVersand >= 10;
+  const kurzfristNah = eventInDays !== null && eventInDays <= 3; // Event steht vor der Tür
+  return langGenug || kurzfristNah;
 }
 
 function statusValue(b: BuchungForAction): string {
@@ -80,11 +104,14 @@ export function getNextAction(b: BuchungForAction): NextAction {
       return { label: "Angebot freigeben oder ablehnen", tone: "blue" };
 
     case "Angebot_versendet": {
-      // Wie lange wartet das Angebot schon auf Kunden-Klick?
-      const wartetSeitTagen = b.Akzeptiert_am ? null : eventInDays;
-      // Heuristik: > 7 Tage ohne Klick + Event in der Zukunft → nachhaken
-      if (wartetSeitTagen !== null && wartetSeitTagen > 7) {
+      // Nachhaken NUR ab Tag 10 seit Versand (oder Kurzfrist: Event ≤3 Tage).
+      // Vorher: noch auf den Kunden warten, kein Nachhak-Druck.
+      if (!b.Akzeptiert_am && darfNachgehaktWerden(b.Angebotsdatum, eventInDays)) {
         return { label: "Beim Kunden nachhaken (Angebot offen)", tone: "amber" };
+      }
+      const seitVersand = daysSince(b.Angebotsdatum);
+      if (seitVersand !== null && seitVersand < 10) {
+        return { label: `Wartet auf Kunden-Klick (nachhaken ab Tag 10)`, tone: "gray" };
       }
       return { label: "Wartet auf Kunden-Klick", tone: "gray" };
     }
