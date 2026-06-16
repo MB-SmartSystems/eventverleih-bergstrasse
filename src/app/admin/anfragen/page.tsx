@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
 import { getNextAction, type NextActionTone } from "@/lib/eventverleih/next-action";
+import AnfrageQuickActions from "./AnfrageQuickActions";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -198,50 +199,52 @@ export default async function AnfragenPage({ searchParams }: { searchParams: Pro
               Akzeptiert_am: angebot?.Akzeptiert_am || null,
             });
             return (
-              <Link
+              <div
                 key={b.id}
-                href={href}
-                className="block p-5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-gold-500/30 transition-all"
+                className="block p-5 rounded-xl bg-white/5 border border-white/10 hover:border-gold-500/30 transition-all"
               >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2 flex-wrap">
-                      <span className={`text-xs px-2 py-1 rounded font-medium ${TONE_CLASSES[statusInfo.tone]}`}>
-                        {statusInfo.label}
-                      </span>
-                      <span className="text-xs px-2 py-1 rounded bg-gold-500/20 text-gold-300 font-mono">
-                        {formatRange(b.Event_datum_von, b.Event_datum_bis)}
-                      </span>
-                      {angebot && (
-                        <span className="text-xs text-gray-500 font-mono">{angebot.Angebotsnummer}</span>
-                      )}
-                      {angebot?.Anfragedatum && (
-                        <span className="text-xs text-gray-500">Anfrage vom {fmtDateDe(angebot.Anfragedatum)}</span>
-                      )}
-                    </div>
-                    <h3 className="text-lg font-semibold text-white mb-1">
-                      {kunde ? `${kunde.Vorname} ${kunde.Nachname}` : "Unbekannter Kunde"}
-                    </h3>
-                    {kunde?.Email && <p className="text-sm text-gray-400">{kunde.Email}</p>}
-                    {snippet && (
-                      <p className="text-sm text-gray-400 mt-2 line-clamp-2">{snippet}</p>
-                    )}
-                    <div className={`text-xs mt-3 font-medium ${NEXT_ACTION_CLASSES[nextAction.tone]}`}>
-                      → {nextAction.label}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0">
-                    {preisArtikel > 0 ? (
-                      <div>
-                        <div className="text-2xl font-bold text-white">{preisArtikel.toFixed(2)} €</div>
-                        <div className="text-xs text-gray-500">Mietsumme</div>
+                <Link href={href} className="block group">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <span className={`text-xs px-2 py-1 rounded font-medium ${TONE_CLASSES[statusInfo.tone]}`}>
+                          {statusInfo.label}
+                        </span>
+                        <span className="text-xs px-2 py-1 rounded bg-gold-500/20 text-gold-300 font-mono">
+                          {formatRange(b.Event_datum_von, b.Event_datum_bis)}
+                        </span>
+                        {angebot && (
+                          <span className="text-xs text-gray-500 font-mono">{angebot.Angebotsnummer}</span>
+                        )}
+                        {angebot?.Anfragedatum && (
+                          <span className="text-xs text-gray-500">Anfrage vom {fmtDateDe(angebot.Anfragedatum)}</span>
+                        )}
                       </div>
-                    ) : (
-                      <div className="text-xs text-yellow-400">Preis fehlt</div>
-                    )}
+                      <h3 className="text-lg font-semibold text-white mb-1 group-hover:text-gold-200 transition-colors">
+                        {kunde ? `${kunde.Vorname} ${kunde.Nachname}` : "Unbekannter Kunde"}
+                      </h3>
+                      {kunde?.Email && <p className="text-sm text-gray-400">{kunde.Email}</p>}
+                      {snippet && (
+                        <p className="text-sm text-gray-400 mt-2 line-clamp-2">{snippet}</p>
+                      )}
+                      <div className={`text-xs mt-3 font-medium ${NEXT_ACTION_CLASSES[nextAction.tone]}`}>
+                        → {nextAction.label}
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      {preisArtikel > 0 ? (
+                        <div>
+                          <div className="text-2xl font-bold text-white">{preisArtikel.toFixed(2)} €</div>
+                          <div className="text-xs text-gray-500">Mietsumme</div>
+                        </div>
+                      ) : (
+                        <div className="text-xs text-yellow-400">Preis fehlt</div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+                <AnfrageQuickActions angebotId={angebot?.id ?? null} status={statusKey} />
+              </div>
             );
           })}
         </div>

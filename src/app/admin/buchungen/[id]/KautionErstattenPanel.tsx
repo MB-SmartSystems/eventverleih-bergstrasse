@@ -21,6 +21,31 @@ export default function KautionErstattenPanel({
   const [notiz, setNotiz] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [ibanSubmitting, setIbanSubmitting] = useState(false);
+  const [ibanDone, setIbanDone] = useState(false);
+  const [ibanError, setIbanError] = useState("");
+
+  async function requestIban() {
+    setIbanSubmitting(true);
+    setIbanError("");
+    try {
+      const res = await fetch(`/api/admin/buchung/${buchungId}/kaution-iban-anfordern`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({}),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setIbanError([d.error, d.detail].filter(Boolean).join(" — ") || `HTTP ${res.status}`);
+      } else {
+        setIbanDone(true);
+      }
+    } catch (e) {
+      setIbanError(e instanceof Error ? e.message : "Netzwerk-Fehler");
+    } finally {
+      setIbanSubmitting(false);
+    }
+  }
 
   async function submit() {
     setSubmitting(true);
@@ -63,6 +88,34 @@ export default function KautionErstattenPanel({
           {hasStripeHold && <span> · Stripe-Hold aktiv (Pre-Auth)</span>}
         </p>
       </div>
+
+      {!hasStripeHold && (
+        <div className="rounded-lg bg-white border border-amber-200 p-3">
+          <p className="text-xs text-amber-800/90 mb-2">
+            <strong>Bar-Kaution</strong> — keine Stripe-Freigabe möglich. Du überweist die Kaution manuell
+            zurück und brauchst dafür die Bankverbindung des Kunden.
+          </p>
+          {ibanDone ? (
+            <div className="text-sm text-green-700 font-medium">
+              ✓ IBAN-Anfrage gesendet — Mail läuft im Hintergrund raus. Antwort des Kunden abwarten, dann
+              überweisen und unten „voll erstatten" buchen.
+            </div>
+          ) : (
+            <>
+              {ibanError && (
+                <div className="mb-2 p-2 rounded bg-red-50 border border-red-200 text-red-700 text-xs">{ibanError}</div>
+              )}
+              <button
+                onClick={requestIban}
+                disabled={ibanSubmitting}
+                className="px-4 py-2 rounded bg-amber-700 text-white text-sm font-medium hover:bg-amber-800 disabled:opacity-40"
+              >
+                {ibanSubmitting ? "Sende…" : "IBAN für Rücküberweisung anfordern"}
+              </button>
+            </>
+          )}
+        </div>
+      )}
 
       {!open ? (
         <button

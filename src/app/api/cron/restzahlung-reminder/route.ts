@@ -19,6 +19,7 @@ import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { runAnzahlungReminder } from "@/lib/eventverleih/anzahlung-reminder";
 import { runTerminReminder } from "@/lib/eventverleih/termin-reminder";
+import { runAngebotExpiry } from "@/lib/eventverleih/angebot-expiry";
 import { formatGermanShort } from "@/lib/eventverleih/constants";
 
 export const dynamic = "force-dynamic";
@@ -199,7 +200,16 @@ export async function GET(req: NextRequest) {
       console.error("[restzahlung-reminder] termin-pass fehlgeschlagen:", e);
     }
 
-    return NextResponse.json({ ok: true, heute, result, anzahlung, termin });
+    // Sub-Pass: stiller Auto-Ablauf offener Anfragen mit verstrichenem Eventdatum
+    // (KEINE Kundenmail), fail-soft
+    let expiry: Record<string, unknown> = {};
+    try {
+      expiry = await runAngebotExpiry();
+    } catch (e) {
+      console.error("[restzahlung-reminder] expiry-pass fehlgeschlagen:", e);
+    }
+
+    return NextResponse.json({ ok: true, heute, result, anzahlung, termin, expiry });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown";
     console.error("[restzahlung-reminder] failure:", msg);

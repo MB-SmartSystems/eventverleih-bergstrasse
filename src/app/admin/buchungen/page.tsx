@@ -8,6 +8,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listRows, listAllRows, TABLES } from "@/lib/baserow/client";
+import { getKautionStatus, KAUTION_TONE_CLASSES } from "@/lib/eventverleih/kaution-status";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -25,6 +26,10 @@ type BuchungRow = {
   Uebergabe_Termin: string | null;
   Lieferadresse: string | null;
   Gesamt: string | null;
+  Kaution_Soll_Eur: string | null;
+  Kaution_Hinterlegt_am: string | null;
+  Kaution_Rueckzahlung_am: string | null;
+  Kaution_Rueckzahlung_Eur: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
 
@@ -52,6 +57,22 @@ function statusColor(status: string): string {
   if (DONE.has(status)) return "bg-green-100 text-green-700";
   if (CANCELLED.has(status)) return "bg-red-100 text-red-700";
   return "bg-gray-100 text-gray-600";
+}
+
+/** Eine hinterlegte Kaution, die noch nicht zurückgezahlt/freigegeben wurde = offene Aktion. */
+function kautionRefundDue(b: BuchungRow): boolean {
+  const soll = parseFloat(b.Kaution_Soll_Eur ?? "0") || 0;
+  return soll > 0 && !!b.Kaution_Hinterlegt_am && !b.Kaution_Rueckzahlung_am;
+}
+
+// "Abgeschlossen" erst, wenn auch die Kaution erledigt ist — sonst bleibt die Buchung "aktiv".
+function istAktiv(b: BuchungRow): boolean {
+  const s = b.Status_Erweitert?.value ?? "";
+  return ACTIVE.has(s) || (DONE.has(s) && kautionRefundDue(b));
+}
+function istAbgeschlossen(b: BuchungRow): boolean {
+  const s = b.Status_Erweitert?.value ?? "";
+  return DONE.has(s) && !kautionRefundDue(b);
 }
 
 function fmtDate(d: string | null): string {
@@ -100,8 +121,8 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
         !CANCELLED.has(b.Status_Erweitert?.value ?? "") &&
         (b.Event_datum_bis ?? b.Event_datum_von ?? "") >= heute,
     );
-  else if (filter === "aktiv") rows = rows.filter((b) => ACTIVE.has(b.Status_Erweitert?.value ?? ""));
-  else if (filter === "abgeschlossen") rows = rows.filter((b) => DONE.has(b.Status_Erweitert?.value ?? ""));
+  else if (filter === "aktiv") rows = rows.filter(istAktiv);
+  else if (filter === "abgeschlossen") rows = rows.filter(istAbgeschlossen);
   else if (filter === "storniert") rows = rows.filter((b) => CANCELLED.has(b.Status_Erweitert?.value ?? ""));
 
   rows.sort((a, b) => {
@@ -121,8 +142,8 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   const tabs = [
     { key: "alle", label: "Alle", count: buchungenList.results.length },
     { key: "anstehend", label: "Anstehend", count: buchungenList.results.filter((b) => !CANCELLED.has(b.Status_Erweitert?.value ?? "") && (b.Event_datum_bis ?? b.Event_datum_von ?? "") >= heute).length },
-    { key: "aktiv", label: "Aktiv", count: buchungenList.results.filter((b) => ACTIVE.has(b.Status_Erweitert?.value ?? "")).length },
-    { key: "abgeschlossen", label: "Abgeschlossen", count: buchungenList.results.filter((b) => DONE.has(b.Status_Erweitert?.value ?? "")).length },
+    { key: "aktiv", label: "Aktiv", count: buchungenList.results.filter(istAktiv).length },
+    { key: "abgeschlossen", label: "Abgeschlossen", count: buchungenList.results.filter(istAbgeschlossen).length },
     { key: "storniert", label: "Storniert", count: buchungenList.results.filter((b) => CANCELLED.has(b.Status_Erweitert?.value ?? "")).length },
   ];
 
@@ -223,6 +244,18 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                       <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor(status)}`}>
                         {status.replace(/_/g, " ")}
                       </span>
+                      {(() => {
+                        const k = getKautionStatus(b);
+                        if (!k) return null;
+                        return (
+                          <span
+                            className={`mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium ${KAUTION_TONE_CLASSES[k.tone]}`}
+                          >
+                            {k.done ? "✓ " : "● "}
+                            {k.label}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-warm-text">
                       {fmtEur(

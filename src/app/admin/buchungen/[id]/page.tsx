@@ -297,9 +297,15 @@ Vertrag
                       {fmtEur(buchung.Kaution_Rueckzahlung_Eur ?? buchung.Kaution_Soll_Eur)} zurück · {fmtDate(buchung.Kaution_Rueckzahlung_am)}
                     </span>
                   ) : buchung.Kaution_Hinterlegt_am ? (
-                    <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-blue-100 text-blue-700">
-                      {fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt · {fmtDate(buchung.Kaution_Hinterlegt_am)}
-                    </span>
+                    status === "Zurueckgegeben" || status === "Abgerechnet" ? (
+                      <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-amber-100 text-amber-800">
+                        Rückzahlung offen · {fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt seit {fmtDate(buchung.Kaution_Hinterlegt_am)}
+                      </span>
+                    ) : (
+                      <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-blue-100 text-blue-700">
+                        {fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt · {fmtDate(buchung.Kaution_Hinterlegt_am)}
+                      </span>
+                    )
                   ) : (
                     <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-amber-100 text-amber-800">
                       {fmtEur(buchung.Kaution_Soll_Eur)} — noch offen
