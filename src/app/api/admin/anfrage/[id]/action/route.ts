@@ -84,7 +84,7 @@ ${opts.angebotUrl}
 
 ${UEBERGABE_HINWEIS}
 
-Das Angebot ist 14 Tage gültig. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
+Lassen Sie sich mit der Entscheidung gern Zeit. Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`,
   };
 }
 

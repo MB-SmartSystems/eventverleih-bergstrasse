@@ -10,7 +10,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 
@@ -73,6 +73,59 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
 
   try {
     await updateRow(TABLES.Buchungen, buchungId, patch);
+
+    // Termin-Bestätigung an den Kunden — für JEDEN in diesem Request gesetzten Termin.
+    // Idempotency-Key enthält die Uhrzeit: gleiches Datum = keine Doppel-Mail, Änderung = neue Mail.
+    try {
+      const setUeberg = typeof patch.Uebergabe_Termin === "string";
+      const setRueck = typeof patch.Rueckgabe_Termin === "string";
+      if (setUeberg || setRueck) {
+        const b = await getRow<BuchungData>(TABLES.Buchungen, buchungId);
+        const kid = b.Kunde_Link?.[0]?.id;
+        const k = kid ? await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kid) : null;
+        if (kid && k?.Email) {
+          const name = `${k.Vorname ?? ""} ${k.Nachname ?? ""}`.trim();
+          const hatLieferung = parseFloat(b.Preis_Lieferung ?? "0") > 0;
+          const ort = hatLieferung && b.Lieferadresse ? b.Lieferadresse : "Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein";
+          const fmtDT = (iso: string) =>
+            new Date(iso).toLocaleString("de-DE", {
+              timeZone: "Europe/Berlin",
+              weekday: "long",
+              day: "2-digit",
+              month: "2-digit",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
+            }) + " Uhr";
+          const SIG = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+          const queueTermin = async (which: "uebergabe" | "rueckgabe", iso: string, extra: string) => {
+            const label = which === "uebergabe" ? "Übergabe" : "Rückgabe";
+            await createRow(TABLES.MailQueue, {
+              Erstellt_am: new Date().toISOString(),
+              Buchung_Link: [buchungId],
+              Kunde_Link: [kid],
+              Template_Key: `termin_${which}_bestaetigung`,
+              Subject: `Ihr ${label}-Termin – Eventverleih Bergstraße`,
+              Body: `Hallo ${name},\n\nwir haben Ihren ${label}-Termin festgehalten:\n${fmtDT(iso)}\n${ort}.${extra}\n\nFalls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.${SIG}`,
+              Approval_Status: "Approved",
+              Idempotency_Key: `B${buchungId}-termin-${which}-${iso}`,
+            });
+          };
+          if (setUeberg) {
+            await queueTermin(
+              "uebergabe",
+              patch.Uebergabe_Termin as string,
+              "\n\nBitte denken Sie an die Restzahlung und die Kaution zur Übergabe.",
+            );
+          }
+          if (setRueck) {
+            await queueTermin("rueckgabe", patch.Rueckgabe_Termin as string, "");
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[termin] Bestätigungs-Mail fehlgeschlagen (non-fatal):", e);
+    }
 
     // Google-Calendar-Sync (Stub) — wenn ENV-Vars gesetzt
     const calendarId = process.env.GCAL_EVENTVERLEIH_ID;

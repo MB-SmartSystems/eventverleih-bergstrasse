@@ -13,6 +13,7 @@
  */
 import { listAllRows, TABLES } from "@/lib/baserow/client";
 import { listOpenStockConflicts } from "./conflicts";
+import { darfNachgehaktWerden } from "./next-action";
 
 export interface InboxItem {
   id: number;
@@ -77,6 +78,8 @@ interface BuchungRow {
   Kaution_Prueffrist_bis: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
   Restzahlung_Mail_Versendet_am: string | null;
+  Uebergabe_Termin: string | null;
+  Rueckgabe_Termin: string | null;
 }
 
 interface MailQueueRow {
@@ -163,6 +166,13 @@ export async function loadInboxData(): Promise<InboxData> {
     return (id != null ? kundeNames.get(id) : undefined) || "(unbekannt)";
   };
 
+  // Angebot je Buchung (für Versanddatum + Akzeptanz-Check)
+  const angebotByBuchungId = new Map<number, AngebotRow>();
+  for (const a of angebote) {
+    const bid = a.Buchung_Link?.[0]?.id;
+    if (bid && !angebotByBuchungId.has(bid)) angebotByBuchungId.set(bid, a);
+  }
+
   // ----- Mail-Queue Widget -----
   const mailqueue_pending = mailqueue.filter(
     (m) => m.Approval_Status?.value === "Pending",
@@ -201,33 +211,39 @@ export async function loadInboxData(): Promise<InboxData> {
       kunde_name: (m.Kunde_Link?.[0]?.id != null ? kundeNames.get(m.Kunde_Link[0].id) : undefined) || undefined,
       erstellt_am: m.Erstellt_am,
     }));
-  // Uebergaben heute (Datum_Beginn = heute)
-  const uebergabenHeute = buchungen.filter(
-    (b) =>
-      isToday(b.Event_datum_von) &&
-      b.Status_Erweitert?.value === "Reserviert",
-  );
+  // Uebergaben heute — gesetzter Uebergabe-Termin hat Vorrang vor dem Event-Startdatum
+  const fmtTime = (iso: string | null): string | null =>
+    iso
+      ? new Date(iso).toLocaleTimeString("de-DE", { timeZone: "Europe/Berlin", hour: "2-digit", minute: "2-digit" })
+      : null;
+  const uebergabenHeute = buchungen.filter((b) => {
+    const s = b.Status_Erweitert?.value || "";
+    if (s !== "Reserviert" && s !== "Bestaetigt") return false;
+    return isToday(b.Uebergabe_Termin || b.Event_datum_von);
+  });
   for (const b of uebergabenHeute) {
+    const t = fmtTime(b.Uebergabe_Termin);
     heuteItems.push({
       id: b.id,
       buchungId: b.id,
       title: kundeName(b),
-      subtitle: `Uebergabe heute (${fmtDate(b.Event_datum_von)})`,
+      subtitle: t ? `Übergabe heute um ${t} Uhr` : `Übergabe heute (${fmtDate(b.Event_datum_von)})`,
       link: `/admin/buchungen/${b.id}`,
     });
   }
-  // Rueckgaben heute
-  const ruecknahmenHeute = buchungen.filter(
-    (b) =>
-      isToday(b.Event_datum_bis) &&
-      b.Status_Erweitert?.value === "In_Miete",
-  );
+  // Rueckgaben heute — gesetzter Rueckgabe-Termin hat Vorrang vor dem Event-Enddatum
+  const ruecknahmenHeute = buchungen.filter((b) => {
+    const s = b.Status_Erweitert?.value || "";
+    if (s !== "In_Miete" && s !== "Uebergeben") return false;
+    return isToday(b.Rueckgabe_Termin || b.Event_datum_bis);
+  });
   for (const b of ruecknahmenHeute) {
+    const t = fmtTime(b.Rueckgabe_Termin);
     heuteItems.push({
       id: b.id,
       buchungId: b.id,
       title: kundeName(b),
-      subtitle: `Rueckgabe heute (${fmtDate(b.Event_datum_bis)})`,
+      subtitle: t ? `Rückgabe heute um ${t} Uhr` : `Rückgabe heute (${fmtDate(b.Event_datum_bis)})`,
       link: `/admin/buchungen/${b.id}`,
     });
   }
@@ -314,13 +330,20 @@ export async function loadInboxData(): Promise<InboxData> {
     (b) => b.Status_Erweitert?.value === "Angebot_versendet",
   );
   for (const b of angebotVersendet) {
-    const a = daysAgo(b.Event_datum_von) ?? 0;
+    const angebot = angebotByBuchungId.get(b.id);
+    const seitVersand = daysAgo(angebot?.Angebotsdatum ?? null);
+    const eventIn = b.Event_datum_von
+      ? Math.floor((new Date(b.Event_datum_von).getTime() - Date.now()) / DAY_MS)
+      : null;
+    const nachhakReif = darfNachgehaktWerden(angebot?.Angebotsdatum ?? null, eventIn);
     wartKundeItems.push({
       id: b.id,
       buchungId: b.id,
       title: kundeName(b),
-      subtitle: `Angebot versendet, kein Klick (Termin ${fmtDate(b.Event_datum_von)})`,
-      age_days: a,
+      subtitle: nachhakReif
+        ? `Seit ${seitVersand ?? "?"}d offen — Nachhaken fällig`
+        : `Angebot versendet, seit ${seitVersand ?? "?"}d offen`,
+      age_days: seitVersand ?? undefined,
       link: `/admin/buchungen/${b.id}`,
     });
   }
@@ -337,6 +360,9 @@ export async function loadInboxData(): Promise<InboxData> {
       });
     }
   }
+
+  // Älteste/nachhak-reife Angebote zuerst
+  wartKundeItems.sort((a, b) => (b.age_days ?? 0) - (a.age_days ?? 0));
 
   // ----- WARTET AUF GELD -----
   const wartGeldItems: InboxItem[] = [];
@@ -406,11 +432,6 @@ export async function loadInboxData(): Promise<InboxData> {
   // UND Angebot.Akzeptiert_am > now-48h). Banner verschwindet automatisch nach 48h.
   const FRESH_MS = 48 * 60 * 60 * 1000;
   const cutoffFresh = Date.now() - FRESH_MS;
-  const angebotByBuchungId = new Map<number, AngebotRow>();
-  for (const a of angebote) {
-    const bid = a.Buchung_Link?.[0]?.id;
-    if (bid && !angebotByBuchungId.has(bid)) angebotByBuchungId.set(bid, a);
-  }
   const geradeBestaetigtItems: InboxItem[] = [];
   for (const b of buchungen) {
     if (b.Status_Erweitert?.value !== "Bestaetigt") continue;

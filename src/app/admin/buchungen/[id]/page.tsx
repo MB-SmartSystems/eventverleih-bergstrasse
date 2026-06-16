@@ -204,6 +204,22 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const offen = Math.max(0, gesamt - bezahlt);
   const kautionSoll = numv(buchung.Kaution_Soll_Eur);
 
+  // Kassier-Banner: was bei einer bald anstehenden Übergabe noch einzusammeln ist.
+  const uebergabeDatum = buchung.Uebergabe_Termin || buchung.Event_datum_von;
+  const uebergabeInDays = uebergabeDatum
+    ? Math.floor((new Date(uebergabeDatum).getTime() - Date.now()) / 86_400_000)
+    : null;
+  const uebergabeBald = uebergabeInDays !== null && uebergabeInDays >= 0 && uebergabeInDays <= 2;
+  const restOffen =
+    numv(buchung.Restzahlung_Soll_Eur) > 0 && !buchung.Restzahlung_Bezahlt_am
+      ? numv(buchung.Restzahlung_Soll_Eur)
+      : 0;
+  const kautionEinzusammeln = kautionSoll > 0 && !buchung.Kaution_Hinterlegt_am ? kautionSoll : 0;
+  const zeigeKassierBanner =
+    uebergabeBald &&
+    (status === "Bestaetigt" || status === "Reserviert") &&
+    (restOffen > 0 || kautionEinzusammeln > 0);
+
   // Packliste (geteilt: Übergabe-Bereich + Checkliste unten) — persistiert über Position.Eingepackt
   const packItems = positionen.map((p) => {
     const aid = p.Artikel_Link?.[0]?.id;
@@ -219,6 +235,29 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
 
   return (
     <div className="space-y-6 max-w-3xl">
+      {zeigeKassierBanner && (
+        <div className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3">
+          <div className="font-semibold text-amber-900">
+            Bei der Übergabe noch einzusammeln{uebergabeInDays === 0 ? " (heute!)" : uebergabeInDays === 1 ? " (morgen)" : ""}
+          </div>
+          <div className="text-sm text-amber-800 mt-1 space-y-0.5">
+            {restOffen > 0 && (
+              <div>
+                Restzahlung: <strong>{restOffen.toFixed(2).replace(".", ",")} €</strong>
+              </div>
+            )}
+            {kautionEinzusammeln > 0 && (
+              <div>
+                Kaution: <strong>{kautionEinzusammeln.toFixed(2).replace(".", ",")} €</strong>
+              </div>
+            )}
+            <div className="pt-1 mt-1 border-t border-amber-200">
+              Summe: <strong>{(restOffen + kautionEinzusammeln).toFixed(2).replace(".", ",")} €</strong> — nicht
+              ohne Zahlung herausgeben.
+            </div>
+          </div>
+        </div>
+      )}
       {/* Kopfzeile */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>

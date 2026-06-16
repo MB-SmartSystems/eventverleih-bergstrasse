@@ -17,6 +17,7 @@ interface BuchungRow {
   id: number;
   Status_Erweitert: { value: string } | null;
   Uebergabe_Termin: string | null;
+  Rueckgabe_Termin: string | null;
   Uebergabe_Adresse: string | null;
   Lieferadresse: string | null;
   Kaution_Soll_Eur: string | number | null;
@@ -166,6 +167,64 @@ export async function runTerminReminder(): Promise<{
     } catch (e) {
       result.fehler++;
       console.error("[termin-reminder] mail-insert fehlgeschlagen:", e);
+    }
+  }
+
+  // ----- RÜCKGABE-Erinnerung (Vortag) -----
+  for (const b of all.results) {
+    const status = b.Status_Erweitert?.value || "";
+    if (status !== "In_Miete" && status !== "Uebergeben") continue;
+    if (!b.Rueckgabe_Termin) continue;
+    if (berlinDate(new Date(b.Rueckgabe_Termin)) !== morgen) continue;
+
+    result.pruefte++;
+    const idemKey = `B${b.id}-rueckgabe_erinnerung`;
+    const existing = await listRows<{ id: number; Idempotency_Key?: string }>(TABLES.MailQueue, {
+      search: idemKey,
+      size: 5,
+    });
+    if (existing.results.find((m) => m.Idempotency_Key === idemKey)) {
+      result.skipped_duplicate++;
+      continue;
+    }
+
+    const kundeId = b.Kunde_Link?.[0]?.id;
+    if (!kundeId) continue;
+    let kunde: { Vorname?: string; Nachname?: string; Email?: string };
+    try {
+      kunde = await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kundeId);
+    } catch {
+      continue;
+    }
+    if (!kunde.Email) continue;
+    const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
+    const terminText = berlinDateTime(b.Rueckgabe_Termin);
+    const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
+
+    const body =
+      `Hallo ${kundeName},\n\n` +
+      `eine kurze Erinnerung an unseren Rückgabe-Termin:\n` +
+      `${terminText}\n${ort}.\n\n` +
+      `Bitte bringen Sie die Artikel vollständig und sauber zurück. ` +
+      `Die Kaution erstatte ich nach kurzer Prüfung.\n\n` +
+      `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
+      `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+
+    try {
+      await createRow(TABLES.MailQueue, {
+        Erstellt_am: new Date().toISOString(),
+        Buchung_Link: [b.id],
+        Kunde_Link: [kundeId],
+        Template_Key: "rueckgabe_erinnerung",
+        Subject: "Erinnerung an Ihren Rückgabe-Termin morgen",
+        Body: body,
+        Approval_Status: "Auto_Reply",
+        Idempotency_Key: idemKey,
+      });
+      result.mails++;
+    } catch (e) {
+      result.fehler++;
+      console.error("[termin-reminder] rueckgabe mail-insert fehlgeschlagen:", e);
     }
   }
 
