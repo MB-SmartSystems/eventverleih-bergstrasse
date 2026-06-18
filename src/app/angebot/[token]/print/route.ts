@@ -15,9 +15,9 @@ import { renderAngebotHtml, type AngebotHtmlContext } from "@/lib/angebot-html";
 export const dynamic = "force-dynamic";
 
 const FIRMA = {
-  name: "Eventverleih Bergstrasse",
-  inhaber: "Manuel Buettner",
-  anschrift: "Schlesierstrasse 19a, 64665 Alsbach-Haehnlein",
+  name: "Eventverleih Bergstraße",
+  inhaber: "Manuel Büttner",
+  anschrift: "Schlesierstraße 19a, 64665 Alsbach-Hähnlein",
   telefon: "+49 156 79521124",
   email: "info@eventverleih-bergstrasse.de",
   website: "eventverleih-bergstrasse.de",

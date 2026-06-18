@@ -12,7 +12,7 @@ import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/cl
 import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
-const SIGNATURE = `\n\nMit freundlichen Gruessen\nManuel Buettner\n\nEventverleih Bergstrasse\nSchlesierstrasse 19a, 64665 Alsbach-Haehnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
+const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) {
@@ -105,7 +105,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const anmerkungBlock = body.anmerkung?.trim()
       ? `\n*Anmerkung:*\n${body.anmerkung.trim()}\n`
       : "";
-    const subject = `Aktualisiertes Angebot ${angebot.Angebotsnummer} - Eventverleih Bergstrasse`;
+    const subject = `Aktualisiertes Angebot ${angebot.Angebotsnummer} - Eventverleih Bergstraße`;
     const fmt = (n: number) => n.toFixed(2).replace(".", ",");
     const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
 

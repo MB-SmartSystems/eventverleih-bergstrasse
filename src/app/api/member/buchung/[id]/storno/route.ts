@@ -135,7 +135,7 @@ ${erstattungText}
 Bei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.
 
 Mit freundlichen Grüßen
-Manuel Büttner — Eventverleih Bergstrasse`;
+Manuel Büttner — Eventverleih Bergstraße`;
 
     try {
       await createRow(TABLES.MailQueue, {
@@ -143,7 +143,7 @@ Manuel Büttner — Eventverleih Bergstrasse`;
         Buchung_Link: [buchungId],
         Kunde_Link: [kunde.id],
         Template_Key: "storno_bestaetigung",
-        Subject: `Stornierung Ihrer Buchung #${buchungId} — Eventverleih Bergstrasse`,
+        Subject: `Stornierung Ihrer Buchung #${buchungId} — Eventverleih Bergstraße`,
         Body: mailBody,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: `B${buchungId}-storno-mail`,

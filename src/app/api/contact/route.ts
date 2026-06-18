@@ -403,40 +403,40 @@ export async function POST(req: NextRequest) {
 
     const mailBody = `${greeting},
 
-vielen Dank fuer Ihre Anfrage bei Eventverleih Bergstrasse. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfuegbarkeitsbestaetigung zurueck.
+vielen Dank für Ihre Anfrage bei Eventverleih Bergstraße. Ich habe Ihre Nachricht erhalten und melde mich in der Regel innerhalb von 24 Stunden mit einem konkreten Angebot und der Verfügbarkeitsbestätigung zurück.
 
-Gewuenschter Mietzeitraum:
+Gewünschter Mietzeitraum:
   ${zeitraum}
 
 Was Sie angefragt haben:
 ${summary}
 
-Hinweis: Wir vermieten standardmaessig zur Selbstabholung an unserem Treffpunkt (Grillhuette Sandwiese / Freizeitanlage in Alsbach-Haehnlein). Den genauen Uebergabe-Termin sprechen wir telefonisch ab. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.${meinBereichUrl ? `
+Hinweis: Wir vermieten standardmäßig zur Selbstabholung an unserem Treffpunkt (Grillhütte Sandwiese / Freizeitanlage in Alsbach-Hähnlein). Den genauen Übergabe-Termin sprechen wir telefonisch ab. Falls Sie Lieferung oder Aufbau brauchen, gehen wir im Angebot konkret darauf ein.${meinBereichUrl ? `
 
-Mein Bereich (Buchung jederzeit einsehen, Status nachverfolgen, spaeter Rechnung herunterladen):
+Mein Bereich (Buchung jederzeit einsehen, Status nachverfolgen, später Rechnung herunterladen):
 ${meinBereichUrl}` : ""}
 
-Falls Sie noch Fragen haben oder etwas ergaenzen moechten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
+Falls Sie noch Fragen haben oder etwas ergänzen möchten, antworten Sie einfach direkt auf diese Mail oder rufen Sie an unter +49 156 79521124 (auch WhatsApp).
 
 Bis gleich,
 
-Mit freundlichen Gruessen
-Manuel Buettner
+Mit freundlichen Grüßen
+Manuel Büttner
 
-Eventverleih Bergstrasse
-Schlesierstrasse 19a, 64665 Alsbach-Haehnlein
+Eventverleih Bergstraße
+Schlesierstraße 19a, 64665 Alsbach-Hähnlein
 Tel/WhatsApp: +49 156 79521124
 E-Mail: info@eventverleih-bergstrasse.de
 Web: eventverleih-bergstrasse.de
 
-Nicht umsatzsteuerpflichtig nach Paragraph 19 Abs. 1 UStG.`;
+Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
     const mailQueuePromise = createRow<{ id: number }>(TABLES.MailQueue, {
       Erstellt_am: nowIso,
       Buchung_Link: [buchung.id],
       Kunde_Link: [kundeId],
       Template_Key: "anfrage_eingang",
-      Subject: `Eingangsbestaetigung - Ihre Anfrage bei Eventverleih Bergstrasse`,
+      Subject: `Eingangsbestätigung - Ihre Anfrage bei Eventverleih Bergstraße`,
       Body: mailBody,
       Approval_Status: "Auto_Reply",
       Idempotency_Key: `B${buchung.id}-anfrage_eingang`, // stabil — kein timestamp

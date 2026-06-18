@@ -38,10 +38,10 @@ export async function POST(req: NextRequest) {
     if (kunde) {
       const token = await ensureMemberToken(kunde.id);
       const magicLink = `${baseUrl}/mein-bereich/login?token=${token}`;
-      const subject = "Ihr Login-Link für Mein Bereich — Eventverleih Bergstrasse";
+      const subject = "Ihr Login-Link für Mein Bereich — Eventverleih Bergstraße";
       const body = `Hallo,
 
-hier ist Ihr Login-Link für Mein Bereich bei Eventverleih Bergstrasse:
+hier ist Ihr Login-Link für Mein Bereich bei Eventverleih Bergstraße:
 
 ${magicLink}
 
@@ -49,8 +49,8 @@ Der Link ist 30 Tage gültig. Wenn Sie diesen Login nicht angefordert haben, ign
 
 Bei Fragen: WhatsApp +49 156 79521124 oder direkt antworten.
 
-Mit freundlichen Gruessen
-Manuel Buettner — Eventverleih Bergstrasse`;
+Mit freundlichen Grüßen
+Manuel Büttner — Eventverleih Bergstraße`;
 
       try {
         await createRow(TABLES.MailQueue, {
