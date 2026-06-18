@@ -9,7 +9,7 @@
  * und — nur wenn sendMail — den n8n-Beleg-Mail-Workflow.
  */
 import { randomUUID } from "crypto";
-import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listAllRows, TABLES } from "@/lib/baserow/client";
 import { triggerPdfRender } from "@/lib/eventverleih/pdf-render";
 
 type BuchungRow = {
@@ -109,7 +109,23 @@ export async function createRechnungForBuchung(
 
   const vollBezahlt = !!buchung.Anzahlung_Bezahlt_am && !!buchung.Restzahlung_Bezahlt_am;
 
-  const existing = await listRows<RechnungRow>(TABLES.Rechnungen, { size: 500 });
+  // Vollstaendig paginiert (nicht listRows size:500 -> Baserow klemmt auf 200, dann
+  // saehe die Nummernvergabe ab der 201. Rechnung/Jahr nur die aeltesten 200 und
+  // vergaebe eine bereits genutzte RG-Nummer). GoBD: Nummern muessen eindeutig sein.
+  const existing = await listAllRows<RechnungRow>(TABLES.Rechnungen);
+  // Idempotenz: existiert schon ein Beleg fuer diese Buchung -> diesen zurueckgeben
+  // (kein Doppel-Beleg; jeder Beleg verbraucht sonst eine Nummer -> Stornopflicht).
+  const vorhanden = existing.results.find((x) => x.Buchung_Link?.[0]?.id === buchungId);
+  if (vorhanden) {
+    const t = vorhanden.Token_Public ?? "";
+    return {
+      ok: true,
+      rechnung_id: vorhanden.id,
+      rechnungsnummer: vorhanden.Rechnungsnummer,
+      token: t,
+      url: t ? `https://eventverleih-bergstrasse.de/rechnung/${t}` : "",
+    };
+  }
   const year = new Date().getFullYear();
   const rechnungsnummer = nextRechnungsnummer(year, existing.results);
   const token = randomUUID();

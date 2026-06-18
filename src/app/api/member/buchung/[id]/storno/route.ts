@@ -87,15 +87,30 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             : 0,
         };
 
-    const stufeLabel = `${calc.stornogebuehr_prozent}%`;
+    // Storno_Stufe + Storno_Grund MUESSEN gueltige Baserow-Single-Select-Optionen
+    // (Tabelle 951) sein, sonst lehnt Baserow das PATCH mit HTTP 400 ab und updateRow
+    // wirft -> 500 "internal" (genau der Member-Storno-Bug). Gueltige Storno_Stufe-
+    // Optionen: keine | >14T_kostenfrei | 7T_50 | 4T_75 | 2T_100 | Wetter_Vermieter.
+    const stornoStufe = !bindend
+      ? "keine"
+      : calc.stornogebuehr_prozent >= 100
+        ? "2T_100"
+        : calc.stornogebuehr_prozent >= 75
+          ? "4T_75"
+          : calc.stornogebuehr_prozent >= 50
+            ? "7T_50"
+            : ">14T_kostenfrei";
 
     // Status auf Storniert + Storno-Felder
     await updateRow(TABLES.Buchungen, buchungId, {
       Status_Erweitert: "Storniert",
       Storno_am: new Date().toISOString().slice(0, 10),
-      Storno_Stufe: stufeLabel,
+      Storno_Stufe: stornoStufe,
       Storno_Betrag_Eur: calc.stornogebuehr_eur,
-      Storno_Grund: "Kunde_Selbst",
+      // Gueltige Storno_Grund-Optionen (T951): Konflikt_verloren | Kunden_Wunsch |
+      // Manuel_Entscheidung | No_Show | Anzahlung_nicht_geleistet | Sonstig.
+      // Kunden-Selbst-Storno wird als Kunden_Wunsch erfasst ("Kunde_Selbst" gibt es nicht).
+      Storno_Grund: "Kunden_Wunsch",
     });
 
     // Mail an Kunde

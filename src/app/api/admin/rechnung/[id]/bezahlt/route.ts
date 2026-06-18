@@ -7,7 +7,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 
 const VALID = new Set(["Bar", "Ueberweisung", "PayPal", "Stripe"]);
 
@@ -46,17 +46,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Mahnstufe: "keine",
       Zahlungs_Methode: methode,
     });
-    // Einnahmen-Eintrag (best effort, nicht blockierend)
+    // Einnahmen-Eintrag (best effort, nicht blockierend) — idempotent, damit ein
+    // Doppelklick/Retry NICHT zwei Einnahmen-Rows (= doppelte EÜR-Einnahme) erzeugt.
     try {
       const betrag = parseFloat(rechnung.Betrag_Gesamt ?? "0") || 0;
       if (betrag > 0) {
-        await createRow(TABLES.Einnahmen, {
-          Datum: today,
-          Beschreibung: `Rechnung ${rechnung.Rechnungsnummer}`,
-          Betrag_Eur: betrag,
-          Jahr: new Date().getFullYear(),
-          Rechnung_Link: [rechnungId],
-        });
+        const vorhanden = await listRows<{ Rechnung_Link?: Array<{ id: number }> }>(
+          TABLES.Einnahmen,
+          { search: rechnung.Rechnungsnummer, size: 50 },
+        );
+        const schonGebucht = vorhanden.results.some((e) => e.Rechnung_Link?.[0]?.id === rechnungId);
+        if (!schonGebucht) {
+          await createRow(TABLES.Einnahmen, {
+            Datum: today,
+            Beschreibung: `Rechnung ${rechnung.Rechnungsnummer}`,
+            Betrag_Eur: betrag,
+            Jahr: new Date().getFullYear(),
+            Rechnung_Link: [rechnungId],
+          });
+        }
       }
     } catch {
       /* Einnahme silent fail — Rechnung-Update wichtiger */

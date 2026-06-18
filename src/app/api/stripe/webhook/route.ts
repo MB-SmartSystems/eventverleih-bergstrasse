@@ -186,6 +186,12 @@ export async function POST(req: NextRequest) {
         if (paymentType === "anzahlung") {
           return await processReservierungsZahlung(pi, buchungId, "anzahlung");
         } else if (paymentType === "restzahlung") {
+          // Idempotenz: Stripe liefert Events at-least-once. Ohne Guard wuerde ein
+          // Re-Delivery die Restzahlung erneut verbuchen + den Audit-Log duplizieren.
+          const rb = await getRow<{ Restzahlung_Bezahlt_am: string | null }>(TABLES.Buchungen, buchungId);
+          if (rb.Restzahlung_Bezahlt_am) {
+            return NextResponse.json({ ok: true, note: "restzahlung_bereits_verbucht" });
+          }
           await updateRow(TABLES.Buchungen, buchungId, {
             Restzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
             Restzahlung_Bezahlt_Eur: (pi.amount || 0) / 100,
@@ -218,10 +224,15 @@ export async function POST(req: NextRequest) {
         } else if (paymentType === "komplettzahlung") {
           return await processReservierungsZahlung(pi, buchungId, "komplettzahlung");
         } else if (paymentType === "kaution") {
-          // Pre-Auth-Hold ist jetzt confirmed (Geld reserviert beim Kunden)
-          await updateRow(TABLES.Buchungen, buchungId, {
-            Kaution_Hinterlegt_am: new Date().toISOString().slice(0, 10),
-          });
+          // Pre-Auth-Hold ist jetzt confirmed (Geld reserviert beim Kunden).
+          // Hinterlegt_am nur setzen wenn noch leer — sonst ueberschreibt ein spaeteres
+          // succeeded (nach Capture) das urspruengliche Hold-Datum aus amount_capturable_updated.
+          const kb = await getRow<{ Kaution_Hinterlegt_am: string | null }>(TABLES.Buchungen, buchungId);
+          if (!kb.Kaution_Hinterlegt_am) {
+            await updateRow(TABLES.Buchungen, buchungId, {
+              Kaution_Hinterlegt_am: new Date().toISOString().slice(0, 10),
+            });
+          }
           await logAudit(buchungId, "Sonstiges", {
             event: "kaution_hinterlegt_via_stripe",
             stripe_payment_intent: pi.id,
