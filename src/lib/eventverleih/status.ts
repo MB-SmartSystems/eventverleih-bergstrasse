@@ -4,6 +4,8 @@
  * + heutigem Datum. Reine Funktion → in Detail- UND Listen-Ansichten wiederverwendbar.
  */
 
+import { uebergabeOrt } from "./config";
+
 export type StatusTon = "todo" | "live" | "ok" | "neutral" | "danger";
 
 export type BuchungStatusFelder = {
@@ -11,6 +13,8 @@ export type BuchungStatusFelder = {
   Uebergabe_Termin?: string | null;
   Uebergabe_Adresse?: string | null;
   Lieferadresse?: string | null;
+  Preis_Lieferung?: string | number | null;
+  Preis_Abholung?: string | number | null;
   Event_datum_von?: string | null;
   Event_datum_bis?: string | null;
   Kaution_Soll_Eur?: string | number | null;
@@ -67,7 +71,7 @@ export function statusKlartext(b: BuchungStatusFelder): { text: string; ton: Sta
     case "Reserviert": {
       const termin = fmtTermin(b.Uebergabe_Termin);
       if (!termin) return { text: "Übergabe-Termin noch ausmachen", ton: "todo" };
-      const ort = b.Uebergabe_Adresse || b.Lieferadresse || "Treffpunkt";
+      const ort = uebergabeOrt(b, "uebergabe");
       return { text: `Übergabe vereinbart: ${ort}, ${termin}`, ton: "ok" };
     }
     case "Uebergeben":

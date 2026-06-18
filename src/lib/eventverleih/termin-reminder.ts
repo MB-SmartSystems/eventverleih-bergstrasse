@@ -10,6 +10,7 @@
  */
 import { listAllRows, listRows, getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { createKautionCheckoutSession } from "@/lib/stripe/payment-links";
+import { uebergabeOrt } from "@/lib/eventverleih/config";
 
 const TZ = "Europe/Berlin";
 
@@ -20,6 +21,8 @@ interface BuchungRow {
   Rueckgabe_Termin: string | null;
   Uebergabe_Adresse: string | null;
   Lieferadresse: string | null;
+  Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Kaution_Soll_Eur: string | number | null;
   Kaution_Hinterlegt_am: string | null;
   Stripe_Kaution_Link: string | null;
@@ -102,7 +105,7 @@ export async function runTerminReminder(): Promise<{
     const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
 
     const terminText = berlinDateTime(b.Uebergabe_Termin);
-    const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
+    const ort = uebergabeOrt(b, "uebergabe");
 
     // Restzahlung-Hinweis nur, wenn offen — fällig erst bei Übergabe, vorab = Komfort-Option
     const restSoll = parseDec(b.Restzahlung_Soll_Eur);
@@ -199,7 +202,7 @@ export async function runTerminReminder(): Promise<{
     if (!kunde.Email) continue;
     const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
     const terminText = berlinDateTime(b.Rueckgabe_Termin);
-    const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
+    const ort = uebergabeOrt(b, "rueckgabe");
 
     const body =
       `Hallo ${kundeName},\n\n` +

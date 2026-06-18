@@ -170,8 +170,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
       const kundeName = await kundeNameAusLink(buchung.Kunde_Link);
       if (action === "voll") {
-        subject = `Kaution Buchung #${buchungId} — voll zurückerstattet`;
-        mailBody = `${anredeZeile(kundeName)}\n\nIch habe die Artikel geprüft — alles in Ordnung. Ihre Kaution wird in voller Höhe (${eurMail(kautionSoll)} EUR) zurückerstattet:\n\n${piId ? "- Stripe-Hold wurde freigegeben — kein Betrag wurde abgebucht." : "- Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nVielen Dank für Ihre Buchung — wir freuen uns auf den nächsten Termin!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
+        subject = `Rückgabe abgeschlossen: Ihre Kaution zu Buchung #${buchungId} kommt zurück`;
+        mailBody = `${anredeZeile(kundeName)}\n\nvielen Dank, dass Sie bei uns gemietet haben. Ich hoffe, Ihre Feier ist gut gelaufen.\n\nDie Artikel sind vollständig und unbeschädigt zurückgekommen, damit ist Ihre Miete abgeschlossen. Ihre Kaution erhalten Sie in voller Höhe (${eurMail(kautionSoll)} EUR) zurück:\n\n${piId ? "- Der Stripe-Hold wurde freigegeben, es wurde kein Betrag abgebucht." : "- Die Erstattung habe ich soeben für Sie veranlasst."}\n\nMit freundlichen Grüßen\nManuel Büttner\nEventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
       } else if (action === "teil") {
         subject = `Kaution Buchung #${buchungId} — Teilerstattung wegen Schaden`;
         mailBody = `${anredeZeile(kundeName)}\n\nLeider gab es bei der Prüfung der Artikel einen Schaden. Schadensbetrag: ${eurMail(schadenEur)} EUR.\n\nDamit wird ein Teil Ihrer Kaution einbehalten:\n  Kaution gesamt: ${eurMail(kautionSoll)} EUR\n  Einbehalten:    ${eurMail(schadenEur)} EUR\n  Erstattung:     ${eurMail(kautionRueckzahlungEur)} EUR\n\n${body.schaden_notiz ? `Schaden-Notiz: ${body.schaden_notiz}\n\n` : ""}${piId ? "Die Erstattung erfolgt automatisch über Stripe in den nächsten 5 Werktagen." : "Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nBei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
@@ -186,7 +186,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       const belegBlock = belegUrl ? `Ihren Beleg finden Sie hier:\n${belegUrl}\n\n` : "";
       const reviewBlock =
         action === "voll" && reviewUrl
-          ? `Wenn Ihnen alles gefallen hat, würde mir eine kurze Google-Bewertung sehr helfen (gern mit Foto Ihrer Feier):\n${reviewUrl}\n\n`
+          ? `Wenn Sie mit allem zufrieden waren, freue ich mich über eine kurze Google-Bewertung. Für einen kleinen Betrieb wie uns hilft jede Rückmeldung weiter, und anderen gibt sie Orientierung bei der Auswahl. Gerne auch mit einem Foto von Ihrer Feier:\n${reviewUrl}\n\nVielen Dank, und bis zum nächsten Fest.\n\n`
           : "";
       const tail = `${belegBlock}${reviewBlock}`;
       if (tail) {

@@ -19,6 +19,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { updateRow, createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { cancelKaution } from "@/lib/stripe/payment-links";
+import { uebergabeOrt } from "@/lib/eventverleih/config";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -99,6 +100,10 @@ export async function POST(
         Kaution_Hinterlegt_am: string | null;
         Stripe_Kaution_Link: string | null;
         Rueckgabe_Termin: string | null;
+        Uebergabe_Adresse: string | null;
+        Lieferadresse: string | null;
+        Preis_Lieferung: string | null;
+        Preis_Abholung: string | null;
         Kunde_Link: Array<{ id: number; value: string }> | null;
       }>(TABLES.Buchungen, buchungId);
       const kundeId = b.Kunde_Link?.[0]?.id;
@@ -143,7 +148,7 @@ export async function POST(
               }) + " Uhr"
             : null;
           const rueckgabeLine = rt
-            ? `\n\nRückgabe-Termin: ${rt} (Treffpunkt Grillhütte Sandwiese).`
+            ? `\n\nRückgabe-Termin: ${rt} (${uebergabeOrt(b, "rueckgabe")}).`
             : `\n\nDen Rückgabe-Termin halten wir wie besprochen fest.`;
 
           const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();

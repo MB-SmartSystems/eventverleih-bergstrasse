@@ -13,6 +13,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
+import { uebergabeOrt } from "@/lib/eventverleih/config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -24,6 +25,8 @@ interface BuchungRow {
   Rueckgabe_Termin: string | null;
   Uebergabe_Adresse: string | null;
   Lieferadresse: string | null;
+  Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
 
@@ -100,7 +103,7 @@ export async function GET(req: NextRequest) {
         }
         if (!kunde.Email) continue;
         const name = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
-        const ort = b.Uebergabe_Adresse || b.Lieferadresse || "am vereinbarten Treffpunkt";
+        const ort = uebergabeOrt(b, c.which);
 
         const body =
           `Hallo ${name},\n\n` +

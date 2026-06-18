@@ -10,6 +10,36 @@ export const TREFFPUNKT_STANDARD = "Grillhuette Sandwiese (Freizeitanlage), Alsb
 export const TREFFPUNKT_MAPS_URL = "https://maps.google.com/?q=Grillhuette+Sandwiese+Alsbach-Haehnlein";
 export const TREFFPUNKT_HINWEIS = "Der Treffpunkt liegt zentral und ist gut erreichbar. Den genauen Termin sprechen wir telefonisch ab.";
 
+// Anzeige-Label mit Umlauten fuer Kunden-Mails (TREFFPUNKT_STANDARD ist ASCII fuer Systemzwecke).
+export const TREFFPUNKT_LABEL = "Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein";
+
+/**
+ * Übergabe-/Rückgabe-Ort nach fester Regel:
+ *  - Liefere ICH (Preis_Lieferung > 0) → Übergabe an der Event-/Lieferadresse.
+ *  - Hole ICH ab (Preis_Abholung > 0)   → Rückgabe an der Event-/Lieferadresse.
+ *  - Sonst (Kunde holt selbst / bringt selbst zurück) → Treffpunkt Grillhütte.
+ * Eine explizit gesetzte Uebergabe_Adresse (z. B. telefonisch vereinbart) gewinnt immer,
+ * für beide Richtungen.
+ */
+export function uebergabeOrt(
+  b: {
+    Uebergabe_Adresse?: string | null;
+    Lieferadresse?: string | null;
+    Preis_Lieferung?: string | number | null;
+    Preis_Abholung?: string | number | null;
+  },
+  which: "uebergabe" | "rueckgabe",
+): string {
+  const override = (b.Uebergabe_Adresse ?? "").trim();
+  if (override) return override;
+  const num = (v: string | number | null | undefined): number =>
+    typeof v === "number" ? v : parseFloat(String(v ?? "0")) || 0;
+  const manuelFaehrt = which === "uebergabe" ? num(b.Preis_Lieferung) > 0 : num(b.Preis_Abholung) > 0;
+  const liefer = (b.Lieferadresse ?? "").trim();
+  if (manuelFaehrt && liefer) return liefer;
+  return TREFFPUNKT_LABEL;
+}
+
 export const KONTAKT_TEL = "+49 156 79521124";
 export const KONTAKT_MAIL = "info@eventverleih-bergstrasse.de";
 

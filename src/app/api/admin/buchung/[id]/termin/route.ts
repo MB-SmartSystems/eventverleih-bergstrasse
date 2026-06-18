@@ -11,6 +11,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { uebergabeOrt } from "@/lib/eventverleih/config";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ interface BuchungData {
   Kunde_Link: Array<{ id: number; value: string }> | null;
   Lieferadresse: string | null;
   Preis_Lieferung: string | null;
+  Preis_Abholung: string | null;
+  Uebergabe_Adresse: string | null;
 }
 
 function isValidDateTime(v: unknown): v is string {
@@ -85,8 +88,6 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         const k = kid ? await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kid) : null;
         if (kid && k?.Email) {
           const name = `${k.Vorname ?? ""} ${k.Nachname ?? ""}`.trim();
-          const hatLieferung = parseFloat(b.Preis_Lieferung ?? "0") > 0;
-          const ort = hatLieferung && b.Lieferadresse ? b.Lieferadresse : "Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein";
           const fmtDT = (iso: string) =>
             new Date(iso).toLocaleString("de-DE", {
               timeZone: "Europe/Berlin",
@@ -100,6 +101,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           const SIG = `\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
           const queueTermin = async (which: "uebergabe" | "rueckgabe", iso: string, extra: string) => {
             const label = which === "uebergabe" ? "Übergabe" : "Rückgabe";
+            const ort = uebergabeOrt(b, which);
             await createRow(TABLES.MailQueue, {
               Erstellt_am: new Date().toISOString(),
               Buchung_Link: [buchungId],
@@ -143,11 +145,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             /* fail-soft: Name bleibt Fallback */
           }
         }
-        const hatLieferung = parseFloat(buchung.Preis_Lieferung ?? "0") > 0;
-        const location =
-          hatLieferung && buchung.Lieferadresse
-            ? buchung.Lieferadresse
-            : "Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein";
+        const location = uebergabeOrt(buchung, "uebergabe");
         await fetch(webhookUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
