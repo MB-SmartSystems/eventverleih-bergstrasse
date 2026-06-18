@@ -208,7 +208,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
   const steuernummer = configText(config, "Steuernummer", "");
 
   return (
-    <div className="min-h-screen bg-warm-bg py-8 px-4 sm:py-12 print:bg-white print:py-0 print:px-0">
+    <div className="min-h-screen bg-gray-100 py-8 px-4 sm:py-12 print:bg-white print:py-0 print:px-0">
       {/* Print-CSS — Browser-Druck/Save-as-PDF-Optimierung */}
       <style>{`
         @media print {
@@ -219,15 +219,15 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
         }
       `}</style>
       <div className="max-w-3xl mx-auto">
-        <div className="no-print mb-3 text-sm text-warm-muted">
+        <div className="no-print mb-3 text-sm text-gray-600">
           Tipp: Druck-Funktion Ihres Browsers (Strg+P / Cmd+P) → „Als PDF speichern"
         </div>
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-warm-border print:shadow-none print:border-0 print:rounded-none">
+        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-10 border border-gray-200 print:shadow-none print:border-0 print:rounded-none">
           {/* Header */}
           <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
             <div>
-              <div className="text-lg font-bold text-warm-text">{firmenname}</div>
-              <div className="text-sm text-warm-muted mt-1">
+              <div className="text-lg font-bold text-gray-900">{firmenname}</div>
+              <div className="text-sm text-gray-600 mt-1">
                 {inhaber}
                 <br />
                 {anschrift}
@@ -236,9 +236,9 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
               </div>
             </div>
             <div className="text-right text-sm">
-              <div className="text-xs text-warm-muted uppercase tracking-wide">Rechnung</div>
-              <div className="font-mono text-warm-text font-bold text-lg">{rechnung.Rechnungsnummer}</div>
-              <div className="text-warm-muted mt-1">Datum: {fmtDate(rechnung.Rechnungsdatum)}</div>
+              <div className="text-xs text-gray-600 uppercase tracking-wide">Rechnung</div>
+              <div className="font-mono text-gray-900 font-bold text-lg">{rechnung.Rechnungsnummer}</div>
+              <div className="text-gray-600 mt-1">Datum: {fmtDate(rechnung.Rechnungsdatum)}</div>
               {rechnung.Status?.value === "Bezahlt" && (
                 <div className="mt-2 inline-block px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-medium">
                   ✓ Bezahlt am {fmtDate(rechnung.Bezahlt_am)}
@@ -249,8 +249,8 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
 
           {/* Kunde */}
           <div className="mb-6">
-            <div className="text-xs text-warm-muted uppercase tracking-wide mb-1">Rechnung an</div>
-            <div className="text-warm-text">
+            <div className="text-xs text-gray-600 uppercase tracking-wide mb-1">Rechnung an</div>
+            <div className="text-gray-900">
               {kunde.Firma && (
                 <>
                   <strong>{kunde.Firma}</strong>
@@ -288,7 +288,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
 
           {/* Leistungszeitraum */}
           {buchung.Event_datum_von && (
-            <div className="text-sm text-warm-muted mb-4">
+            <div className="text-sm text-gray-600 mb-4">
               Leistungszeitraum: {fmtDate(buchung.Event_datum_von)}
               {buchung.Event_datum_bis && buchung.Event_datum_bis !== buchung.Event_datum_von &&
                 ` – ${fmtDate(buchung.Event_datum_bis)}`}
@@ -298,7 +298,7 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
           {/* Positionen */}
           <table className="w-full text-sm mt-4">
             <thead>
-              <tr className="border-b-2 border-warm-border text-left text-xs uppercase tracking-wide text-warm-muted">
+              <tr className="border-b-2 border-gray-200 text-left text-xs uppercase tracking-wide text-gray-600">
                 <th className="py-2">Position</th>
                 <th className="py-2 text-right w-16">Anzahl</th>
                 <th className="py-2 text-right w-24">Einzel</th>
@@ -308,27 +308,27 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
             <tbody>
               {positionen.length === 0 ? (
                 <tr>
-                  <td className="py-3 text-warm-text">Vermietung gemäß Buchung</td>
-                  <td className="py-3 text-right text-warm-text">1</td>
-                  <td className="py-3 text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Artikel)}</td>
-                  <td className="py-3 text-right font-mono text-warm-text">{fmtEur(buchung.Preis_Artikel)}</td>
+                  <td className="py-3 text-gray-900">Vermietung gemäß Buchung</td>
+                  <td className="py-3 text-right text-gray-900">1</td>
+                  <td className="py-3 text-right font-mono text-gray-900">{fmtEur(buchung.Preis_Artikel)}</td>
+                  <td className="py-3 text-right font-mono text-gray-900">{fmtEur(buchung.Preis_Artikel)}</td>
                 </tr>
               ) : (
                 positionen.map((p) => (
-                  <tr key={p.id} className="border-b border-warm-border/50">
-                    <td className="py-2 text-warm-text">{p.Artikel_Link?.[0]?.value || "—"}</td>
-                    <td className="py-2 text-right text-warm-text">{p.Anzahl}</td>
-                    <td className="py-2 text-right font-mono text-warm-text">{fmtEur(p.Einzelpreis_Eur)}</td>
-                    <td className="py-2 text-right font-mono text-warm-text">{fmtEur(p.Position_Gesamt_Eur)}</td>
+                  <tr key={p.id} className="border-b border-gray-200/50">
+                    <td className="py-2 text-gray-900">{p.Artikel_Link?.[0]?.value || "—"}</td>
+                    <td className="py-2 text-right text-gray-900">{p.Anzahl}</td>
+                    <td className="py-2 text-right font-mono text-gray-900">{fmtEur(p.Einzelpreis_Eur)}</td>
+                    <td className="py-2 text-right font-mono text-gray-900">{fmtEur(p.Position_Gesamt_Eur)}</td>
                   </tr>
                 ))
               )}
               {zusatz.map((z) => (
-                <tr key={z.label} className="border-b border-warm-border/50">
-                  <td colSpan={3} className="py-2 text-warm-text">
+                <tr key={z.label} className="border-b border-gray-200/50">
+                  <td colSpan={3} className="py-2 text-gray-900">
                     {z.label}
                   </td>
-                  <td className="py-2 text-right font-mono text-warm-text">{fmtEur(z.value)}</td>
+                  <td className="py-2 text-right font-mono text-gray-900">{fmtEur(z.value)}</td>
                 </tr>
               ))}
             </tbody>
@@ -337,12 +337,12 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
           {/* Summe */}
           <div className="mt-6 flex justify-end">
             <div className="w-full sm:w-1/2 text-sm">
-              <div className="flex justify-between border-t-2 border-warm-text pt-3 mt-3 text-lg font-bold text-warm-text">
+              <div className="flex justify-between border-t-2 border-gray-900 pt-3 mt-3 text-lg font-bold text-gray-900">
                 <span>Gesamtbetrag</span>
                 <span className="font-mono">{fmtEur(summe)}</span>
               </div>
               {kaution > 0 && (
-                <div className="text-xs text-warm-muted italic mt-3">
+                <div className="text-xs text-gray-600 italic mt-3">
                   Hinweis: Zusätzlich wird bei Übergabe eine Kaution von {fmtEur(kaution)} hinterlegt und nach
                   beanstandungsfreier Rückgabe vollständig erstattet.
                 </div>
@@ -352,21 +352,21 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
 
           {/* Zahlungsdaten */}
           {rechnung.Status?.value !== "Bezahlt" && (
-            <div className="mt-8 p-4 rounded-lg bg-accent-50 border-l-4 border-accent">
-              <div className="font-semibold text-warm-text mb-1">Zahlungsdetails</div>
-              <div className="text-sm text-warm-muted">
+            <div className="mt-8 p-4 rounded-lg bg-amber-50 border-l-4 border-accent">
+              <div className="font-semibold text-gray-900 mb-1">Zahlungsdetails</div>
+              <div className="text-sm text-gray-600">
                 Bitte überweisen Sie den Betrag innerhalb von 14 Tagen auf folgendes Konto:
                 <br />
                 Kontoinhaber: {inhaber}
                 <br />
-                IBAN: <span className="font-mono text-warm-text">{iban}</span>
+                IBAN: <span className="font-mono text-gray-900">{iban}</span>
               </div>
             </div>
           )}
           {rechnung.Status?.value === "Bezahlt" && (
             <div className="mt-8 p-4 rounded-lg bg-green-500/10 border-l-4 border-green-500">
-              <div className="font-semibold text-warm-text mb-1">Bezahlt</div>
-              <div className="text-sm text-warm-muted">
+              <div className="font-semibold text-gray-900 mb-1">Bezahlt</div>
+              <div className="text-sm text-gray-600">
                 Der Rechnungsbetrag wurde vollständig über Stripe beglichen. Diese Rechnung dient als Beleg.
               </div>
             </div>
@@ -384,23 +384,23 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                 Rechnung als PDF herunterladen
               </a>
             ) : (
-              <div className="p-3 rounded-lg bg-warm-bg border border-warm-border text-sm text-warm-muted">
+              <div className="p-3 rounded-lg bg-gray-100 border border-gray-200 text-sm text-gray-600">
                 Diese Rechnung wurde Ihnen mit PDF-Anhang an{" "}
-                <span className="text-warm-text">{kunde.Email}</span> zugesendet. Bitte prüfen Sie Ihren Posteingang
+                <span className="text-gray-900">{kunde.Email}</span> zugesendet. Bitte prüfen Sie Ihren Posteingang
                 (ggf. Spam-Ordner).
               </div>
             )}
           </div>
 
           {/* USt-Hinweis + Steuernummer */}
-          <div className="mt-6 text-xs text-warm-muted space-y-1">
+          <div className="mt-6 text-xs text-gray-600 space-y-1">
             <div>{ustHinweis}</div>
             {steuernummer && <div>Steuernummer: {steuernummer}</div>}
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-center text-xs text-warm-muted">
+        <div className="mt-6 text-center text-xs text-gray-600">
           {firmenname} · {anschrift} · {telefon}
           {steuernummer && <> · Steuernummer {steuernummer}</>}
         </div>
