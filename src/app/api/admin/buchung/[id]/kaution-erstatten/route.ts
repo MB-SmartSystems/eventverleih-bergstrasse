@@ -75,6 +75,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           stripeAction = "cancel";
         } catch (e) {
           console.error("[kaution-erstatten] cancel fehlgeschlagen:", e);
+          // Stripe-Fehler NICHT verschlucken: sonst wuerde unten "abgeschlossen" gesetzt
+          // + "Kaution kommt zurueck"-Mail verschickt, obwohl der Hold nie freigegeben wurde.
+          return NextResponse.json({ error: "stripe_kaution_fehler", action, detail: String(e).slice(0, 200) }, { status: 502 });
         }
       } else {
         stripeAction = "no_stripe_hold";
@@ -91,6 +94,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           stripeAction = `capture_${schadenEur.toFixed(2)}`;
         } catch (e) {
           console.error("[kaution-erstatten] capture (teil) fehlgeschlagen:", e);
+          return NextResponse.json({ error: "stripe_kaution_fehler", action, detail: String(e).slice(0, 200) }, { status: 502 });
         }
       } else {
         stripeAction = "no_stripe_hold";
@@ -104,6 +108,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           stripeAction = "capture_full";
         } catch (e) {
           console.error("[kaution-erstatten] capture (einzug) fehlgeschlagen:", e);
+          return NextResponse.json({ error: "stripe_kaution_fehler", action, detail: String(e).slice(0, 200) }, { status: 502 });
         }
       } else {
         stripeAction = "no_stripe_hold";
