@@ -126,10 +126,15 @@ export async function createRechnungForBuchung(
     Buchung_Link: Array<{ id: number }> | null;
   };
   const positionenAll = await listAllRows<Position>(TABLES.Buchungs_Position);
+  // Artikel_Link.value ist das (numerische) Artikel-Primaerfeld, NICHT der Name.
+  // Echten Namen ueber die Artikel-Tabelle (Bezeichnung) aufloesen.
+  const artikelAll = await listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel);
+  const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
   const positionen = positionenAll.results
     .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
     .map((p) => ({
-      artikel: p.Artikel_Link?.[0]?.value || "Artikel",
+      artikel:
+        artikelNameById.get(p.Artikel_Link?.[0]?.id ?? -1) || p.Artikel_Link?.[0]?.value || "Artikel",
       anzahl: parseFloat(p.Anzahl ?? "0"),
       einzelpreis_eur: parseFloat(p.Einzelpreis_Eur ?? "0"),
       gesamt_eur: parseFloat(p.Position_Gesamt_Eur ?? "0"),
