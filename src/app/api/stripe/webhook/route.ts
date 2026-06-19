@@ -86,6 +86,9 @@ async function processReservierungsZahlung(
     Status_Erweitert: "Reserviert",
     Anzahlung_Bezahlt_am: today,
     Anzahlung_Bezahlt_Eur: eurNum(buchung.Anzahlung_Soll_Eur),
+    // Miet-Zahlungs-PaymentIntent persistieren, damit ein späterer Storno-Refund die
+    // richtige PI hat (NICHT die Kaution-Hold-PI). Letzte Zahlung gewinnt.
+    Stripe_Zahlung_PaymentIntent: pi.id,
   };
   if (paymentType === "komplettzahlung") {
     patch.Restzahlung_Bezahlt_am = today;
@@ -208,6 +211,7 @@ export async function POST(req: NextRequest) {
           await updateRow(TABLES.Buchungen, buchungId, {
             Restzahlung_Bezahlt_am: new Date().toISOString().slice(0, 10),
             Restzahlung_Bezahlt_Eur: (pi.amount || 0) / 100,
+            Stripe_Zahlung_PaymentIntent: pi.id,
           });
           await logAudit(buchungId, "Restzahlung_eingegangen", {
             stripe_payment_intent: pi.id,
@@ -297,10 +301,15 @@ export async function POST(req: NextRequest) {
         const charge = event.data.object as Stripe.Charge;
         const buchungId = parseInt(charge.metadata?.buchung_id || "", 10);
         if (!buchungId) return NextResponse.json({ ok: true });
-        // Storno-Refund — Marker setzen
+        // Refund nur protokollieren — NICHT Storno_Betrag_Eur überschreiben (das ist die
+        // Stornogebühr/geplante Erstattung; der tatsächlich erstattete Betrag ist eine
+        // andere Größe und würde das Feld korrumpieren).
         const refundEur = (charge.amount_refunded || 0) / 100;
-        await updateRow(TABLES.Buchungen, buchungId, {
-          Storno_Betrag_Eur: refundEur,
+        await logAudit(buchungId, "Sonstiges", {
+          event: "stripe_refund",
+          charge_id: charge.id,
+          payment_intent: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+          refunded_eur: refundEur,
         });
         return NextResponse.json({ ok: true, refunded_eur: refundEur });
       }

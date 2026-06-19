@@ -79,6 +79,7 @@ type BuchungRow = {
   Buchung_Quelle: { value: string } | null;
   Kunde_Link: Array<{ id: number; value: string }>;
   Stripe_Kaution_PaymentIntent: string | null;
+  Stripe_Zahlung_PaymentIntent: string | null;
   Stripe_Anzahlung_Link: string | null;
   Stripe_Restzahlung_Link: string | null;
   Stripe_Kaution_Link: string | null;
@@ -816,7 +817,7 @@ Vertrag
                   buchungId={buchung.id}
                   eventDatum={buchung.Event_datum_von}
                   bezahltEur={bezahltSt}
-                  stripeIntentId={buchung.Stripe_Kaution_PaymentIntent ?? undefined}
+                  stripeIntentId={buchung.Stripe_Zahlung_PaymentIntent ?? undefined}
                   defaultErstattungEur={calc.erstattung_eur}
                   tageBisEvent={calc.tage_bis_event}
                   quote={calc.quote}

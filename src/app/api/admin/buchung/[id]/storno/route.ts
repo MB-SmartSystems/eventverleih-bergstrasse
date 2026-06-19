@@ -33,7 +33,26 @@ export async function POST(
     const grund = body.storno_grund || "Sonstig";
     const erstattungEur = Number(body.erstattung_eur || 0);
     const refundViaStripe = !!body.refund_via_stripe;
-    const intentId = body.stripe_payment_intent_id;
+
+    // PaymentIntent für den Refund: explizit aus dem Body, sonst die gespeicherte
+    // Miet-Zahlungs-PI der Buchung (NICHT die Kaution-Hold-PI).
+    let intentId: string | undefined = body.stripe_payment_intent_id || undefined;
+    if (refundViaStripe && erstattungEur > 0 && !intentId) {
+      const b = await getRow<{ Stripe_Zahlung_PaymentIntent: string | null }>(TABLES.Buchungen, buchungId);
+      intentId = b.Stripe_Zahlung_PaymentIntent || undefined;
+    }
+    // Refund gewünscht, aber keine PI auffindbar: Buchung NICHT still als storniert
+    // markieren — sonst gilt sie als erstattet, ohne dass je Geld zurückfloss.
+    if (refundViaStripe && erstattungEur > 0 && !intentId) {
+      return NextResponse.json(
+        {
+          error: "kein_payment_intent",
+          detail:
+            "Refund angefordert, aber keine Stripe-Zahlungs-PaymentIntent-ID hinterlegt. Bitte den Refund direkt in Stripe ausführen.",
+        },
+        { status: 422 },
+      );
+    }
 
     let stripeResult: string | null = null;
     if (refundViaStripe && intentId && erstattungEur > 0) {
