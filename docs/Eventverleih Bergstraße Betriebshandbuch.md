@@ -116,6 +116,15 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 - **Vorfall 2026-06-19:** `amount_capturable_updated` war **nicht** aboniert → alle je platzierten Kautions-Holds (B16, B27) blieben in Baserow leer. Event nachträglich abonniert; B16/B27 manuell nachgetragen. Bei „Kaution wird nicht angezeigt" zuerst hier prüfen.
 - **Diagnose Kaution-Hold (Stripe):** Hold = PaymentIntent mit `capture_method: manual`, erscheint **nicht** als Einnahme, sondern unter Payments als `requires_capture`/„Nicht erfasst". Suche: PaymentIntent-Search `status:'requires_capture'` bzw. `metadata['buchung_id']:'<id>'` (Charges-Suche findet Holds NICHT). Stripe-Secret liegt nur in der **Vercel-Prod-Env** (nicht in Master-.env) → `vercel env pull` mit `VERCEL_TOKEN`.
 
+### Einnahmen / Finanzen-Reiter (Zuflussprinzip, Modell A — ab 2026-06-19)
+
+- **Finanzen-Reiter** (`/admin/finanzen`) liest ausschließlich Tabelle **Einnahmen (961)** + **Ausgaben (962)**, Jahres-gefiltert (Default = laufendes Jahr). Leer = es gibt keine Einnahmen-Rows fürs Jahr.
+- **Regel:** Eine Einnahme entsteht beim **Geldzufluss** (§ 11 EStG), NICHT bei Rechnungserstellung. Gebucht über Helper `bucheEinnahme()` (`src/lib/eventverleih/einnahme.ts`), idempotent über Marker `[evt:B<buchungId>:<quelle>]` in `Notizen`.
+  - Stripe-Webhook bucht Anzahlung/Restzahlung/Komplettzahlung (quelle = PI-ID). **Kaution NICHT** (Hold = kein Zufluss).
+  - Manuelle Zahlungserfassung (`…/buchung/[id]/zahlung`, Bar/Überweisung) bucht ebenso, pro Eingang (quelle = `<typ>-<erfasst_am>`, Teilzahlungen möglich).
+  - `…/rechnung/[id]/bezahlt` bucht nur noch als **Fallback**, wenn die Buchung noch keine Zufluss-Einnahme hat (`bookingHatEinnahme`) → keine Doppelzählung.
+- **Vorher-Bug (behoben 2026-06-19):** Einnahme entstand nur über „Rechnung als bezahlt markieren". Da Stripe-Vorkasse die Rechnung direkt mit Status „Bezahlt" anlegt, lief der Pfad nie → 2026-Einnahmen = 0 trotz echter Zahlungen. Bestand per Backfill aus den realen Zahlungen nachgetragen.
+
 ### Mail-Inventar (alle 30, nach Lebenszyklus-Phase)
 
 Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
