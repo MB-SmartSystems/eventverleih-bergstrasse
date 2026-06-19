@@ -7,7 +7,8 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
+import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { bucheEinnahme, bookingHatEinnahme } from "@/lib/eventverleih/einnahme";
 
 const VALID = new Set(["Bar", "Ueberweisung", "PayPal", "Stripe"]);
 
@@ -46,25 +47,25 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Mahnstufe: "keine",
       Zahlungs_Methode: methode,
     });
-    // Einnahmen-Eintrag (best effort, nicht blockierend) — idempotent, damit ein
-    // Doppelklick/Retry NICHT zwei Einnahmen-Rows (= doppelte EÜR-Einnahme) erzeugt.
+    // Einnahme (best effort, nicht blockierend). Modell A = Zuflussprinzip: die
+    // Einnahme entsteht normalerweise schon beim Zahlungseingang (Stripe-Webhook /
+    // manuelle Erfassung). Hier deshalb nur als FALLBACK buchen, wenn die Buchung noch
+    // gar keine Zufluss-Einnahme hat (z. B. Bar direkt über die Rechnung markiert) —
+    // sonst entstünde eine doppelte EÜR-Einnahme. `bucheEinnahme` ist zusätzlich
+    // idempotent über den Marker `rechnung-<id>`.
     try {
       const betrag = parseFloat(rechnung.Betrag_Gesamt ?? "0") || 0;
-      if (betrag > 0) {
-        const vorhanden = await listRows<{ Rechnung_Link?: Array<{ id: number }> }>(
-          TABLES.Einnahmen,
-          { search: rechnung.Rechnungsnummer, size: 50 },
-        );
-        const schonGebucht = vorhanden.results.some((e) => e.Rechnung_Link?.[0]?.id === rechnungId);
-        if (!schonGebucht) {
-          await createRow(TABLES.Einnahmen, {
-            Datum: today,
-            Beschreibung: `Rechnung ${rechnung.Rechnungsnummer}`,
-            Betrag_Eur: betrag,
-            Jahr: new Date().getFullYear(),
-            Rechnung_Link: [rechnungId],
-          });
-        }
+      const buchungId = rechnung.Buchung_Link?.[0]?.id;
+      const schonGebucht = buchungId ? await bookingHatEinnahme(buchungId) : false;
+      if (betrag > 0 && !schonGebucht) {
+        await bucheEinnahme({
+          buchungId: buchungId ?? 0,
+          quelle: `rechnung-${rechnungId}`,
+          betragEur: betrag,
+          datum: today,
+          beschreibung: `Rechnung ${rechnung.Rechnungsnummer}`,
+          rechnungId,
+        });
       }
     } catch {
       /* Einnahme silent fail — Rechnung-Update wichtiger */

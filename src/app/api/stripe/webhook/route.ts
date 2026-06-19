@@ -19,6 +19,7 @@ import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
 import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
+import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
 import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 import Stripe from "stripe";
 
@@ -98,6 +99,18 @@ async function processReservierungsZahlung(
     amount_eur: (pi.amount || 0) / 100,
     new_status: "Reserviert",
     lock_until: buchung.Event_datum_bis,
+  });
+
+  // Einnahme nach Zuflussprinzip (Modell A) — idempotent über die PI-ID.
+  await bucheEinnahme({
+    buchungId,
+    quelle: pi.id,
+    betragEur: (pi.amount || 0) / 100,
+    datum: today,
+    beschreibung:
+      paymentType === "komplettzahlung"
+        ? `Komplettzahlung (Miete) Buchung #${buchungId}`
+        : `Anzahlung Buchung #${buchungId}`,
   });
 
   // Bestaetigungs-Mail je nach Zahlungsart (fail-soft, idempotent):
@@ -199,6 +212,14 @@ export async function POST(req: NextRequest) {
           await logAudit(buchungId, "Restzahlung_eingegangen", {
             stripe_payment_intent: pi.id,
             amount_eur: (pi.amount || 0) / 100,
+          });
+          // Einnahme nach Zuflussprinzip (Modell A) — idempotent über die PI-ID.
+          await bucheEinnahme({
+            buchungId,
+            quelle: pi.id,
+            betragEur: (pi.amount || 0) / 100,
+            datum: new Date().toISOString().slice(0, 10),
+            beschreibung: `Restzahlung Buchung #${buchungId}`,
           });
           // Bestaetigungs-Mail an Kunden (fail-soft, idempotent)
           try {

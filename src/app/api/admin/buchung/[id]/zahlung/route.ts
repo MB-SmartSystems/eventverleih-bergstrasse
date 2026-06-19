@@ -21,6 +21,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
+import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
 
 const TYPEN = new Set(["anzahlung", "restzahlung", "kaution"]);
 const METHODEN = new Set(["Bar", "Ueberweisung", "Stripe"]);
@@ -133,6 +134,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     await updateRow(TABLES.Buchungen, buchungId, patch);
+
+    // Einnahme nach Zuflussprinzip (Modell A) — pro erfasstem Eingang (Teilzahlungen
+    // möglich → quelle mit erfasst_am eindeutig). Kaution ist kein Zufluss, wird nicht gebucht.
+    if (typ === "anzahlung" || typ === "restzahlung") {
+      await bucheEinnahme({
+        buchungId,
+        quelle: `${typ}-${nowIso}`,
+        betragEur: betrag,
+        datum: body.datum,
+        beschreibung: `${typ === "anzahlung" ? "Anzahlung" : "Restzahlung"} Buchung #${buchungId} (${methode})`,
+      });
+    }
 
     // Bestätigungs-Mail "Anzahlung erhalten" — egal ob Bar/Überweisung/Stripe.
     // Nur wenn die Anzahlung das Soll erreicht (= Status springt auf Reserviert);
