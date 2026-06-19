@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, updateRow, TABLES } from "@/lib/baserow/client";
-import { bucheEinnahme, bookingHatEinnahme } from "@/lib/eventverleih/einnahme";
+import { bucheEinnahme, gebuchteEinnahmenSumme } from "@/lib/eventverleih/einnahme";
 
 const VALID = new Set(["Bar", "Ueberweisung", "PayPal", "Stripe"]);
 
@@ -56,14 +56,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     try {
       const betrag = parseFloat(rechnung.Betrag_Gesamt ?? "0") || 0;
       const buchungId = rechnung.Buchung_Link?.[0]?.id;
-      const schonGebucht = buchungId ? await bookingHatEinnahme(buchungId) : false;
-      if (betrag > 0 && !schonGebucht) {
+      // Modell A: Zuflüsse sind i.d.R. schon beim Zahlungseingang gebucht. Hier nur den
+      // noch NICHT gedeckten Rest nachbuchen (z. B. eine Bar-Restzahlung, die nur über die
+      // Rechnung als bezahlt markiert wurde) — verhindert Doppel- UND Fehlbuchung bei
+      // gemischten Zahlungswegen.
+      const bereits = buchungId ? await gebuchteEinnahmenSumme(buchungId) : 0;
+      const offen = Math.round((betrag - bereits) * 100) / 100;
+      if (offen > 0.005) {
         await bucheEinnahme({
           buchungId: buchungId ?? 0,
           quelle: `rechnung-${rechnungId}`,
-          betragEur: betrag,
+          betragEur: offen,
           datum: today,
-          beschreibung: `Rechnung ${rechnung.Rechnungsnummer}`,
+          beschreibung: `Rechnung ${rechnung.Rechnungsnummer}${bereits > 0 ? " (Restbetrag)" : ""}`,
           rechnungId,
         });
       }

@@ -82,17 +82,23 @@ async function processReservierungsZahlung(
   }
 
   const today = new Date().toISOString().slice(0, 10);
+  const ist = (pi.amount || 0) / 100;
+  const sollAnz = eurNum(buchung.Anzahlung_Soll_Eur);
+  const sollRest = eurNum(buchung.Restzahlung_Soll_Eur);
   const patch: Record<string, unknown> = {
     Status_Erweitert: "Reserviert",
     Anzahlung_Bezahlt_am: today,
-    Anzahlung_Bezahlt_Eur: eurNum(buchung.Anzahlung_Soll_Eur),
+    // Ist-Betrag (tatsächlich gezahlt) statt Soll — konsistent zu Restzahlung + Einnahme.
+    Anzahlung_Bezahlt_Eur: paymentType === "komplettzahlung" ? sollAnz : ist,
     // Miet-Zahlungs-PaymentIntent persistieren, damit ein späterer Storno-Refund die
     // richtige PI hat (NICHT die Kaution-Hold-PI). Letzte Zahlung gewinnt.
     Stripe_Zahlung_PaymentIntent: pi.id,
   };
   if (paymentType === "komplettzahlung") {
     patch.Restzahlung_Bezahlt_am = today;
-    patch.Restzahlung_Bezahlt_Eur = eurNum(buchung.Restzahlung_Soll_Eur);
+    // Komplett = eine Zahlung über die Gesamtsumme: Anzahlung bleibt Soll, der Rest
+    // absorbiert die Differenz, sodass Anzahlung + Rest == tatsächlich gezahltem Ist.
+    patch.Restzahlung_Bezahlt_Eur = Math.round((ist - sollAnz) * 100) / 100;
   }
   if (buchung.Event_datum_bis) patch.Lock_Until = `${buchung.Event_datum_bis}T23:59:59Z`;
   await updateRow(TABLES.Buchungen, buchungId, patch);
@@ -104,11 +110,23 @@ async function processReservierungsZahlung(
     lock_until: buchung.Event_datum_bis,
   });
 
+  // Ist ≠ Soll (z. B. veralteter Zahlungslink): sichtbar machen statt still normalisieren.
+  const sollTotal = paymentType === "komplettzahlung" ? sollAnz + sollRest : sollAnz;
+  if (Math.abs(ist - sollTotal) > 0.01) {
+    await logAudit(buchungId, "Sonstiges", {
+      event: "betrag_divergenz",
+      payment_type: paymentType,
+      ist_eur: ist,
+      soll_eur: sollTotal,
+      stripe_payment_intent: pi.id,
+    });
+  }
+
   // Einnahme nach Zuflussprinzip (Modell A) — idempotent über die PI-ID.
   await bucheEinnahme({
     buchungId,
     quelle: pi.id,
-    betragEur: (pi.amount || 0) / 100,
+    betragEur: ist,
     datum: today,
     beschreibung:
       paymentType === "komplettzahlung"

@@ -23,7 +23,14 @@ export function einnahmeMarker(buchungId: number, quelle: string): string {
   return `[${MARKER_PREFIX}${buchungId}:${quelle}]`;
 }
 
-type EinnahmeNotizRow = { Notizen?: string | null };
+type EinnahmeNotizRow = { Notizen?: string | null; Betrag_Eur?: string | number | null };
+
+function parseDec(v: string | number | null | undefined): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v));
+  return isNaN(n) ? 0 : n;
+}
 
 /** Hat die Buchung bereits eine Zufluss-Einnahme (egal welche Quelle)? */
 export async function bookingHatEinnahme(buchungId: number): Promise<boolean> {
@@ -34,6 +41,20 @@ export async function bookingHatEinnahme(buchungId: number): Promise<boolean> {
   } catch (e) {
     console.error("[einnahme] bookingHatEinnahme fehlgeschlagen:", e);
     return false;
+  }
+}
+
+/** Summe aller bereits gebuchten Zufluss-Einnahmen einer Buchung (über den Marker). */
+export async function gebuchteEinnahmenSumme(buchungId: number): Promise<number> {
+  const prefix = `[${MARKER_PREFIX}${buchungId}:`;
+  try {
+    const res = await listAllRows<EinnahmeNotizRow>(TABLES.Einnahmen);
+    return res.results
+      .filter((e) => (e.Notizen || "").includes(prefix))
+      .reduce((s, e) => s + parseDec(e.Betrag_Eur), 0);
+  } catch (e) {
+    console.error("[einnahme] gebuchteEinnahmenSumme fehlgeschlagen:", e);
+    return 0;
   }
 }
 

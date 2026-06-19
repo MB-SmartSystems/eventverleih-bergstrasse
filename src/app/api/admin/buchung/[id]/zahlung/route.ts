@@ -138,9 +138,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // Einnahme nach Zuflussprinzip (Modell A) — pro erfasstem Eingang (Teilzahlungen
     // möglich → quelle mit erfasst_am eindeutig). Kaution ist kein Zufluss, wird nicht gebucht.
     if (typ === "anzahlung" || typ === "restzahlung") {
+      // Marker aus fachlichem Schlüssel (Typ+Datum+Betrag) statt Zeitstempel → ein
+      // Doppelklick/Retry desselben Eingangs bucht nicht doppelt.
       await bucheEinnahme({
         buchungId,
-        quelle: `${typ}-${nowIso}`,
+        quelle: `${typ}-${body.datum}-${betrag.toFixed(2)}`,
         betragEur: betrag,
         datum: body.datum,
         beschreibung: `${typ === "anzahlung" ? "Anzahlung" : "Restzahlung"} Buchung #${buchungId} (${methode})`,
