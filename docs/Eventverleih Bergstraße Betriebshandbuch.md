@@ -104,6 +104,18 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 - **Versenden:** n8n-Schedule **`eve-mailqueue-poll`** holt die Queue ~jede Minute ab und versendet alles mit `Auto_Reply`/`Approved`. `Pending` bleibt liegen bis Freigabe über `POST /api/admin/mailqueue/[id]/approve` (bzw. `…/reject`).
 - **Texte:** Betreff + Body liegen derzeit **inline** in der jeweiligen Route/Reminder-Datei (kein zentrales Template-Verzeichnis). Bei Text-Änderung also in der unten genannten Datei:Zeile editieren.
 
+### Stripe-Webhook — erforderliche Events (Dashboard-Config!)
+
+- **Endpoint:** `https://eventverleih-bergstrasse.de/api/stripe/webhook` (Handler `src/app/api/stripe/webhook/route.ts`). **Kein** programmatisches Setup im Repo — die abonnierten Events werden **manuell im Stripe-Dashboard** gepflegt. Beim Neuaufsetzen/Key-Wechsel müssen daher ALLE folgenden Events am Endpoint aktiviert sein, sonst läuft der jeweilige Handler-Zweig nie:
+  | Event | Wofür | Folge bei Fehlen |
+  |---|---|---|
+  | `payment_intent.succeeded` | Anzahlung/Rest/Komplettzahlung verbuchen | Zahlung kommt nicht im System an |
+  | `payment_intent.amount_capturable_updated` | **Kaution-Hold platziert** → `Stripe_Kaution_PaymentIntent` + `Kaution_Hinterlegt_am` setzen | Hold liegt in Stripe (`requires_capture`), bleibt aber in Baserow unsichtbar; „Kaution erstatten/einbehalten" findet die PI nicht |
+  | `payment_intent.canceled` | Kaution-Hold-Abbruch | Stornierter Hold nicht reflektiert |
+  | `charge.refunded` | Storno-Refund-Marker | Refund nicht markiert |
+- **Vorfall 2026-06-19:** `amount_capturable_updated` war **nicht** aboniert → alle je platzierten Kautions-Holds (B16, B27) blieben in Baserow leer. Event nachträglich abonniert; B16/B27 manuell nachgetragen. Bei „Kaution wird nicht angezeigt" zuerst hier prüfen.
+- **Diagnose Kaution-Hold (Stripe):** Hold = PaymentIntent mit `capture_method: manual`, erscheint **nicht** als Einnahme, sondern unter Payments als `requires_capture`/„Nicht erfasst". Suche: PaymentIntent-Search `status:'requires_capture'` bzw. `metadata['buchung_id']:'<id>'` (Charges-Suche findet Holds NICHT). Stripe-Secret liegt nur in der **Vercel-Prod-Env** (nicht in Master-.env) → `vercel env pull` mit `VERCEL_TOKEN`.
+
 ### Mail-Inventar (alle 30, nach Lebenszyklus-Phase)
 
 Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
