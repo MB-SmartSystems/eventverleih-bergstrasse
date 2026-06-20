@@ -68,3 +68,38 @@ Fokus laut Auftrag. Keine Bugs, sondern Hebel für Übersicht:
 - **Deploy:** Push auf `main` löst Vercel-Auto-Deploy auf die Live-Seite aus. Bewusst auf deine Freigabe wartend (Live-Stripe + Buchhaltung).
 - **Empfohlene Live-Verifikation nach Deploy:** ein echter Kunden-Storno einer unverbindlichen Test-Anfrage (kostenfrei, kein Geld) mit `manuelbuettner@web.de` → bestätigt S1-Fix end-to-end.
 - **Offene Architektur-Entscheidungen:** R3 (Rechnungsnummer-Race), W2 (Event-Dedup), W3 (Ist/Soll) — brauchen deine Richtungsentscheidung.
+
+---
+
+## Nachtrag 2026-06-20 — Stand nach den Folge-Fixes (verifiziert am Code, HEAD ~`bf08aeb`)
+
+### Status der 18.06-Befunde
+| ID | Status | Beleg |
+|----|--------|-------|
+| S1, R1, R2, R4, W1, W4 | **BEHOBEN** (auf main) | Abschnitt A — gemerged + zusätzlich gehärtet |
+| **R5** | **BEHOBEN** | `kaution-erstatten/route.ts` — Stripe-Fehler → 502, kein „abgeschlossen", keine Mail |
+| **W3** | **BEHOBEN** | `webhook/route.ts` — Ist-Betrag `pi.amount`, Divergenz-Audit `betrag_divergenz` |
+| **W5** | **TEILWEISE** | PI-Persistenz behoben (`Stripe_Zahlung_PaymentIntent`, Refund-Pfad nutzt sie). `charge.refunded`-Guard fehlt weiter (loggt nur → kein Geldrisiko, deckungsgleich mit W2) |
+| **R3** | **OFFEN** | `rechnung.ts` `nextRechnungsnummer` = max+1 in JS, kein Lock/Unique/Retry → GoBD-Risiko (Doppel-Nummer) |
+| **W2** | **OFFEN** | Webhook ohne `event.id`-Dedup; Idempotenz hängt am Fachstatus |
+
+Zusätzlich seit 18.06: Stripe-Webhook abonniert jetzt `payment_intent.amount_capturable_updated` (Kaution-Hold landete vorher nie in Baserow); Einnahmen laufen nach **Zuflussprinzip (Modell A)** — siehe Betriebshandbuch-Abschnitte „Stripe-Webhook" + „Einnahmen / Finanzen-Reiter".
+
+### Neue Befunde (2026-06-20-Audit) — noch OFFEN
+**Klasse „Geld fließt, erreicht aber nie die Buchhaltung":**
+| # | Stelle | Schwere | Befund |
+|---|--------|---------|--------|
+| N1 | `kaution-erstatten` (teil/einzug) | hoch | Kautions-**Schaden-Einzug** (Stripe capture) wird nur ins Audit-Log geschrieben, **nicht als Einnahme** → fehlt in Finanzen + EÜR. Fix: `bucheEinnahme()` in beiden Capture-Zweigen |
+| N2 | `admin/storno` + `member/storno` | hoch | Einbehaltene **Stornogebühr** (bei Stripe-Zahlern bereits geflossen) wird nie als Einnahme gebucht. Fix: einbehaltenen Teil als Einnahme buchen |
+| N3 | `elster/export` | hoch | ELSTER-CSV nutzt `listRows` (Cap 200) statt `listAllRows` → **Steuer-Export schneidet ab 201. Zeile still ab**. Fix: `listAllRows` |
+
+**Klasse „Status/Konsistenz-Hänger":**
+| # | Stelle | Schwere | Befund |
+|---|--------|---------|--------|
+| N4 | `angebot/[id]/neue-version` | hoch | Setzt `Versendet`, lässt `Akzeptiert_am` stehen → „Nachhaken" blockt mit „bereits angenommen". Fix: `Akzeptiert_am: null` mitsetzen |
+| N5 | `anfrage/[id]/action` (ablehnen) | hoch | Setzt `Storniert` ohne Storno-Felder (Grund/Datum). Fix: `Storno_am` + `Storno_Grund` mitschreiben |
+| N6 | `member/storno` | mittel | Leere n8n-Notify-URLs → „Refund auslösen"-Ping still verschluckt (kein Audit/Fallback) → Erstattung kann liegenbleiben. Fix: Audit/Mail-Fallback |
+| N7 | `buchung-recalc.ts` | mittel | Überschreibt `Anzahlung_Soll_Eur` auch nach gesetzter `Anzahlung_Bezahlt_am`. Fix: Anzahlung nicht neu berechnen wenn bezahlt |
+| N8 | `member/storno` | niedrig | Kein Audit-Log-Eintrag (Inkonsistenz zu allen anderen Routen) |
+
+**Geprüft & OK:** Button-/Form-Verdrahtung (keine toten Buttons), MailQueue-Freigabe, Finanzen-/ELSTER-**Seite** (lesen via `listAllRows`), heutige Zahlungspfade (idempotent), Übergabe/Rücknahme/Kaution-Hold/-IBAN.
