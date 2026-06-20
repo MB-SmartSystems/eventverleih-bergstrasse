@@ -91,6 +91,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       Snapshot_JSON: JSON.stringify(snapshot),
       Snapshot_Version: nextVersion,
       Snapshot_Erstellt_am: snapshot.erstellt_am,
+      // Neue Version = vorige Annahme ist hinfällig, Kunde muss neu bestätigen. Sonst
+      // bleibt Akzeptiert_am gesetzt und "Nachhaken" blockt mit "bereits angenommen".
+      Akzeptiert_am: null,
     });
 
     // Buchungs-Status zurück auf Angebot_versendet (überschreibt evtl. "Reserviert" wenn schon akzeptiert

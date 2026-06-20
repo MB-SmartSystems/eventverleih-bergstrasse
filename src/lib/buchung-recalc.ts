@@ -86,8 +86,21 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
   const abholung = num(preState?.Preis_Abholung);
   const aufbau = num(preState?.Preis_Aufbau);
   const anzahlungBasis = mietsumme + lieferung + abholung + aufbau;
-  const anzahlung = Math.round(anzahlungBasis * 0.3 * 100) / 100;
-  const restzahlung = Math.round((anzahlungBasis - anzahlung) * 100) / 100;
+  // Ist die Anzahlung schon bezahlt, ihr Soll NICHT neu berechnen — das würde einen
+  // bereits abgerechneten Betrag überschreiben. Stattdessen bleibt die Anzahlung fix
+  // und die Restzahlung absorbiert die Differenz einer nachträglichen Positions-Änderung.
+  const anzahlungBezahlt = !!preState?.Anzahlung_Bezahlt_am;
+  const anzahlung = anzahlungBezahlt
+    ? num(preState?.Anzahlung_Soll_Eur)
+    : Math.round(anzahlungBasis * 0.3 * 100) / 100;
+  // Bei eingefrorener Anzahlung kann der Basisbetrag nach einer Positions-Reduktion unter die
+  // (bereits bezahlte) Anzahlung fallen → Restzahlung auf 0 clampen statt negativ. Eine echte
+  // Überzahlung (anzahlung > Basis) ist dann ein Guthaben-Fall, den Manuel manuell klärt.
+  const restRoh = Math.round((anzahlungBasis - anzahlung) * 100) / 100;
+  const restzahlung = Math.max(0, restRoh);
+  if (restRoh < 0) {
+    console.warn(`[recalc] Buchung #${buchungId}: Basis (${anzahlungBasis}) < bezahlte Anzahlung (${anzahlung}) → Guthaben ${(-restRoh).toFixed(2)} EUR, Restzahlung auf 0 geclampt`);
+  }
 
   await updateRow(TABLES.Buchungen, buchungId, {
     Preis_Artikel: mietsumme,

@@ -58,6 +58,24 @@ export async function gebuchteEinnahmenSumme(buchungId: number): Promise<number>
   }
 }
 
+/** Summe der Einnahmen einer Buchung, deren Marker-Quelle `quelleTeil` enthält
+ *  (z. B. alle bisher gebuchten Erstattungen einer Stripe-Charge). Refunds sind negativ. */
+export async function gebuchteSummeMitQuelle(buchungId: number, quelleTeil: string): Promise<number> {
+  const prefix = `[${MARKER_PREFIX}${buchungId}:`;
+  try {
+    const res = await listAllRows<EinnahmeNotizRow>(TABLES.Einnahmen);
+    return res.results
+      .filter((e) => {
+        const n = e.Notizen || "";
+        return n.includes(prefix) && n.includes(quelleTeil);
+      })
+      .reduce((s, e) => s + parseDec(e.Betrag_Eur), 0);
+  } catch (e) {
+    console.error("[einnahme] gebuchteSummeMitQuelle fehlgeschlagen:", e);
+    return 0;
+  }
+}
+
 /**
  * Bucht einen einzelnen Zahlungseingang idempotent als Einnahme.
  * `quelle` muss pro Zahlungseingang eindeutig sein (z. B. Stripe-PI-ID oder
@@ -72,7 +90,9 @@ export async function bucheEinnahme(opts: {
   rechnungId?: number;
 }): Promise<void> {
   const { buchungId, quelle, betragEur, datum, beschreibung, rechnungId } = opts;
-  if (!betragEur || betragEur <= 0) return;
+  // Negative Beträge sind erlaubt (Erstattung/Storno = Gegenbuchung im Zuflussmodell);
+  // nur 0/NaN werden übersprungen.
+  if (!Number.isFinite(betragEur) || betragEur === 0) return;
   const marker = einnahmeMarker(buchungId, quelle);
   try {
     const vorhanden = await listAllRows<EinnahmeNotizRow>(TABLES.Einnahmen);

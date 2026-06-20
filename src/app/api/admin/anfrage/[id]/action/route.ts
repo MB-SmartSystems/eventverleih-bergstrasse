@@ -287,7 +287,16 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         buchungStatus = "Storniert";
       }
       // Rückruf: Buchungs-Status bleibt "Anfrage", weil noch nichts entschieden
-      if (buchungStatus) {
+      if (buchungStatus === "Storniert") {
+        // Konsistent zu den echten Storno-Routen: Grund + Datum mitschreiben, sonst
+        // steht eine "stornierte" Buchung ohne Grund/Datum da.
+        await updateRow(TABLES.Buchungen, buchungId, {
+          Status_Erweitert: buchungStatus,
+          Storno_am: new Date().toISOString().slice(0, 10),
+          Storno_Grund: "Manuel_Entscheidung",
+          Storno_Betrag_Eur: 0,
+        });
+      } else if (buchungStatus) {
         await updateRow(TABLES.Buchungen, buchungId, { Status_Erweitert: buchungStatus });
       }
     } catch (e) {

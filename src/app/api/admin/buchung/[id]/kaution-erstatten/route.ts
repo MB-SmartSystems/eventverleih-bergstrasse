@@ -18,6 +18,7 @@ import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { eurMail } from "@/lib/eventverleih/zahlung";
 import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
 import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
+import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
 
 export const dynamic = "force-dynamic";
 
@@ -150,6 +151,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       });
     } catch (e) {
       console.error("[kaution-erstatten] audit-log fehlgeschlagen:", e);
+    }
+
+    // Einbehaltener Schaden ist eine Betriebseinnahme (Schadensersatz aus Kaution) —
+    // als Einnahme buchen (Zuflussprinzip). Idempotent pro Buchung über den Marker.
+    if (schadenEur > 0) {
+      await bucheEinnahme({
+        buchungId,
+        quelle: `schaden-${buchungId}`,
+        betragEur: schadenEur,
+        datum: heute,
+        beschreibung: `Schadensersatz (Kaution) Buchung #${buchungId}`,
+      });
     }
 
     // Beleg sicherstellen (für Link in der Abschluss-Mail) — non-blocking

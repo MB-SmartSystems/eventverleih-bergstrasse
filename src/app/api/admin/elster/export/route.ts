@@ -6,7 +6,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { listRows, TABLES } from "@/lib/baserow/client";
+import { listAllRows, TABLES } from "@/lib/baserow/client";
 
 type EinnahmeRow = {
   id: number;
@@ -52,8 +52,8 @@ export async function GET(req: NextRequest) {
   }
 
   const [einnahmenList, ausgabenList] = await Promise.all([
-    listRows<EinnahmeRow>(TABLES.Einnahmen, { size: 1000 }),
-    listRows<AusgabeRow>(TABLES.Ausgaben, { size: 1000 }),
+    listAllRows<EinnahmeRow>(TABLES.Einnahmen),
+    listAllRows<AusgabeRow>(TABLES.Ausgaben),
   ]);
   const einnahmen = einnahmenList.results.filter((e) => e.Datum?.startsWith(String(jahr)));
   const ausgaben = ausgabenList.results.filter((a) => a.Datum?.startsWith(String(jahr)));

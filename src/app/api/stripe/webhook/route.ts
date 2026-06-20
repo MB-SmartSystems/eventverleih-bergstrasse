@@ -19,7 +19,7 @@ import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
 import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
-import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
+import { bucheEinnahme, gebuchteSummeMitQuelle } from "@/lib/eventverleih/einnahme";
 import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 import Stripe from "stripe";
 
@@ -317,18 +317,52 @@ export async function POST(req: NextRequest) {
 
       case "charge.refunded": {
         const charge = event.data.object as Stripe.Charge;
-        const buchungId = parseInt(charge.metadata?.buchung_id || "", 10);
-        if (!buchungId) return NextResponse.json({ ok: true });
-        // Refund nur protokollieren — NICHT Storno_Betrag_Eur überschreiben (das ist die
-        // Stornogebühr/geplante Erstattung; der tatsächlich erstattete Betrag ist eine
-        // andere Größe und würde das Feld korrumpieren).
+        // buchung_id steht auf der PaymentIntent-Metadata, nicht zwingend auf der Charge —
+        // bei Bedarf die PI nachladen.
+        let buchungId = parseInt(charge.metadata?.buchung_id || "", 10);
+        if (!buchungId && typeof charge.payment_intent === "string") {
+          try {
+            const pi = await getStripe().paymentIntents.retrieve(charge.payment_intent);
+            buchungId = parseInt(pi.metadata?.buchung_id || "", 10);
+          } catch (e) {
+            console.error("[stripe-webhook] PI-Lookup für Refund fehlgeschlagen:", e);
+          }
+        }
+        // amount_refunded ist KUMULATIV über alle Teil-Refunds der Charge. Wir buchen das
+        // Delta zum bereits gebuchten Erstattungsbetrag dieser Charge — so werden mehrere
+        // Teil-Refunds korrekt summiert und Re-Deliveries nicht doppelt verbucht.
         const refundEur = (charge.amount_refunded || 0) / 100;
-        await logAudit(buchungId, "Sonstiges", {
-          event: "stripe_refund",
-          charge_id: charge.id,
-          payment_intent: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
-          refunded_eur: refundEur,
-        });
+        if (buchungId && refundEur > 0) {
+          const bereitsErstattet = -(await gebuchteSummeMitQuelle(buchungId, `refund-${charge.id}`));
+          const delta = Math.round((refundEur - bereitsErstattet) * 100) / 100;
+          if (delta > 0.005) {
+            // Erstattung als NEGATIVE Einnahme gegenbuchen: die ursprüngliche Zahlung wurde
+            // beim Eingang als Einnahme verbucht (Zuflussprinzip), der Rückfluss reduziert sie.
+            // Storno_Betrag_Eur wird NICHT überschrieben (= Stornogebühr).
+            await bucheEinnahme({
+              buchungId,
+              quelle: `refund-${charge.id}-${charge.amount_refunded}`,
+              betragEur: -delta,
+              datum: new Date().toISOString().slice(0, 10),
+              beschreibung: `Erstattung (Storno) Buchung #${buchungId}`,
+            });
+            await logAudit(buchungId, "Sonstiges", {
+              event: "stripe_refund",
+              charge_id: charge.id,
+              refunded_eur: refundEur,
+              delta_eur: delta,
+            });
+          }
+        } else if (!buchungId && refundEur > 0) {
+          // buchung_id nicht auffindbar: NICHT still verschlucken — Reconciliation-Eintrag,
+          // damit die Erstattung manuell zugeordnet werden kann.
+          await logAudit(0, "Sonstiges", {
+            event: "refund_unzugeordnet",
+            charge_id: charge.id,
+            payment_intent: typeof charge.payment_intent === "string" ? charge.payment_intent : undefined,
+            refunded_eur: refundEur,
+          });
+        }
         return NextResponse.json({ ok: true, refunded_eur: refundEur });
       }
 

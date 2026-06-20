@@ -153,10 +153,11 @@ Manuel Büttner — Eventverleih Bergstraße`;
     }
 
     // Telegram-Push an Manuel: Refund manuell triggern!
+    let notifyResult = "kein_notify_url";
     const notifyUrl = process.env.N8N_STORNO_NOTIFY_URL || process.env.N8N_ANFRAGE_NOTIFY_URL || "";
     if (notifyUrl) {
       try {
-        await fetch(notifyUrl, {
+        const res = await fetch(notifyUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -177,9 +178,34 @@ Manuel Büttner — Eventverleih Bergstraße`;
           }),
           signal: AbortSignal.timeout(5000),
         });
+        notifyResult = res.ok ? "gesendet" : `http_${res.status}`;
       } catch (e) {
         console.error("[member-storno] notify fehlgeschlagen:", e);
+        notifyResult = "fehlgeschlagen";
       }
+    }
+
+    // Audit-Log (wie alle anderen Lifecycle-Routen). Hält insbesondere fest, ob der
+    // Refund-Notify an Manuel rausging — eine fällige Erstattung ohne Notify bliebe
+    // sonst unsichtbar (Geld könnte liegenbleiben).
+    try {
+      await createRow(TABLES.Audit_Log, {
+        Name: `Storno (Kunde) Buchung #${buchungId}`,
+        Aktion: "Storno",
+        Zeitpunkt: new Date().toISOString(),
+        Buchung_ID_Ref: String(buchungId),
+        Akteur: "Kunde",
+        Details: JSON.stringify({
+          grund: "Kunden_Wunsch",
+          stornogebuehr_eur: calc.stornogebuehr_eur,
+          erstattung_eur: calc.erstattung_eur,
+          refund_notify: notifyResult,
+          refund_pending: calc.erstattung_eur > 0,
+        }),
+        Aktiv: true,
+      });
+    } catch (e) {
+      console.error("[member-storno] audit-log fehlgeschlagen:", e);
     }
 
     return NextResponse.json({ ok: true, calc });
