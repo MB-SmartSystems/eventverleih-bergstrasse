@@ -122,7 +122,10 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 - **Regel:** Eine Einnahme entsteht beim **Geldzufluss** (§ 11 EStG), NICHT bei Rechnungserstellung. Gebucht über Helper `bucheEinnahme()` (`src/lib/eventverleih/einnahme.ts`), idempotent über Marker `[evt:B<buchungId>:<quelle>]` in `Notizen`.
   - Stripe-Webhook bucht Anzahlung/Restzahlung/Komplettzahlung (quelle = PI-ID). **Kaution NICHT** (Hold = kein Zufluss).
   - Manuelle Zahlungserfassung (`…/buchung/[id]/zahlung`, Bar/Überweisung) bucht ebenso, pro Eingang (quelle = `<typ>-<erfasst_am>`, Teilzahlungen möglich).
-  - `…/rechnung/[id]/bezahlt` bucht nur noch als **Fallback**, wenn die Buchung noch keine Zufluss-Einnahme hat (`bookingHatEinnahme`) → keine Doppelzählung.
+  - `…/rechnung/[id]/bezahlt` bucht nur noch als **Fallback** den noch ungedeckten Rest (`gebuchteEinnahmenSumme`) → keine Doppel-/Fehlbuchung bei gemischten Zahlungswegen.
+  - **Kautions-Schaden-Einzug** (`kaution-erstatten` teil/einzug) bucht den einbehaltenen Betrag als Einnahme (Schadensersatz, quelle `schaden-<id>`).
+  - **Erstattung/Storno** (`charge.refunded`-Webhook) bucht eine **negative Einnahme** (Gegenbuchung zur ursprünglichen Zahlung; quelle `refund-<chargeId>-<betrag>`, Delta-sicher bei Teil-Refunds). `Storno_Betrag_Eur` bleibt die Stornogebühr und wird NICHT überschrieben.
+  - `bucheEinnahme()` erlaubt negative Beträge (Erstattung); Idempotenz weiterhin über den Notizen-Marker. Bekannte Grenze: Marker-Check ist nicht atomar (TOCTOU) — bei sehr seltener paralleler Webhook-Re-Delivery theoretisch Doppelbuchung; in der Praxis durch die vorgelagerten Status-Guards abgefangen.
 - **Vorher-Bug (behoben 2026-06-19):** Einnahme entstand nur über „Rechnung als bezahlt markieren". Da Stripe-Vorkasse die Rechnung direkt mit Status „Bezahlt" anlegt, lief der Pfad nie → 2026-Einnahmen = 0 trotz echter Zahlungen. Bestand per Backfill aus den realen Zahlungen nachgetragen.
 
 ### Mail-Inventar (alle 30, nach Lebenszyklus-Phase)

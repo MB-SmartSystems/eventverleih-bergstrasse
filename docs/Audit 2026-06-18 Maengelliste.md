@@ -85,15 +85,17 @@ Fokus laut Auftrag. Keine Bugs, sondern Hebel für Übersicht:
 
 Zusätzlich seit 18.06: Stripe-Webhook abonniert jetzt `payment_intent.amount_capturable_updated` (Kaution-Hold landete vorher nie in Baserow); Einnahmen laufen nach **Zuflussprinzip (Modell A)** — siehe Betriebshandbuch-Abschnitte „Stripe-Webhook" + „Einnahmen / Finanzen-Reiter".
 
-### Neue Befunde (2026-06-20-Audit) — noch OFFEN
-**Klasse „Geld fließt, erreicht aber nie die Buchhaltung":**
+### Neue Befunde (2026-06-20-Audit)
+> **Status: N1–N8 alle BEHOBEN** (Commit `38ae08c`, tsc + Build grün, Codex-Cross-Check inkl. Teil-Refund-Delta- und Negativ-Restzahlung-Härtung). **Verbleibend OFFEN (Architektur, mit Manuel abzustimmen):** R3 (RG-Nummer-Race), W2 (Webhook-`event.id`-Dedup), Einnahme-Marker-TOCTOU (Baserow bietet keine atomare Unique-Constraint per API).
+
+**Klasse „Geld fließt, erreicht aber nie die Buchhaltung" — BEHOBEN:**
 | # | Stelle | Schwere | Befund |
 |---|--------|---------|--------|
 | N1 | `kaution-erstatten` (teil/einzug) | hoch | Kautions-**Schaden-Einzug** (Stripe capture) wird nur ins Audit-Log geschrieben, **nicht als Einnahme** → fehlt in Finanzen + EÜR. Fix: `bucheEinnahme()` in beiden Capture-Zweigen |
 | N2 | `admin/storno` + `member/storno` | hoch | Einbehaltene **Stornogebühr** (bei Stripe-Zahlern bereits geflossen) wird nie als Einnahme gebucht. Fix: einbehaltenen Teil als Einnahme buchen |
 | N3 | `elster/export` | hoch | ELSTER-CSV nutzt `listRows` (Cap 200) statt `listAllRows` → **Steuer-Export schneidet ab 201. Zeile still ab**. Fix: `listAllRows` |
 
-**Klasse „Status/Konsistenz-Hänger":**
+**Klasse „Status/Konsistenz-Hänger" — BEHOBEN:**
 | # | Stelle | Schwere | Befund |
 |---|--------|---------|--------|
 | N4 | `angebot/[id]/neue-version` | hoch | Setzt `Versendet`, lässt `Akzeptiert_am` stehen → „Nachhaken" blockt mit „bereits angenommen". Fix: `Akzeptiert_am: null` mitsetzen |
