@@ -86,7 +86,18 @@ type ArtikelRow = {
   Aufbau_Pauschale_Eur: string | null;
   Kategorie: { value: string } | null;
   Sichtbar_Public: boolean;
+  Bestand_Bestellbar?: boolean | { value: string } | null;
 };
+
+function isBestellbarFlag(v: boolean | { value: string } | null | undefined): boolean {
+  if (v === null || v === undefined) return false;
+  if (typeof v === "boolean") return v;
+  if (typeof v === "object" && "value" in v) {
+    const s = String(v.value || "").toLowerCase();
+    return s === "ja" || s === "true";
+  }
+  return Boolean(v);
+}
 
 function fmtEur(v: string | null | undefined): string {
   if (!v) return "—";
@@ -250,13 +261,26 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
   // Knappheits-Check (2-Zelte-Fall): ist fuer den Termin schon genug Bestand anderweitig
   // committet (Bestaetigt/Reserviert+)? Warnt nur — blockt nicht (vorab-reserviert weich).
   const knappheit: Array<{ name: string; angefragt: number; frei: number; bestand: number }> = [];
+  // freiInfo deckt ALLE waehlbaren Artikel ab (nicht nur die aktuellen Positionen), damit der
+  // Positions-Editor schon beim Auswaehlen eines neuen Artikels live "X von Y frei" zeigen kann.
+  // frei = Bestand minus durch ANDERE committete Buchungen gebundene Menge im Zeitraum (diese
+  // Buchung ausgeschlossen) → aendert sich nicht waehrend des Editierens, daher als Prop stabil.
+  const freiInfo: Record<number, { frei: number; bestand: number; bestellbar: boolean }> = {};
   if (buchung.Event_datum_von && buchung.Event_datum_bis) {
     try {
-      const artikelIds = positionItems.map((p) => p.artikelId).filter((x) => x > 0);
-      const demand = await getCommittedDemand(artikelIds, buchung.Event_datum_von, buchung.Event_datum_bis, buchungId);
+      const checkIds = Array.from(
+        new Set([...positionItems.map((p) => p.artikelId), ...artikelOptions.map((a) => a.id)]),
+      ).filter((x) => x > 0);
+      const demand = await getCommittedDemand(checkIds, buchung.Event_datum_von, buchung.Event_datum_bis, buchungId);
+      for (const aid of checkIds) {
+        const d = demand.get(aid);
+        if (!d) continue;
+        freiInfo[aid] = { frei: d.frei, bestand: d.bestand, bestellbar: isBestellbarFlag(artikelById.get(aid)?.Bestand_Bestellbar) };
+      }
       for (const p of positionItems) {
         const d = demand.get(p.artikelId);
-        if (d && p.anzahl > d.frei) {
+        // Bestellbare Artikel (z.B. Riesenjenga, Bestand 0) sind kein echter Engpass — nicht warnen.
+        if (d && p.anzahl > d.frei && !freiInfo[p.artikelId]?.bestellbar) {
           knappheit.push({ name: p.bezeichnung, angefragt: p.anzahl, frei: d.frei, bestand: d.bestand });
         }
       }
@@ -384,7 +408,7 @@ export default async function AnfrageDetailPage({ params }: { params: Promise<{ 
 
 
           {/* Positionen — editierbar */}
-          <PositionsEditor buchungId={buchungId} initialPositionen={positionItems} artikelOptions={artikelOptions} />
+          <PositionsEditor buchungId={buchungId} initialPositionen={positionItems} artikelOptions={artikelOptions} freiInfo={freiInfo} />
 
           {/* Zusatzleistungen: Lieferung / Abholung / Aufbau — Auto-Save bei Toggle */}
           <ServicesEditor

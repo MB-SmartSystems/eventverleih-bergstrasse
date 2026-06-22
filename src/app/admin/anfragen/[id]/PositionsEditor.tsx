@@ -21,14 +21,18 @@ function fmtEur(n: number): string {
   return `${n.toFixed(2).replace(".", ",")} €`;
 }
 
+export type FreiInfo = Record<number, { frei: number; bestand: number; bestellbar: boolean }>;
+
 export default function PositionsEditor({
   buchungId,
   initialPositionen,
   artikelOptions,
+  freiInfo,
 }: {
   buchungId: number;
   initialPositionen: PositionItem[];
   artikelOptions: ArtikelOption[];
+  freiInfo?: FreiInfo;
 }) {
   const [positionen, setPositionen] = useState<PositionItem[]>(initialPositionen);
   const [busyId, setBusyId] = useState<number | "new" | null>(null);
@@ -37,6 +41,41 @@ export default function PositionsEditor({
   const [addAnzahl, setAddAnzahl] = useState<number>(1);
 
   const summe = positionen.reduce((s, p) => s + p.anzahl * p.einzelpreis, 0);
+
+  // Live-Verfuegbarkeits-Badge: vergleicht die aktuell getippte Anzahl gegen das (stabile)
+  // freie Kontingent fuer den Buchungs-Zeitraum. frei = Bestand minus durch ANDERE committete
+  // Buchungen gebundene Menge. Warnt rot bei Ueberbuchung, amber beim letzten Stueck.
+  function availBadge(artikelId: number, anzahl: number) {
+    const info = freiInfo?.[artikelId];
+    if (!info) return null; // kein Datum gesetzt o.ae. → nichts anzeigen
+    const { frei, bestand, bestellbar } = info;
+    if (bestellbar && frei <= 0) {
+      return (
+        <span className="inline-block mt-1 text-[11px] px-1.5 py-0.5 rounded bg-sky-500/10 text-sky-300 border border-sky-500/30">
+          auf Bestellung · {bestand} im eigenen Bestand
+        </span>
+      );
+    }
+    if (anzahl > frei) {
+      return (
+        <span className="inline-block mt-1 text-[11px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-300 border border-red-500/40">
+          ⚠ Überbuchung: nur {frei} von {bestand} frei für diesen Zeitraum
+        </span>
+      );
+    }
+    if (frei > 0 && anzahl === frei) {
+      return (
+        <span className="inline-block mt-1 text-[11px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-200 border border-amber-500/40">
+          ⚠ letztes Stück — {frei} von {bestand} frei
+        </span>
+      );
+    }
+    return (
+      <span className="inline-block mt-1 text-[11px] text-gray-500">
+        {frei} von {bestand} frei
+      </span>
+    );
+  }
 
   function setPos(id: number, patch: Partial<PositionItem>) {
     setPositionen((arr) => arr.map((p) => (p.id === id ? { ...p, ...patch } : p)));
@@ -134,7 +173,10 @@ export default function PositionsEditor({
               const ges = p.anzahl * p.einzelpreis;
               return (
                 <tr key={p.id} className="border-b border-white/5">
-                  <td className="py-2 pr-2 text-gray-200">{p.bezeichnung}</td>
+                  <td className="py-2 pr-2 text-gray-200">
+                    <div>{p.bezeichnung}</div>
+                    {availBadge(p.artikelId, p.anzahl)}
+                  </td>
                   <td className="text-right">
                     <input
                       type="number"
@@ -215,6 +257,8 @@ export default function PositionsEditor({
             {busyId === "new" ? "…" : "+ Hinzufügen"}
           </button>
         </div>
+        {/* Live-Verfügbarkeit für den aktuell gewählten Artikel + Anzahl */}
+        <div className="mt-2">{availBadge(addArtikelId, addAnzahl)}</div>
       </div>
     </section>
   );
