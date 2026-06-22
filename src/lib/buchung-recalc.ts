@@ -50,6 +50,13 @@ function num(v: string | null | undefined): number {
   return parseFloat(v ?? "0") || 0;
 }
 
+// Float-Summen auf 2 Nachkommastellen runden. Baserows Geld-Felder erlauben max. 2 Dezimalstellen;
+// eine ungerundete Summe wie 99.80000000000001 (60 + 6.2 + 33.6) liefert sonst HTTP 400
+// ERROR_REQUEST_BODY_VALIDATION / max_decimal_places.
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
 export async function recalcBuchung(buchungId: number): Promise<void> {
   // Pre-Snapshot fuer Stripe-Link-Refresh
   let preState: BuchungFresh | null = null;
@@ -78,6 +85,10 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
     const artikelId = p.Artikel_Link?.[0]?.id;
     if (artikelId) kaution += anz * (kautionMap.get(artikelId) ?? 0);
   }
+  // Float-Artefakte der Summen sofort an der Quelle wegrunden, damit alle abgeleiteten Werte
+  // (Anzahlung, Gesamt, Kaution, Angebot, Stripe-Beträge) Baserow-konform 2-stellig sind.
+  mietsumme = round2(mietsumme);
+  kaution = round2(kaution);
 
   // Lieferung + Abholung + Aufbau bleiben aus dem Pre-State erhalten (recalc setzt nur Artikel).
   // Anzahlung/Gesamt berücksichtigen sie aber, damit Stripe-Links und Sidebar konsistent
