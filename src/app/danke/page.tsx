@@ -1,6 +1,7 @@
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Link from "next/link";
+import ConversionTrack from "@/components/ConversionTrack";
 
 export const metadata = {
   title: "Vielen Dank — Eventverleih Bergstraße",
@@ -9,6 +10,7 @@ export const metadata = {
 export default function Danke() {
   return (
     <>
+      <ConversionTrack event="anfrage_abgeschickt" />
       <Header />
       <main className="pt-24 pb-16 min-h-[60vh] flex items-center">
         <div className="container-width px-4 sm:px-6 lg:px-8 text-center">
