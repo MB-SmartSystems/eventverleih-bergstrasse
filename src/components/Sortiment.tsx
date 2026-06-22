@@ -298,12 +298,13 @@ export default function Sortiment() {
             Was wir anbieten
           </p>
           <h2 className="font-display text-3xl md:text-4xl font-bold mb-4">
-            Unser Sortiment
+            Eventverleih an der Bergstraße – unser Sortiment
           </h2>
           <p className="text-gray-400 max-w-2xl mx-auto">
-            Zelte, Tische, Stühle, Licht, Wärme und mehr — jeder Artikel mit
-            klarem Mietpreis (pauschal, bis zu 5 Tage), alles einzeln mietbar.
-            Sets sind Startpunkte, keine Pflicht.
+            Beim Eventverleih Bergstraße mieten Sie Zelte, Tische, Stühle, Licht,
+            Wärme und mehr für Ihr Fest in Alsbach-Hähnlein und der Region
+            Rhein-Neckar — jeder Artikel mit klarem Mietpreis (pauschal, bis zu
+            5 Tage), alles einzeln mietbar. Sets sind Startpunkte, keine Pflicht.
           </p>
         </div>
 
