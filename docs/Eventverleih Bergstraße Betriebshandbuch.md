@@ -2,7 +2,7 @@
 
 > **Zweck.** Eine Quelle der Wahrheit dafür, *wann welche E-Mail* an den Kunden geht, *wer sie auslöst* (Klick oder Automatik) und *wo im Code* sie lebt. Teil A erklärt das in Alltagssprache (für Manuel / Dashboard). Teil B ist die Code-Landkarte (für Hermes), damit Mail-Änderungen nicht jedes Mal eine Komplett-Suche brauchen.
 >
-> **Stand:** 2026-06-18, Repo-Commit `059d066`. Beschreibt den **Repo-Code**.
+> **Stand:** 2026-06-24. Beschreibt den **Repo-Code**. Drift-Check: `python3 scripts/handbuch_drift_check.py` vergleicht das Mail-Inventar (Teil B) gegen die echten `Template_Key`s im Code (MailQueue-Mails). Die finale n8n-Direkt-Mail (Rechnung/Abschluss, `eve-rechnung-render-mail`) hat **keinen** Template_Key und liegt außerhalb des Checks — separat pflegen.
 >
 > ⚠️ **Drift-Warnung:** Produktion lief in der Vergangenheit Code, der in keinem lokalen Commit stand (Mail-Betreffe, die nirgends im Repo auffindbar waren). Wenn eine real zugestellte Mail von diesem Dokument abweicht: nicht annehmen Repo == Prod. Mit `git grep "<Betreff>" $(git rev-list --all)` über *alle* Commits suchen und gegen die **Live-Baserow-Rows** (Tabelle MailQueue) prüfen.
 >
@@ -68,19 +68,22 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
     1 Stunde vor Rückgabe → Auto
     Du dokumentierst Rückgabe → Status: Zurueckgegeben
 
-⑦  KAUTION & ABSCHLUSS
+⑦  KAUTION (intern, KEINE eigene Mail — seit 2026-06-24)
     Du prüfst Kaution + Schäden (Prüffrist ~1–2 Tage).
-    Button „Kaution erstatten":
-      · voll          → Auto: Kaution kommt zurück
-      · Teilerstattung → Auto: Teilerstattung wegen Schaden
-      · Kompletter Einzug → Auto: kompletter Einzug wegen Schaden
+    Button „Kaution erstatten" (voll / Teilerstattung / Kompletter Einzug):
+      · voll  → Stripe-Hold wird freigegeben (idempotent gegen bereits verfallene Holds), 0 € abgebucht.
+      · teil/einzug → Schaden wird captured, Rest verfällt.
+      · Verschickt KEINE eigene Kundenmail; die Kaution-Info steht in den Buchungs-Feldern
+        (Kaution_Pruefung_Status, _Rueckzahlung_Eur, Schaden_Betrag_Eur, _Schaden_Notiz)
+        und wird von der Abschluss-Mail in ⑧ aufgegriffen.
     Bar-Kaution ohne Stripe-Hold: „IBAN anfordern" (Pending) → du überweist manuell per Bank-App.
     Status: Abgerechnet
 
-⑧  BEWERTUNG
-    3–10 Tage nach Event-Ende: Bewertungsbitte als Pending (du gibst frei).
-    Timing-Gate: erst NACHDEM die Kaution zurück ist — nie während du noch Kundengeld hältst.
-    Manuels Wunsch: Bewertungs-CTA in EINE warme Abschluss-Mail bündeln (nicht standalone).
+⑧  ABSCHLUSS-MAIL — Rechnung + Kaution + Bewertung in EINER Mail
+    Button „Rechnung erstellen + Mail senden" (du löst sie bewusst aus).
+    → n8n eve-rechnung-render-mail: Rechnungs-/Beleg-PDF (benannt `RG-<Nr>.pdf`)
+      + Kaution-Status + Google-Bewertungsbitte. Erfüllt den Wunsch „eine warme Abschluss-Mail".
+    Timing-Gate: Kaution zuerst auflösen (⑦), dann Abschluss-Mail — nie Bewertung bei offener Kaution.
 ```
 
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
@@ -92,6 +95,12 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 - **Offene Kautionsrückzahlung = Buchung gilt NICHT als abgeschlossen** (bleibt offene Aktion bis erstattet).
 - **Angebot läuft still ab** (keine „Angebot abgelaufen"-Mail). Gültigkeit ~14 Tage. Nachhaken erst nach ~10 Tagen, „erneut senden" nur Ausnahme.
 - **Mail-Ton:** Erfolgsfall (volle Erstattung) warm + persönlich inkl. Bewertungsbitte; Schadensfälle (Teil/Einzug) sachlich-neutral. Stil-Grundregeln (`schreibstil-manu`) immer durchsetzen.
+- **Keine Auto-Kundenmail aus Einzelaktionen** (seit 2026-06-24): Kundenmail bewusst über „Rechnung erstellen + Mail senden", nicht als Nebeneffekt eines Buttons.
+
+#### Dashboard-Aktionen / Buttons (neu 2026-06-24)
+- **Buchungen-Tab** öffnet auf **„Aktiv"** (zu-erledigen zuerst; `istAktiv` schließt offene Kaution + Guthaben ein) — `src/app/admin/buchungen/page.tsx`.
+- **Position/Service nachträglich entfernen** je Zeile im Buchungs-Detail → `…/position/[id]/delete` bzw. `…/buchung/[id]/service-entfernen` → `recalcBuchung` (Komponente `EntfernenPanel.tsx`).
+- **Überzahlung → Guthaben-Badge** „Guthaben X € — Rückzahlung offen" (Liste + Detail); Rückzahlung macht Manuel manuell (kein Auto-Versand).
 
 ---
 
@@ -143,12 +152,14 @@ Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
 | Angebot erneut gesendet | `POST …/angebot/[id]/erneut-senden` | `Approved` | `api/admin/angebot/[id]/erneut-senden/route.ts:131` | `angebot_erneut_gesendet` |
 | Angebot nachhaken (~T+10) | `POST …/angebot/[id]/nachhaken` | `Approved` | `api/admin/angebot/[id]/nachhaken/route.ts:115` | `angebot_nachhaken` |
 | Angebot neue Version | `POST …/angebot/[id]/neue-version` | `Approved` | `api/admin/angebot/[id]/neue-version/route.ts:123` | `angebot_aktualisiert` |
+| Angebot angenommen — Bestätigung | Kunde nimmt an `POST /api/vertrag-akzeptieren` | `Auto_Reply` | `api/vertrag-akzeptieren/route.ts:418` | `vertrag_bestaetigung` |
 
 #### Zahlung
 | Mail | Auslöser | Modus | Datei:Zeile | Template_Key |
 |---|---|---|---|---|
 | Anzahlung erhalten | Stripe-Webhook `payment_intent.succeeded` (anzahlung) **oder** manuelle Erfassung `…/buchung/[id]/zahlung` | `Auto_Reply` | `lib/eventverleih/zahlungsbestaetigung.ts:35` | `anzahlung_erhalten` |
 | Komplettzahlung erhalten | Stripe-Webhook (komplettzahlung) | `Auto_Reply` | `api/stripe/webhook/route.ts:113` | `komplettzahlung_erhalten` |
+| Restzahlung erhalten | Stripe-Webhook (restzahlung) | `Auto_Reply` | `api/stripe/webhook/route.ts:257` | `restzahlung_erhalten` |
 
 #### Reminder (Cron-gesteuert)
 | Mail | Auslöser | Modus | Datei:Zeile | Template_Key |
@@ -175,10 +186,14 @@ Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
 | Mail | Auslöser | Modus | Datei:Zeile | Template_Key |
 |---|---|---|---|---|
 | Kaution-Hold-Link | `POST …/buchung/[id]/kaution-mail` (manuell) **oder** Cron `kaution-reminder` (T-5) | `Auto_Reply` | `lib/eventverleih/kaution-mail.ts:124` | `kaution_hold_link` |
-| Kaution-Erstattung voll | `POST …/buchung/[id]/kaution-erstatten` action=`voll` | `Auto_Reply` | `api/admin/buchung/[id]/kaution-erstatten/route.ts:197` | `kaution_rueckzahlung` |
-| Kaution-Teilerstattung | …/kaution-erstatten action=`teil` | `Auto_Reply` | `api/admin/buchung/[id]/kaution-erstatten/route.ts:197` | `kaution_teilerstattung` |
-| Kaution-Einzug | …/kaution-erstatten action=`einzug` | `Auto_Reply` | `api/admin/buchung/[id]/kaution-erstatten/route.ts:197` | `kaution_einzug` |
 | Kaution IBAN anfordern (Bar) | `POST …/buchung/[id]/kaution-iban-anfordern` | `Approved` | `api/admin/buchung/[id]/kaution-iban-anfordern/route.ts:77` | `kaution_iban_anfordern` |
+
+> **Hinweis (2026-06-24):** Die früheren Kaution-Erstattungs-Mails (`kaution_rueckzahlung`/`_teilerstattung`/`_einzug`) sind **entfernt**. „Kaution auflösen" ist jetzt rein intern; die Kaution-Info läuft über die Abschluss-Mail (siehe nächster Abschnitt).
+
+#### Abschluss / Rechnung (n8n-Direktversand — NICHT MailQueue, kein Template_Key)
+| Mail | Auslöser | Modus | Pfad | Hinweis |
+|---|---|---|---|---|
+| Rechnung + Beleg-PDF | Button „Rechnung erstellen + Mail senden" → `createRechnungForBuchung(sendMail:true)` | n8n-Direkt | n8n `eve-rechnung-render-mail` (Webhook `N8N_RECHNUNG_PDF_URL`) | PDF benannt `RG-<Nr>.pdf` (Node „PDF benennen"); enthält **Kaution-Status** + **Google-Bewertungsbitte**. Liegt außerhalb des Drift-Checks. |
 
 #### Sonstiges / Member
 | Mail | Auslöser | Modus | Datei:Zeile | Template_Key |
@@ -229,6 +244,6 @@ Alle Sub-Passes laufen fail-soft (Fehler in einem killt nicht die anderen).
 
 Was die Geschäftslogik erwarten ließe, aber im Repo **nicht** existiert (Stand 2026-06-18) — rein deskriptiv, keine geplanten Features:
 
-- **Keine dedizierte Rechnungs-Mail.** Die Rechnung/Beleg läuft aktuell über die Beleg-URL in der Kaution-Erstattungs-Mail; eine eigenständige „Rechnung im Anhang"-Mail nach Rückgabe gibt es im Code nicht.
+- ~~Keine dedizierte Rechnungs-Mail.~~ **Behoben 2026-06-24:** finale Abschluss-Mail (Button „Rechnung erstellen + Mail senden", n8n `eve-rechnung-render-mail`) = Rechnung/Beleg-PDF (`RG-<Nr>.pdf`) + Kaution-Status + Bewertungsbitte in EINER Mail.
 - **Keine Mahnung / Zahlungserinnerung** bei ausbleibender Restzahlung (über die freundlichen Reminder hinaus).
 - **Keine Rechnungskorrektur / Gutschrift-Mail.**
