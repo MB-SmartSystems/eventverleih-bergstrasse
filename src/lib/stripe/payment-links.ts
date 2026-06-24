@@ -191,10 +191,34 @@ export async function captureKaution(paymentIntentId: string, amountEur?: number
 /**
  * Cancelt den Pre-Auth-Hold komplett — Geld verfaellt vom Kunden-Konto.
  * Aufruf wenn keine Schaeden festgestellt wurden.
+ *
+ * Idempotent: Ein bereits `canceled` Hold (z.B. nach ~7 Tagen automatisch verfallen)
+ * ist KEIN Fehler — das Ziel (kein Geld abgebucht) ist erreicht, also als Erfolg behandeln.
+ * ABER: ein bereits `succeeded` (= tatsaechlich eingezogener) PI wird NICHT stillschweigend
+ * als erstattet behandelt — sonst wuerde eine real abgebuchte Kaution faelschlich aufgeloest.
  */
 export async function cancelKaution(paymentIntentId: string) {
   const stripe = getStripe();
-  return stripe.paymentIntents.cancel(paymentIntentId);
+  const pi = await stripe.paymentIntents.retrieve(paymentIntentId);
+  if (pi.status === "canceled") {
+    return pi; // Hold bereits weg → ok, nichts zu tun
+  }
+  if (pi.status === "succeeded") {
+    throw new Error(
+      `Kaution-PaymentIntent ${paymentIntentId} ist bereits eingezogen (status=succeeded) — ` +
+        `kann nicht gecancelt werden, ggf. Refund noetig.`,
+    );
+  }
+  try {
+    return await stripe.paymentIntents.cancel(paymentIntentId);
+  } catch (e: unknown) {
+    // Race: zwischen retrieve und cancel verfallen/gecancelt → als ok behandeln
+    const err = e as { code?: string; payment_intent?: { status?: string } };
+    if (err?.code === "payment_intent_unexpected_state" && err?.payment_intent?.status === "canceled") {
+      return err.payment_intent as unknown as Awaited<ReturnType<typeof stripe.paymentIntents.cancel>>;
+    }
+    throw e;
+  }
 }
 
 /**

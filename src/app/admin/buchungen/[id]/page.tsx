@@ -24,6 +24,7 @@ import RuecknahmeDialog from "./RuecknahmeDialog";
 import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
 import KautionMailPanel from "./KautionMailPanel";
+import EntfernenPanel from "./EntfernenPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 import { bezahltEur } from "@/lib/eventverleih/zahlung";
 import { statusKlartext, type StatusTon } from "@/lib/eventverleih/status";
@@ -491,11 +492,35 @@ Vertrag
             </div>
           );
         })()}
+        <EntfernenPanel
+          buchungId={buchung.id}
+          positionen={positionen.map((p) => ({
+            id: p.id,
+            name: (p.Artikel_Link?.[0]?.id ? artikelNameById.get(p.Artikel_Link[0].id) : null) ?? "Artikel",
+          }))}
+          services={[
+            { key: "lieferung", label: "Lieferung", eur: parseFloat(buchung.Preis_Lieferung || "0") || 0 },
+            { key: "abholung", label: "Abholung", eur: parseFloat(buchung.Preis_Abholung || "0") || 0 },
+            { key: "aufbau", label: "Aufbau-Service", eur: parseFloat(buchung.Preis_Aufbau || "0") || 0 },
+            { key: "abbau", label: "Abbau-Service", eur: parseFloat(buchung.Preis_Abbau || "0") || 0 },
+          ].filter((s) => s.eur > 0)}
+        />
       </section>
 
       {/* 4. Zahlungen — Übersicht + Erfassen zusammen */}
       <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
         <h2 className="text-lg font-semibold text-warm-text mb-3">Zahlungen</h2>
+        {(() => {
+          const bezahlt = bezahltEur(buchung);
+          const sollZahlbar = (parseFloat(buchung.Gesamt || "0") || 0) - (parseFloat(buchung.Kaution_Soll_Eur || "0") || 0);
+          const guthaben = Math.round((bezahlt - sollZahlbar) * 100) / 100;
+          if (guthaben <= 0.01) return null;
+          return (
+            <div className="mb-3 p-2 rounded bg-amber-50 border border-amber-300 text-amber-900 text-sm font-medium">
+              ⚠️ Guthaben {guthaben.toFixed(2).replace(".", ",")} € — Rückzahlung an Kunde offen
+            </div>
+          );
+        })()}
         <table className="w-full text-sm">
           <tbody>
             <tr>

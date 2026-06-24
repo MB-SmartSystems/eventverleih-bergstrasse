@@ -30,6 +30,8 @@ type BuchungRow = {
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
+  Anzahlung_Bezahlt_Eur: string | null;
+  Restzahlung_Bezahlt_Eur: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
 
@@ -65,14 +67,24 @@ function kautionRefundDue(b: BuchungRow): boolean {
   return soll > 0 && !!b.Kaution_Hinterlegt_am && !b.Kaution_Rueckzahlung_am;
 }
 
-// "Abgeschlossen" erst, wenn auch die Kaution erledigt ist — sonst bleibt die Buchung "aktiv".
+/** Mehr bezahlt als (Gesamt − Kaution) = Überzahlung/Guthaben, Rückzahlung an Kunde offen. */
+function guthabenEur(b: BuchungRow): number {
+  const bezahlt = (parseFloat(b.Anzahlung_Bezahlt_Eur ?? "0") || 0) + (parseFloat(b.Restzahlung_Bezahlt_Eur ?? "0") || 0);
+  const sollZahlbar = (parseFloat(b.Gesamt ?? "0") || 0) - (parseFloat(b.Kaution_Soll_Eur ?? "0") || 0);
+  return Math.round((bezahlt - sollZahlbar) * 100) / 100;
+}
+function guthabenOffen(b: BuchungRow): boolean {
+  return guthabenEur(b) > 0.01;
+}
+
+// "Abgeschlossen" erst, wenn Kaution UND etwaiges Guthaben erledigt sind — sonst bleibt die Buchung "aktiv".
 function istAktiv(b: BuchungRow): boolean {
   const s = b.Status_Erweitert?.value ?? "";
-  return ACTIVE.has(s) || (DONE.has(s) && kautionRefundDue(b));
+  return ACTIVE.has(s) || (DONE.has(s) && (kautionRefundDue(b) || guthabenOffen(b)));
 }
 function istAbgeschlossen(b: BuchungRow): boolean {
   const s = b.Status_Erweitert?.value ?? "";
-  return DONE.has(s) && !kautionRefundDue(b);
+  return DONE.has(s) && !kautionRefundDue(b) && !guthabenOffen(b);
 }
 
 function fmtDate(d: string | null): string {
@@ -101,7 +113,7 @@ function fmtEur(v: string | null): string {
 
 export default async function BuchungenPage({ searchParams }: { searchParams: Promise<{ filter?: string; sort?: string }> }) {
   if (!(await isAuthenticated())) redirect("/admin");
-  const { filter = "anstehend", sort } = await searchParams;
+  const { filter = "aktiv", sort } = await searchParams;
   const heute = new Date().toISOString().slice(0, 10);
   // Default-Sortierung je Ansicht: "Anstehend" aufsteigend (nächstes zuerst), sonst absteigend (neueste zuerst)
   const defaultSort = filter === "anstehend" ? "event_asc" : "event_desc";
@@ -132,7 +144,7 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
 
   const buildHref = (f: string, s?: string) => {
     const params = new URLSearchParams();
-    if (f !== "anstehend") params.set("filter", f);
+    if (f !== "aktiv") params.set("filter", f);
     const natural = f === "anstehend" ? "event_asc" : "event_desc";
     if (s && s !== natural) params.set("sort", s);
     const qs = params.toString();
@@ -256,6 +268,11 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                           </span>
                         );
                       })()}
+                      {guthabenOffen(b) && (
+                        <span className="mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800">
+                          ● Guthaben {guthabenEur(b).toFixed(2).replace(".", ",")} € — Rückzahlung offen
+                        </span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-warm-text">
                       {fmtEur(

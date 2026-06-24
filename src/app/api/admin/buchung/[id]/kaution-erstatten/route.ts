@@ -15,9 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
-import { eurMail } from "@/lib/eventverleih/zahlung";
 import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
-import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
 import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
 
 export const dynamic = "force-dynamic";
@@ -165,67 +163,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       });
     }
 
-    // Beleg sicherstellen (für Link in der Abschluss-Mail) — non-blocking
-    let belegUrl: string | null = null;
+    // Beleg-Row sicherstellen, falls noch keine existiert — non-blocking. Die finale Abschluss-Mail
+    // (separat über „Rechnung erstellen + Mail senden") greift Beleg + Kaution-Info dann auf.
     try {
       const existing = await findRechnungForBuchung(buchungId);
-      if (existing?.url) {
-        belegUrl = existing.url;
-      } else {
+      if (!existing?.url) {
         const r = await createRechnungForBuchung(buchungId, { sendMail: false });
-        if (r.ok) belegUrl = r.url;
-        else console.error("[kaution-erstatten] Beleg nicht erstellt:", r.error);
+        if (!r.ok) console.error("[kaution-erstatten] Beleg nicht erstellt:", r.error);
       }
     } catch (e) {
       console.error("[kaution-erstatten] Beleg-Schritt fehlgeschlagen:", e);
     }
 
-    // Mail an Kunde
-    const kundeId = buchung.Kunde_Link?.[0]?.id;
-    if (kundeId) {
-      let subject = "";
-      let mailBody = "";
-      // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
-      const kundeName = await kundeNameAusLink(buchung.Kunde_Link);
-      if (action === "voll") {
-        subject = `Rückgabe abgeschlossen: Ihre Kaution zu Buchung #${buchungId} kommt zurück`;
-        mailBody = `${anredeZeile(kundeName)}\n\nvielen Dank, dass Sie bei uns gemietet haben. Ich hoffe, Ihre Feier ist gut gelaufen.\n\nDie Artikel sind vollständig und unbeschädigt zurückgekommen, damit ist Ihre Miete abgeschlossen. Ihre Kaution erhalten Sie in voller Höhe (${eurMail(kautionSoll)} EUR) zurück:\n\n${piId ? "- Der Stripe-Hold wurde freigegeben, es wurde kein Betrag abgebucht." : "- Die Erstattung habe ich soeben für Sie veranlasst."}\n\nMit freundlichen Grüßen\nManuel Büttner\nEventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
-      } else if (action === "teil") {
-        subject = `Kaution Buchung #${buchungId} — Teilerstattung wegen Schaden`;
-        mailBody = `${anredeZeile(kundeName)}\n\nLeider gab es bei der Prüfung der Artikel einen Schaden. Schadensbetrag: ${eurMail(schadenEur)} EUR.\n\nDamit wird ein Teil Ihrer Kaution einbehalten:\n  Kaution gesamt: ${eurMail(kautionSoll)} EUR\n  Einbehalten:    ${eurMail(schadenEur)} EUR\n  Erstattung:     ${eurMail(kautionRueckzahlungEur)} EUR\n\n${body.schaden_notiz ? `Schaden-Notiz: ${body.schaden_notiz}\n\n` : ""}${piId ? "Die Erstattung erfolgt automatisch über Stripe in den nächsten 5 Werktagen." : "Die Erstattung überweise ich Ihnen in den nächsten Werktagen."}\n\nBei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
-      } else {
-        subject = `Kaution Buchung #${buchungId} — kompletter Einzug wegen Schaden`;
-        mailBody = `${anredeZeile(kundeName)}\n\nbei der Prüfung der Artikel gab es einen Schaden, dessen Höhe die Kaution erreicht oder übersteigt. Daher wird die Kaution komplett einbehalten.\n\nKaution einbehalten: ${eurMail(kautionSoll)} EUR\n${body.schaden_notiz ? `\nSchaden-Notiz: ${body.schaden_notiz}\n` : ""}\nBei Rückfragen oder Klärungsbedarf melden Sie sich bitte direkt bei mir: WhatsApp/Tel +49 156 79521124.\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße`;
-      }
-
-      // Beleg-Link (alle Faelle) + Bewertungsbitte (nur bei voller Erstattung = zufriedener Kunde)
-      // vor die Grußformel einsetzen, sodass es EINE saubere Abschluss-Mail bleibt.
-      const reviewUrl = (process.env.GOOGLE_REVIEW_URL || "").trim();
-      const belegBlock = belegUrl ? `Ihren Beleg finden Sie hier:\n${belegUrl}\n\n` : "";
-      const reviewBlock =
-        action === "voll" && reviewUrl
-          ? `Wenn Sie mit allem zufrieden waren, freue ich mich über eine kurze Google-Bewertung. Für einen kleinen Betrieb wie uns hilft jede Rückmeldung weiter, und anderen gibt sie Orientierung bei der Auswahl. Gerne auch mit einem Foto von Ihrer Feier:\n${reviewUrl}\n\nVielen Dank, und bis zum nächsten Fest.\n\n`
-          : "";
-      const tail = `${belegBlock}${reviewBlock}`;
-      if (tail) {
-        mailBody = mailBody.replace("Mit freundlichen Grüßen", `${tail}Mit freundlichen Grüßen`);
-      }
-
-      try {
-        await createRow(TABLES.MailQueue, {
-          Erstellt_am: new Date().toISOString(),
-          Buchung_Link: [buchungId],
-          Kunde_Link: [kundeId],
-          Template_Key: action === "voll" ? "kaution_rueckzahlung" : action === "teil" ? "kaution_teilerstattung" : "kaution_einzug",
-          Subject: subject,
-          Body: mailBody,
-          Approval_Status: "Auto_Reply",
-          Idempotency_Key: `B${buchungId}-kaution-${action}`,
-        });
-      } catch (e) {
-        console.error("[kaution-erstatten] mail fehlgeschlagen:", e);
-      }
-    }
+    // KEINE eigene Kunden-Mail mehr (Manuel 2026-06-24): die Kautions-Auflösung ist rein intern.
+    // Die Info (Hold freigegeben / Teilerstattung / Einzug + Schaden-Notiz) steht in den oben
+    // gesetzten Buchungs-Feldern (Kaution_Pruefung_Status, Kaution_Rueckzahlung_Eur,
+    // Schaden_Betrag_Eur, Kaution_Schaden_Notiz) und wird von der EINEN finalen Abschluss-Mail
+    // ("Rechnung erstellen + Mail senden" → n8n-Rechnungs-Workflow) aufgegriffen.
 
     return NextResponse.json({
       ok: true,
