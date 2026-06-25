@@ -75,15 +75,24 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   }
 
   try {
+    // Alte Werte VOR dem Update lesen — Termin-Mail nur bei echter Änderung verschicken.
+    const before = await getRow<BuchungData>(TABLES.Buchungen, buchungId);
+
     await updateRow(TABLES.Buchungen, buchungId, patch);
 
-    // Termin-Bestätigung an den Kunden — für JEDEN in diesem Request gesetzten Termin.
-    // Idempotency-Key enthält die Uhrzeit: gleiches Datum = keine Doppel-Mail, Änderung = neue Mail.
+    // Termin-Bestätigung an den Kunden — NUR für einen Termin, der sich tatsächlich
+    // GEÄNDERT hat UND in der Zukunft liegt. Das Panel sendet bei "Termine speichern"
+    // immer BEIDE Felder; ohne diese Prüfung ginge beim Setzen des Rückgabe-Termins
+    // erneut eine Übergabe-Mail raus, obwohl die Übergabe längst vorbei ist.
     try {
-      const setUeberg = typeof patch.Uebergabe_Termin === "string";
-      const setRueck = typeof patch.Rueckgabe_Termin === "string";
+      const norm = (v: string | null | undefined) => (v ? new Date(v).toISOString() : null);
+      const now = Date.now();
+      const aenderungInZukunft = (oldV: string | null, newV: unknown): newV is string =>
+        typeof newV === "string" && norm(oldV) !== norm(newV) && new Date(newV).getTime() > now;
+      const setUeberg = aenderungInZukunft(before.Uebergabe_Termin, patch.Uebergabe_Termin);
+      const setRueck = aenderungInZukunft(before.Rueckgabe_Termin, patch.Rueckgabe_Termin);
       if (setUeberg || setRueck) {
-        const b = await getRow<BuchungData>(TABLES.Buchungen, buchungId);
+        const b = before;
         const kid = b.Kunde_Link?.[0]?.id;
         const k = kid ? await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kid) : null;
         if (kid && k?.Email) {
