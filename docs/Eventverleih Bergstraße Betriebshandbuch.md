@@ -149,21 +149,27 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 ### Dashboard-Übersicht (wo finde ich was)
 
-**Reiter „Anfragen":** jede neue Anfrage als Karte, mit den Schnellaktionen direkt dran („✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen"). Klick öffnet das Detail.
+**Linkes Menü** (immer sichtbar): „Übergaben & Rückgaben" · „Anfragen" · „Buchungen" · „Kunden" · „Rechnungen" · „Finanzen" · „ELSTER-EÜR" · „Produkte" · „Kategorien" · „Aktionen" · „Sperrzeiten".
 
-**Reiter „Buchungen":** öffnet auf dem Tab **„Aktiv"** (was zu erledigen ist, zuerst), daneben „Anstehend" · „Alle" · „Abgeschlossen" · „Storniert". Tabelle mit Event-Datum, Kunde, Status und Gesamtbetrag; bei Überzahlung ein Guthaben-Hinweis.
+**„Anfragen":** jede neue Anfrage als Karte, mit den Schnellaktionen direkt dran („✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen"). Klick öffnet das Detail.
+
+**„Buchungen":** öffnet auf dem Tab **„Aktiv"** (was zu erledigen ist, zuerst), daneben „Anstehend" · „Alle" · „Abgeschlossen" · „Storniert". Tabelle mit Event-Datum, Kunde, Status und Gesamtbetrag; bei Überzahlung ein Guthaben-Hinweis.
 
 **Buchungs-Detailseite** (Klick auf eine Buchung) — von oben nach unten:
-1. **Auf einen Blick** — Status, Kunde, Termine, Adresse.
-2. **Primäre Aktion** — der zum Status passende Hauptknopf: „Übergeben" (vor der Übergabe) · „Rückgabe markieren" (während der Miete) · „Kaution erstatten / einbehalten" (nach der Rückgabe).
-3. **Termine** — Übergabe-/Rückgabe-Termin setzen.
+1. **Kopf** — „Buchung #…", oben rechts die Knöpfe „Angebot" und „Vertrag" (öffnen die Kundenansichten).
+2. **Auf einen Blick** — Kunde + Kontakt, „Miete bezahlt / offen", Kaution-Status, und der zum Status passende **Primär-Knopf** („Übergeben" / „Rückgabe markieren" / „… Rechnung erstellen"); darunter Event-, Übergabe- und Rückgabe-Datum.
+3. **Termine** — Übergabe-/Rückgabe-Termin + „Termine speichern" (zeigt den Treffpunkt Grillhütte Sandwiese).
 4. **Rechnung** — „Rechnung erstellen + Mail senden" (die finale Kundenmail).
 5. **Bestellung** — Artikel + Services, je Zeile „Entfernen".
-6. **Zahlungen** — Übersicht + „Zahlungseingang erfassen"; Guthaben-Hinweis bei Überzahlung.
-7. **Checkliste** — Packliste/Status.
-8. Weiter unten: **Stripe-Zahlungslinks**, **Kaution-Hold**, **Stornieren**, und ganz unten der **„Status"-Override** (nur für den Notfall).
+6. **Zahlungen** — Soll/Bezahlt/Offen + „Zahlungseingang erfassen"; Guthaben-Hinweis bei Überzahlung.
+7. **Checkliste** — Fortschritt über alle Phasen (Angebot → Zahlung → Übergabe → Rückgabe → Abrechnung), je Punkt mit „AUTO" oder „MANUELL".
+8. **Rechnungen** — erstellte Rechnungen (Nummer, Betrag, bezahlt-Status).
+9. **Schriftverkehr** — alle an den Kunden gesendeten Mails mit Datum („Alle … E-Mails anzeigen").
+10. **Notizen** — Anfrage-Text + Verlauf.
+11. **Protokoll** — Übergabe-/Rücknahme-Doku (Checkliste, Fotos, Schäden, Kaution) → „Protokoll ansehen".
+12. Ganz unten, **eingeklappt** (nur für Sonderfälle): „Zahlungs-Links & Kaution-Mail (manuell)" (Stripe-Links + Kaution-Hold-Link + Stornieren), „Status manuell setzen (Notfall)" (Status-Override) und „Details (Quelle, Standort, Aufbau)".
 
-**Roter Faden:** Der „Primäre Aktion"-Knopf oben führt dich durch den Ablauf (Übergeben → Rückgabe markieren → Kaution auflösen → Rechnung erstellen). Den „Status"-Override ganz unten brauchst du nur im Ausnahmefall.
+**Roter Faden:** Der Primär-Knopf oben (Punkt 2) führt dich durch den Ablauf (Übergeben → Rückgabe markieren → Kaution auflösen → Rechnung erstellen). Die **Checkliste** (Punkt 7) zeigt dir jederzeit, wo die Buchung steht. Die eingeklappten Bereiche unten (Punkt 12) brauchst du nur im Ausnahmefall.
 
 ### Aktionen & Buttons (exakte Dashboard-Beschriftungen)
 
