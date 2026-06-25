@@ -336,13 +336,14 @@ export async function loadInboxData(): Promise<InboxData> {
       ? Math.floor((new Date(b.Event_datum_von).getTime() - Date.now()) / DAY_MS)
       : null;
     const nachhakReif = darfNachgehaktWerden(angebot?.Angebotsdatum ?? null, eventIn);
+    const ev = b.Event_datum_von ? ` · Event ${fmtDate(b.Event_datum_von)}` : "";
     wartKundeItems.push({
       id: b.id,
       buchungId: b.id,
       title: kundeName(b),
       subtitle: nachhakReif
-        ? `Seit ${seitVersand ?? "?"}d offen — Nachhaken fällig`
-        : `Angebot versendet, seit ${seitVersand ?? "?"}d offen`,
+        ? `Seit ${seitVersand ?? "?"}d offen — Nachhaken fällig${ev}`
+        : `Angebot versendet, seit ${seitVersand ?? "?"}d offen${ev}`,
       age_days: seitVersand ?? undefined,
       link: `/admin/buchungen/${b.id}`,
     });
@@ -354,7 +355,7 @@ export async function loadInboxData(): Promise<InboxData> {
         id: b.id,
         buchungId: b.id,
         title: kundeName(b),
-        subtitle: `Bestaetigt, Anzahlung ausstehend`,
+        subtitle: `Bestaetigt, Anzahlung ausstehend${b.Event_datum_von ? ` · Event ${fmtDate(b.Event_datum_von)}` : ""}`,
         amount_eur: b.Anzahlung_Soll_Eur || undefined,
         link: `/admin/buchungen/${b.id}`,
       });

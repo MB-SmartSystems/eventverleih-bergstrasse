@@ -149,6 +149,9 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 ### Dashboard-Übersicht (wo finde ich was)
 
+**Backoffice-Startseite** (direkt nach dem Login, Titel „Backoffice"): vier Kästen, was ansteht —
+**„Heute zu tun"**, **„Überfällig"**, **„Wartet auf Kunde"** (zeigt je Angebot das Event-Datum) und **„Wartet auf Geld"** (mit Summe). Darüber erscheinen bei Bedarf Banner: Konflikt (knapper Bestand — Entscheidung nötig), „Kunde hat gerade bestätigt — Anzahlung steht aus" und „Mails warten auf Freigabe" (mit Freigeben/Ablehnen direkt).
+
 **Linkes Menü** (immer sichtbar): „Übergaben & Rückgaben" · „Anfragen" · „Buchungen" · „Kunden" · „Rechnungen" · „Finanzen" · „ELSTER-EÜR" · „Produkte" · „Kategorien" · „Aktionen" · „Sperrzeiten".
 
 **„Anfragen":** jede neue Anfrage als Karte, mit den Schnellaktionen direkt dran („✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen"). Klick öffnet das Detail.
