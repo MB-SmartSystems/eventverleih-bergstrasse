@@ -37,7 +37,8 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 ①  ANFRAGE
     Kunde füllt Website-Formular aus
     → Auto: Eingangsbestätigung an den Kunden
-    Du im Dashboard: Angebot freigeben | mit Anmerkung | Rückruf vorschlagen | ablehnen
+    Du im Dashboard — Schnellaktionen in der Anfragen-Liste: „Freigeben" · „Mit Anmerkung" · „Rückruf" · „Ablehnen"
+    (im Anfrage-Detail ausführlicher: „Angebot freigeben + Mail senden", „Mit Anmerkung freigeben", „Rückruf vorschlagen", „Ablehnen (höfliche Absage)")
 
 ②  ANGEBOT VERSENDET
     Du klickst „Angebot freigeben + Mail senden"
@@ -45,8 +46,9 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
     → Dabei entstehen bereits die Stripe-Zahllinks (Anzahlung/Rest/Komplett); der Kaution-Hold kommt erst später.
     Bleibt aktiv bis Annahme ODER Eventdatum verstreicht.
     Läuft es ungenutzt ab → STILL (keine Kundenmail).
-    Nach ~10 Tagen ohne Reaktion: Button „Nachhaken" (NICHT Angebot 1:1 neu schicken).
-    Preise/Daten geändert? → „Neue Version" verschickt aktualisiertes Angebot.
+    Nach ~10 Tagen ohne Reaktion: Schnellaktion „Nachhaken" (freundliche Erinnerung; NICHT das Angebot 1:1 neu schicken).
+    Kunde hat die Mail verloren? → „Mail verloren? Erneut senden" (sendet unverändert).
+    Preise/Daten geändert? → aktualisierte Version über „Senden als v2" (Update-Mail an den Kunden).
 
 ③  ANZAHLUNG / BESTÄTIGT → RESERVIERT
     Kunde zahlt Anzahlung (Stripe) oder du erfasst Überweisung manuell
@@ -64,22 +66,22 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 ⑤  ÜBERGABE
     Du dokumentierst Übergabe (Fotos + Checkliste) im Dashboard
     → Auto: „Übergabe erfolgt — Ihre Mietartikel"
-    Status: Uebergeben (ggf. In_Miete)
+    Status: „Artikel übergeben" (Anzeige „Aktuell in Miete", sobald das Event läuft)
 
 ⑥  VOR / BEI RÜCKGABE
     Termin-Erinnerung Rückgabe (T-1) → Auto
     1 Stunde vor Rückgabe → Auto
-    Du dokumentierst Rückgabe → Status: Zurueckgegeben
+    Du dokumentierst die Rückgabe („Rückgabe markieren") → Status: „Zurückgegeben — Prüfung läuft"
 
 ⑦  KAUTION (intern, KEINE eigene Mail — seit 2026-06-24)
     Du prüfst Kaution + Schäden (Prüffrist ~1–2 Tage).
-    Button „Kaution erstatten" (voll / Teilerstattung / Kompletter Einzug):
-      · voll  → Stripe-Hold wird freigegeben (idempotent gegen bereits verfallene Holds), 0 € abgebucht.
-      · teil/einzug → Schaden wird captured, Rest verfällt.
+    Panel „Kaution-Prüfung offen" — Optionen „Volle Erstattung (kein Schaden)" / „Teilerstattung — Schaden eingezogen" / „Kompletter Einzug (Schaden >= Kaution)", Button „Kaution auflösen (ohne Mail)":
+      · Volle Erstattung → Stripe-Hold wird freigegeben (idempotent gegen verfallene Holds), 0 € abgebucht.
+      · Teilerstattung/Einzug → Schaden wird per Stripe captured, Rest verfällt.
       · Verschickt KEINE eigene Kundenmail; die Kaution-Info steht in den Buchungs-Feldern
         (Kaution_Pruefung_Status, _Rueckzahlung_Eur, Schaden_Betrag_Eur, _Schaden_Notiz)
         und wird von der Abschluss-Mail in ⑧ aufgegriffen.
-    Bar-Kaution ohne Stripe-Hold: „IBAN anfordern" (Pending) → du überweist manuell per Bank-App.
+    Bar-Kaution ohne Stripe-Hold: „IBAN für Rücküberweisung anfordern" → du überweist manuell per Bank-App.
     Status: Abgerechnet
 
 ⑧  ABSCHLUSS-MAIL — Rechnung + Kaution + Bewertung in EINER Mail
@@ -151,6 +153,8 @@ Wortgetreu, wie im Dashboard sichtbar — das ist die Fläche, auf die du zeigst
 - „Mit Anmerkung freigeben" → Textfeld → „Senden mit Anmerkung"
 - „Rückruf vorschlagen" (Status bleibt Anfrage)
 - „Ablehnen (höfliche Absage)" → Dropdown „Grund (bestimmt den Kundentext)": „Termin/Artikel ausgebucht" · „Außerhalb Liefergebiet" · „Artikel nicht verfügbar" · „Termin zu kurzfristig" · „Möchte nicht vermieten (neutrale Mail)" · „Sonstiges (eigener Kundentext)"; Checkbox „Ohne Mail ablehnen (Test/Spam)"; Button „Absage senden" bzw. „Ablehnen ohne Mail"
+
+**Anfragen-Liste — Schnellaktionen (kürzer beschriftet, gleiche Endpunkte):** „✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen". Bei Status „Angebot an Kunde versendet" stattdessen: „Nachhaken" · „Mail verloren? Erneut senden" · „✗ Ablehnen". (Das Ablehnen-Dropdown der Liste hat 5 Gründe — ohne „Sonstiges".) Neue Angebots-Version über „Senden als v2".
 
 **Buchung — Panel „Status" (über „Notfall-Override"):** Optionen „Anfrage offen" · „Angebot erstellt" · „Angebot an Kunde versendet" · „Reserviert (Anzahlung eingegangen)" · „Vom Kunden bestaetigt (Anzahlung steht aus)" · „Artikel uebergeben" · „Aktuell in Miete" · „Zurueckgegeben — Pruefung laeuft" · „Abgerechnet" · „Storniert" · „Kunde nicht erschienen"; Button „Override speichern (mit Audit-Log)".
 
