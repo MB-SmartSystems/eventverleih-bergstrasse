@@ -140,7 +140,9 @@ interface KundeRow {
 
 function fmtDate(s: string | null): string {
   if (!s) return "?";
-  return s.split("T")[0];
+  const datePart = s.split("T")[0];
+  const [y, m, d] = datePart.split("-");
+  return y && m && d ? `${d}.${m}.${y}` : datePart;
 }
 
 export async function loadInboxData(): Promise<InboxData> {
