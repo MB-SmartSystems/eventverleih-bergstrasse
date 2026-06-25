@@ -42,6 +42,7 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 ②  ANGEBOT VERSENDET
     Du klickst „Angebot freigeben + Mail senden"
     → Mail: Angebot an Kunden
+    → Dabei entstehen bereits die Stripe-Zahllinks (Anzahlung/Rest/Komplett); der Kaution-Hold kommt erst später.
     Bleibt aktiv bis Annahme ODER Eventdatum verstreicht.
     Läuft es ungenutzt ab → STILL (keine Kundenmail).
     Nach ~10 Tagen ohne Reaktion: Button „Nachhaken" (NICHT Angebot 1:1 neu schicken).
@@ -92,20 +93,32 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> Anfrage
-    Anfrage --> Angebot_versendet: Angebot freigeben
+    [*] --> Anfrage: Kontaktformular
+    Anfrage --> Anfrage: Rückruf vorschlagen (bleibt offen)
+    Anfrage --> Storniert: Ablehnen
+    Anfrage --> Angebot_erstellt: Angebot anlegen
+    Angebot_erstellt --> Angebot_versendet: Freigeben (+/- Anmerkung) — Zahllinks entstehen
     Angebot_versendet --> Abgelaufen: ~14 T ungenutzt (still)
-    Angebot_versendet --> Bestaetigt: Kunde nimmt an
-    Bestaetigt --> Reserviert: Anzahlung erhalten
-    Reserviert --> Uebergeben: Übergabe dokumentiert
-    Uebergeben --> In_Miete
-    Uebergeben --> Zurueckgegeben: Rücknahme dokumentiert
-    In_Miete --> Zurueckgegeben: Rücknahme dokumentiert
-    Zurueckgegeben --> Abgerechnet: Kaution aufgelöst + Abschluss-Mail
-    Angebot_versendet --> Storniert
+    Angebot_versendet --> Storniert: Ablehnen / Storno
+    Angebot_versendet --> Bestaetigt: Kunde nimmt an — Zahllinks neu + Bestätigung
+    Bestaetigt --> Reserviert: Anzahlung erhalten — Inventar gesperrt
     Bestaetigt --> Storniert
+    Reserviert --> Uebergeben: Übergabe dokumentiert — Kaution-Hold gesetzt
     Reserviert --> Storniert
+    Uebergeben --> In_Miete: Event läuft (nur Anzeige)
+    Uebergeben --> Zurueckgegeben: Rücknahme — Kaution-Prüffrist
+    In_Miete --> Zurueckgegeben: Rücknahme
+    Zurueckgegeben --> Abgerechnet: Kaution aufgelöst + Rechnung/Abschluss-Mail
 ```
+
+Hinweis: `In_Miete` ist nur eine **Anzeige** (Event läuft gerade, datumsbasiert) — es gibt dafür keinen eigenen Status-Umschalt-Schritt im Code. Manuel kann jeden Status zur Not auch direkt über das Status-Panel setzen.
+
+### Zahllinks & Kaution-Hold — wann entstehen sie
+
+Wichtiger Schritt, der im reinen Status-Bild fehlt:
+
+- **Anzahlungs-, Restzahlungs- und Komplettzahlungs-Link** entstehen **zweimal** automatisch: (1) wenn du das **Angebot freigibst** (`/api/admin/anfrage/[id]/action`), (2) erneut, wenn der **Kunde annimmt** (`/api/vertrag-akzeptieren`, fail-soft). Jederzeit auch manuell über das Stripe-Links-Panel (`/api/admin/buchung/[id]/payment-link`). Felder: `Stripe_Anzahlung_Link`, `Stripe_Restzahlung_Link`, `Stripe_Komplettzahlung_Link`. Bezahlt → Webhook `payment_intent.succeeded` → Status `Reserviert` + Einnahme.
+- **Kaution-Hold-Link (Pre-Auth)** entsteht NICHT bei Angebot/Annahme, sondern **später**: bei der **Übergabe** (Methode „stripe_preauth"), per manuellem Button „Kaution-Hold senden" (`/api/admin/buchung/[id]/kaution-mail`), per **Cron** `kaution-reminder` (~T-5) oder manuell übers Payment-Links-Panel (`type:kaution`). Feld `Stripe_Kaution_Link`; Webhook `amount_capturable_updated` setzt `Stripe_Kaution_PaymentIntent` + `Kaution_Hinterlegt_am`. Auflösung später über „Kaution auflösen" (cancel = voll zurück / capture = Schaden).
 
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
 
@@ -122,15 +135,15 @@ stateDiagram-v2
 
 Was Manuel im Dashboard auslösen kann — das ist die Fläche, auf die du zeigst, wenn du etwas ändern willst. Je Aktion: was sie tut + welche Optionen.
 
-- **Anfrage/Angebot:** Angebot freigeben · freigeben mit Anmerkung · Rückruf vorschlagen · Ablehnen · Erneut senden · Nachhaken (ab ~T+10) · Neue Version.
-- **Termin:** Übergabe-/Rückgabe-Termin setzen (löst Bestätigungs-Mail + Google-Kalender-Sync aus).
-- **Zahlung:** Zahlung erfassen (Bar/Überweisung; Anzahlung/Restzahlung/Kaution) · Payment-Link erzeugen.
-- **Übergabe/Rücknahme:** Übergabe dokumentieren (Fotos + Checkliste) · Rücknahme dokumentieren.
-- **Position/Leistung:** Position entfernen · Service entfernen (Lieferung/Abholung/Aufbau/Abbau) → Beträge werden über `recalcBuchung` neu gerechnet.
-- **Kaution:** Kaution auflösen mit den Optionen voll / Teilerstattung (Schadenbetrag) / Kompletter Einzug — intern, keine eigene Mail · IBAN anfordern (bei Bar-Kaution).
+- **Anfrage/Angebot:** Angebot freigeben · freigeben **mit Anmerkung** (Text an Kunden) · **Rückruf vorschlagen** (Status bleibt Anfrage, keine Zahllinks) · **Ablehnen** (→ Storniert, höfliche Absage je Grund-Kategorie: ausgebucht / Liefergebiet / nicht verfügbar / kurzfristig / sonstiges; optional ohne Mail) · Erneut senden · Nachhaken (ab ~T+10) · Neue Version.
+- **Termin:** Übergabe-/Rückgabe-Termin setzen (Bestätigungs-Mail + Google-Kalender-Sync) · Event-Datum ändern.
+- **Zahlung & Links:** Zahlung erfassen (Bar/Überweisung; Anzahlung/Restzahlung/Kaution) · Stripe-Zahllink erzeugen/erneuern (Anzahlung/Rest/Komplett) · **Kaution-Hold senden** (Pre-Auth-Checkout).
+- **Übergabe/Rücknahme:** Übergabe dokumentieren (Fotos + Checkliste, **Kaution-Methode wählen:** Stripe-Hold / Bar / EC / keine) · Rücknahme dokumentieren (öffnet die Kaution-Prüffrist).
+- **Position/Leistung:** Position entfernen · Service entfernen (Lieferung/Abholung/Aufbau/Abbau) → Beträge über `recalcBuchung` neu.
+- **Kaution auflösen:** voll (Hold zurück) / Teilerstattung (Schadenbetrag) / Kompletter Einzug — intern, keine eigene Mail · IBAN anfordern (bei Bar-Kaution).
 - **Abschluss:** Rechnung erstellen + Mail senden → die EINE finale Mail (Rechnung-PDF + Kaution-Status + Bewertung).
-- **Storno:** durch Kunde (Member-Bereich) oder Backoffice.
-- **Liste:** Buchungen-Tab öffnet auf „Aktiv" (zu-erledigen zuerst; offene Kaution + Guthaben inklusive); Guthaben-Badge „Guthaben X € — Rückzahlung offen" bei Überzahlung (Rückzahlung macht Manuel manuell).
+- **Storno / Status:** Storno (Kunde im Member-Bereich oder Backoffice, optional Stripe-Refund) · Status zur Not manuell setzen (Status-Panel).
+- **Liste:** Buchungen-Tab öffnet auf „Aktiv" (zu-erledigen zuerst; offene Kaution + Guthaben inklusive); Guthaben-Badge „Guthaben X € — Rückzahlung offen" bei Überzahlung (Rückzahlung manuell).
 
 ---
 
