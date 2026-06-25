@@ -95,20 +95,20 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 stateDiagram-v2
     [*] --> Anfrage: Kontaktformular
     Anfrage --> Anfrage: Rückruf vorschlagen (bleibt offen)
-    Anfrage --> Storniert: Ablehnen
-    Anfrage --> Angebot_erstellt: Angebot anlegen
-    Angebot_erstellt --> Angebot_versendet: Freigeben (+/- Anmerkung) — Zahllinks entstehen
+    Anfrage --> Storniert: Ablehnen (höfliche Absage)
+    Anfrage --> Angebot_erstellt: Angebot anlegen (manuell)
+    Angebot_erstellt --> Angebot_versendet: Angebot freigeben + Mail senden / Mit Anmerkung freigeben — Zahllinks entstehen
     Angebot_versendet --> Abgelaufen: ~14 T ungenutzt (still)
-    Angebot_versendet --> Storniert: Ablehnen / Storno
+    Angebot_versendet --> Storniert: Ablehnen / Stornieren
     Angebot_versendet --> Bestaetigt: Kunde nimmt an — Zahllinks neu + Bestätigung
     Bestaetigt --> Reserviert: Anzahlung erhalten — Inventar gesperrt
     Bestaetigt --> Storniert
-    Reserviert --> Uebergeben: Übergabe dokumentiert — Kaution-Hold gesetzt
+    Reserviert --> Uebergeben: Übergeben — Kaution-Hold gesetzt
     Reserviert --> Storniert
     Uebergeben --> In_Miete: Event läuft (nur Anzeige)
-    Uebergeben --> Zurueckgegeben: Rücknahme — Kaution-Prüffrist
-    In_Miete --> Zurueckgegeben: Rücknahme
-    Zurueckgegeben --> Abgerechnet: Kaution aufgelöst + Rechnung/Abschluss-Mail
+    Uebergeben --> Zurueckgegeben: Rückgabe markieren — Kaution-Prüffrist
+    In_Miete --> Zurueckgegeben: Rückgabe markieren
+    Zurueckgegeben --> Abgerechnet: Kaution auflösen + Rechnung erstellen + Mail senden
 ```
 
 Hinweis: `In_Miete` ist nur eine **Anzeige** (Event läuft gerade, datumsbasiert) — es gibt dafür keinen eigenen Status-Umschalt-Schritt im Code. Manuel kann jeden Status zur Not auch direkt über das Status-Panel setzen.
@@ -131,19 +131,41 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt:
 - **Mail-Ton:** Erfolgsfall (volle Erstattung) warm + persönlich inkl. Bewertungsbitte; Schadensfälle (Teil/Einzug) sachlich-neutral. Stil-Grundregeln (`schreibstil-manu`) immer durchsetzen.
 - **Keine Auto-Kundenmail aus Einzelaktionen** (seit 2026-06-24): Kundenmail bewusst über „Rechnung erstellen + Mail senden", nicht als Nebeneffekt eines Buttons.
 
-### Aktionen & Buttons (Entscheidungsfläche)
+### Aktionen & Buttons (exakte Dashboard-Beschriftungen)
 
-Was Manuel im Dashboard auslösen kann — das ist die Fläche, auf die du zeigst, wenn du etwas ändern willst. Je Aktion: was sie tut + welche Optionen.
+Wortgetreu, wie im Dashboard sichtbar — das ist die Fläche, auf die du zeigst, wenn du etwas ändern willst.
 
-- **Anfrage/Angebot:** Angebot freigeben · freigeben **mit Anmerkung** (Text an Kunden) · **Rückruf vorschlagen** (Status bleibt Anfrage, keine Zahllinks) · **Ablehnen** (→ Storniert, höfliche Absage je Grund-Kategorie: ausgebucht / Liefergebiet / nicht verfügbar / kurzfristig / sonstiges; optional ohne Mail) · Erneut senden · Nachhaken (ab ~T+10) · Neue Version.
-- **Termin:** Übergabe-/Rückgabe-Termin setzen (Bestätigungs-Mail + Google-Kalender-Sync) · Event-Datum ändern.
-- **Zahlung & Links:** Zahlung erfassen (Bar/Überweisung; Anzahlung/Restzahlung/Kaution) · Stripe-Zahllink erzeugen/erneuern (Anzahlung/Rest/Komplett) · **Kaution-Hold senden** (Pre-Auth-Checkout).
-- **Übergabe/Rücknahme:** Übergabe dokumentieren (Fotos + Checkliste, **Kaution-Methode wählen:** Stripe-Hold / Bar / EC / keine) · Rücknahme dokumentieren (öffnet die Kaution-Prüffrist).
-- **Position/Leistung:** Position entfernen · Service entfernen (Lieferung/Abholung/Aufbau/Abbau) → Beträge über `recalcBuchung` neu.
-- **Kaution auflösen:** voll (Hold zurück) / Teilerstattung (Schadenbetrag) / Kompletter Einzug — intern, keine eigene Mail · IBAN anfordern (bei Bar-Kaution).
-- **Abschluss:** Rechnung erstellen + Mail senden → die EINE finale Mail (Rechnung-PDF + Kaution-Status + Bewertung).
-- **Storno / Status:** Storno (Kunde im Member-Bereich oder Backoffice, optional Stripe-Refund) · Status zur Not manuell setzen (Status-Panel).
-- **Liste:** Buchungen-Tab öffnet auf „Aktiv" (zu-erledigen zuerst; offene Kaution + Guthaben inklusive); Guthaben-Badge „Guthaben X € — Rückzahlung offen" bei Überzahlung (Rückzahlung manuell).
+**Anfrage — Panel „Aktion wählen":**
+- „Angebot freigeben + Mail senden"
+- „Mit Anmerkung freigeben" → Textfeld → „Senden mit Anmerkung"
+- „Rückruf vorschlagen" (Status bleibt Anfrage)
+- „Ablehnen (höfliche Absage)" → Dropdown „Grund (bestimmt den Kundentext)": „Termin/Artikel ausgebucht" · „Außerhalb Liefergebiet" · „Artikel nicht verfügbar" · „Termin zu kurzfristig" · „Möchte nicht vermieten (neutrale Mail)" · „Sonstiges (eigener Kundentext)"; Checkbox „Ohne Mail ablehnen (Test/Spam)"; Button „Absage senden" bzw. „Ablehnen ohne Mail"
+
+**Buchung — Panel „Status" (über „Notfall-Override"):** Optionen „Anfrage offen" · „Angebot erstellt" · „Angebot an Kunde versendet" · „Reserviert (Anzahlung eingegangen)" · „Vom Kunden bestaetigt (Anzahlung steht aus)" · „Artikel uebergeben" · „Aktuell in Miete" · „Zurueckgegeben — Pruefung laeuft" · „Abgerechnet" · „Storniert" · „Kunde nicht erschienen"; Button „Override speichern (mit Audit-Log)".
+
+**Panel „Termine":** Felder „Übergabe-Termin", „Rückgabe-Termin"; Button „Termine speichern".
+
+**Panel „Zahlungseingang erfassen":** Typen „Anzahlung" / „Restzahlung" / „Kaution hinterlegt"; Methode „Bar" / „Überweisung" / „Stripe"; Button „Erfassen".
+
+**Panel „Stripe-Zahlungslinks":** „Stripe-Link für Anzahlung generieren" / „Stripe-Link für Restzahlung generieren"; neu erzeugen über „↻ Neuen Link generieren (alter wird ersetzt)".
+
+**Panel „Kaution-Hold (X €)":** „Kaution-Hold-Link an Kunden mailen" bzw. „Hold-Link erneut an Kunden mailen".
+
+**Dialog „Übergabe Buchung #X" (Button „Übergeben"):** Checkliste „Übergeben (x/y)"; Kaution-Methode „Bar erhalten" / „Stripe-Hold" / „Noch offen"; Fotos; „Notiz (optional, intern)"; Button „Übergeben".
+
+**Dialog „Rückgabe Buchung #X" (Button „Rückgabe markieren"):** „Alles zurück?" je Position „Da" / „Fehlt"; Fotos; Button „Rückgabe abschließen".
+
+**Panel „Kaution-Prüfung offen":** „Volle Erstattung (kein Schaden)" / „Teilerstattung — Schaden eingezogen" (Feld „Schaden in € (max …)") / „Kompletter Einzug (Schaden >= Kaution)"; Feld „Schaden-Notiz (erscheint in der finalen Abschluss-Mail)"; Button „Kaution auflösen (ohne Mail)". Bei Bar-Kaution: „IBAN für Rücküberweisung anfordern".
+
+**Abschnitt „Position / Leistung entfernen":** je Zeile Button „Entfernen".
+
+**Panel „Rechnung":** Button „Rechnung erstellen + Mail senden" (bzw. „Weitere Rechnung erstellen") — das ist die EINE finale Kundenmail (Rechnung-PDF + Kaution-Status + Bewertung).
+
+**Dialog „Storno Buchung #X" (Button „Stornieren"):** Grund „Kunden Wunsch" · „Manuel Entscheidung" · „Anzahlung nicht geleistet" · „Konflikt verloren" · „No Show" · „Sonstig"; Feld „Erstattung in EUR"; Checkbox „Stripe-Refund auslösen"; Button „Stornieren".
+
+**Buchungsliste:** Tab „Aktiv" als Default; Guthaben-Badge „Guthaben X € — Rückzahlung offen" bei Überzahlung.
+
+> Wartungsregel: Diese Labels sind 1:1 aus den UI-Komponenten gezogen. Ändert sich ein Button-Text im Code, hier mitziehen — und umgekehrt: was hier steht, ist die SOLL-Beschriftung im Dashboard.
 
 ---
 

@@ -186,7 +186,7 @@ export default function KautionErstattenPanel({
 
           {(action === "teil" || action === "einzug") && (
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Schaden-Notiz (geht an Kunden in der Mail)</label>
+              <label className="block text-xs text-gray-600 mb-1">Schaden-Notiz (erscheint in der finalen Abschluss-Mail)</label>
               <textarea
                 value={notiz}
                 onChange={(e) => setNotiz(e.target.value)}
@@ -210,7 +210,7 @@ export default function KautionErstattenPanel({
               disabled={submitting || (action === "teil" && (!schadenEur || parseFloat(schadenEur) <= 0))}
               className="flex-1 py-2 rounded bg-amber-700 text-white text-sm font-medium hover:bg-amber-800 disabled:opacity-40"
             >
-              {submitting ? "Verarbeite…" : "Kaution auflösen + Mail an Kunde"}
+              {submitting ? "Verarbeite…" : "Kaution auflösen (ohne Mail)"}
             </button>
           </div>
         </div>
