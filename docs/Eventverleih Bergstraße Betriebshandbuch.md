@@ -128,10 +128,12 @@ Hinweise: Die Kästen tragen die **Status-Namen wie im Dashboard**. Beim Reinkom
 
 ### Zahllinks & Kaution-Hold — wann entstehen sie
 
-Wichtiger Schritt, der im reinen Status-Bild fehlt:
+Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
-- **Anzahlungs-, Restzahlungs- und Komplettzahlungs-Link** entstehen **zweimal** automatisch: (1) wenn du das **Angebot freigibst** (`/api/admin/anfrage/[id]/action`), (2) erneut, wenn der **Kunde annimmt** (`/api/vertrag-akzeptieren`, fail-soft). Jederzeit auch manuell über das Stripe-Links-Panel (`/api/admin/buchung/[id]/payment-link`). Felder: `Stripe_Anzahlung_Link`, `Stripe_Restzahlung_Link`, `Stripe_Komplettzahlung_Link`. Bezahlt → Webhook `payment_intent.succeeded` → Status `Reserviert` + Einnahme.
-- **Kaution-Hold-Link (Pre-Auth)** entsteht NICHT bei Angebot/Annahme, sondern **später**: bei der **Übergabe** (Methode „stripe_preauth"), per manuellem Button „Kaution-Hold senden" (`/api/admin/buchung/[id]/kaution-mail`), per **Cron** `kaution-reminder` (~T-5) oder manuell übers Payment-Links-Panel (`type:kaution`). Feld `Stripe_Kaution_Link`; Webhook `amount_capturable_updated` setzt `Stripe_Kaution_PaymentIntent` + `Kaution_Hinterlegt_am`. Auflösung später über „Kaution auflösen" (cancel = voll zurück / capture = Schaden).
+- **Anzahlungs-, Restzahlungs- und Komplettzahlungs-Link** entstehen **automatisch**: sobald du das **Angebot freigibst**, und nochmal, wenn der **Kunde annimmt**. Bei Bedarf erzeugst du sie jederzeit neu über das Panel „Stripe-Zahlungslinks". Sobald der Kunde zahlt, springt die Buchung von selbst auf „Reserviert (Anzahlung eingegangen)".
+- **Kaution-Hold** entsteht **nicht** beim Angebot/bei der Annahme, sondern **später**: bei der **Übergabe** (wenn du dort „Stripe-Hold" wählst), per Button „Kaution-Hold-Link an Kunden mailen", oder automatisch ~5 Tage vor dem Event. Aufgelöst wird er nach der Rückgabe über „Kaution auflösen".
+
+(Die technischen Details dazu — Routen, Webhook-Ereignisse, Feldnamen — stehen in Teil B, nicht hier.)
 
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
 
