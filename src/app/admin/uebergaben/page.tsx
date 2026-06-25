@@ -5,7 +5,7 @@
  *  1. "Anstehende Übergaben" (Bestätigt/Reserviert, Termin in den nächsten 7 Tagen)
  *     → Packliste + Bar-Zahlung + "Übergabe markieren" (UebergabeActions)
  *  2. "Draußen — Rückgabe fällig" (Übergeben/In Miete) → Schnellfeld Rückgabe-Termin
- *     (Google-Kalender-Sync) + "Rückgabe markieren" (RueckgabeCardActions)
+ *     (Google-Kalender-Sync) + "Rückgabe bestätigen" (RueckgabeCardActions)
  */
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";

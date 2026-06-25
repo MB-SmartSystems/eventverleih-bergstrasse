@@ -73,7 +73,7 @@ Seitenpfade: Angebot abgelaufen, Storniert, Kunde nicht erschienen.
 ⑥  VOR / BEI RÜCKGABE
     Termin-Erinnerung Rückgabe (T-1) → Auto
     1 Stunde vor Rückgabe → Auto
-    Du dokumentierst die Rückgabe („Rückgabe markieren") → Status: „Zurückgegeben — Prüfung läuft"
+    Du dokumentierst die Rückgabe („Rückgabe bestätigen") → Status: „Zurückgegeben — Prüfung läuft"
 
 ⑦  KAUTION (intern, KEINE eigene Mail — seit 2026-06-24)
     Du prüfst Kaution + Schäden. Die Prüffrist (1–2 Werktage) wird automatisch gesetzt.
@@ -120,8 +120,8 @@ stateDiagram-v2
     Reserviert --> Uebergeben: Übergeben
     Reserviert --> Storniert: Stornieren
     Uebergeben --> In_Miete: Event läuft (nur Anzeige)
-    Uebergeben --> Zurueckgegeben: Rückgabe markieren
-    In_Miete --> Zurueckgegeben: Rückgabe markieren
+    Uebergeben --> Zurueckgegeben: Rückgabe bestätigen
+    In_Miete --> Zurueckgegeben: Rückgabe bestätigen
     Zurueckgegeben --> Abgerechnet: Kaution auflösen + Rechnung erstellen
 ```
 
@@ -157,7 +157,7 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 **Buchungs-Detailseite** (Klick auf eine Buchung) — von oben nach unten:
 1. **Kopf** — „Buchung #…", oben rechts die Knöpfe „Angebot" und „Vertrag" (öffnen die Kundenansichten).
-2. **Auf einen Blick** — Kunde + Kontakt, „Miete bezahlt / offen", Kaution-Status, und der zum Status passende **Primär-Knopf** („Übergeben" / „Rückgabe markieren" / „… Rechnung erstellen"); darunter Event-, Übergabe- und Rückgabe-Datum.
+2. **Auf einen Blick** — Kunde + Kontakt, „Miete bezahlt / offen", Kaution-Status, und der zum Status passende **Primär-Knopf** („Übergeben" / „Rückgabe bestätigen" / „… Rechnung erstellen"); darunter Event-, Übergabe- und Rückgabe-Datum.
 3. **Termine** — Übergabe-/Rückgabe-Termin + „Termine speichern + Mail senden" (zeigt den Treffpunkt Grillhütte Sandwiese).
 4. **Rechnung** — „Rechnung erstellen + Mail senden" (die finale Kundenmail).
 5. **Bestellung** — Artikel + Services, je Zeile „Entfernen".
@@ -169,7 +169,7 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 11. **Protokoll** — Übergabe-/Rücknahme-Doku (Checkliste, Fotos, Schäden, Kaution) → „Protokoll ansehen".
 12. Ganz unten, **eingeklappt** (nur für Sonderfälle): „Zahlungs-Links & Kaution-Mail (manuell)" (Stripe-Links + Kaution-Hold-Link + Stornieren), „Status manuell setzen (Notfall)" (Status-Override) und „Details (Quelle, Standort, Aufbau)".
 
-**Roter Faden:** Der Primär-Knopf oben (Punkt 2) führt dich durch den Ablauf (Übergeben → Rückgabe markieren → Kaution auflösen → Rechnung erstellen). Die **Checkliste** (Punkt 7) zeigt dir jederzeit, wo die Buchung steht. Die eingeklappten Bereiche unten (Punkt 12) brauchst du nur im Ausnahmefall.
+**Roter Faden:** Der Primär-Knopf oben (Punkt 2) führt dich durch den Ablauf (Übergeben → Rückgabe bestätigen → Kaution auflösen → Rechnung erstellen). Die **Checkliste** (Punkt 7) zeigt dir jederzeit, wo die Buchung steht. Die eingeklappten Bereiche unten (Punkt 12) brauchst du nur im Ausnahmefall.
 
 ### Aktionen & Buttons (exakte Dashboard-Beschriftungen)
 
@@ -195,7 +195,7 @@ Wortgetreu, wie im Dashboard sichtbar — das ist die Fläche, auf die du zeigst
 
 **Dialog „Übergabe Buchung #X" (Button „Übergeben"):** Checkliste „Übergeben (x/y)"; Kaution-Methode „Bar erhalten" / „Stripe-Hold" / „Noch offen"; Fotos; „Notiz (optional, intern)"; Button „Übergeben".
 
-**Dialog „Rückgabe Buchung #X" (Button „Rückgabe markieren"):** „Alles zurück?" je Position „Da" / „Fehlt"; Fotos; Button „Rückgabe abschließen".
+**Dialog „Rückgabe Buchung #X" (Button „Rückgabe bestätigen"):** „Alles zurück?" je Position „Da" / „Fehlt"; Fotos; Button „Rückgabe abschließen".
 
 **Panel „Kaution-Prüfung offen":** „Volle Erstattung (kein Schaden)" / „Teilerstattung — Schaden eingezogen" (Feld „Schaden in € (max …)") / „Kompletter Einzug (Schaden >= Kaution)"; Feld „Schaden-Notiz (erscheint in der finalen Abschluss-Mail)"; Button „Kaution auflösen (ohne Mail)". Bei Bar-Kaution: „IBAN für Rücküberweisung anfordern".
 
