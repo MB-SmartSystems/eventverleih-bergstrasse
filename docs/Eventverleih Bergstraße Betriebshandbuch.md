@@ -7,6 +7,8 @@
 > ⚠️ **Drift-Warnung:** Produktion lief in der Vergangenheit Code, der in keinem lokalen Commit stand (Mail-Betreffe, die nirgends im Repo auffindbar waren). Wenn eine real zugestellte Mail von diesem Dokument abweicht: nicht annehmen Repo == Prod. Mit `git grep "<Betreff>" $(git rev-list --all)` über *alle* Commits suchen und gegen die **Live-Baserow-Rows** (Tabelle MailQueue) prüfen.
 >
 > 🔧 **Wartungsregel (wichtig):** Wird eine Mail geändert, hinzugefügt oder entfernt → **die Tabelle in Teil B im selben Commit mitpflegen.** Genau das spart künftig die Code-Sucherei.
+>
+> 📎 **Verwandte Dokumente (eigene Quellen, hier nur verlinkt):** Corporate-Design / Brand-Guide (Logo, Farben, Fonts — eigenes Dokument) · Decision-Log (Warum-Entscheidungen) · Inhalts-Vorlagen als „edit → live"-Daten (Mail-Texte, Mietvertrag, AGB, Datenschutz, FAQ, Rechnungs-/Angebots-Layout). Diese Texte gehören NICHT ins Handbuch dupliziert — das Handbuch sagt nur, wo sie leben.
 
 ---
 
@@ -86,6 +88,25 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
     Timing-Gate: Kaution zuerst auflösen (⑦), dann Abschluss-Mail — nie Bewertung bei offener Kaution.
 ```
 
+### Lebenszyklus als Zustandsdiagramm
+
+```mermaid
+stateDiagram-v2
+    [*] --> Anfrage
+    Anfrage --> Angebot_versendet: Angebot freigeben
+    Angebot_versendet --> Abgelaufen: ~14 T ungenutzt (still)
+    Angebot_versendet --> Bestaetigt: Kunde nimmt an
+    Bestaetigt --> Reserviert: Anzahlung erhalten
+    Reserviert --> Uebergeben: Übergabe dokumentiert
+    Uebergeben --> In_Miete
+    Uebergeben --> Zurueckgegeben: Rücknahme dokumentiert
+    In_Miete --> Zurueckgegeben: Rücknahme dokumentiert
+    Zurueckgegeben --> Abgerechnet: Kaution aufgelöst + Abschluss-Mail
+    Angebot_versendet --> Storniert
+    Bestaetigt --> Storniert
+    Reserviert --> Storniert
+```
+
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
 
 - **Kaution = durchlaufender Posten / Sicherheit, KEINE Einnahme.** Nie auf die Mietrechnung, nie abgezogen. Schäden separat über die Kaution, nicht über die Mietsumme.
@@ -97,10 +118,19 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 - **Mail-Ton:** Erfolgsfall (volle Erstattung) warm + persönlich inkl. Bewertungsbitte; Schadensfälle (Teil/Einzug) sachlich-neutral. Stil-Grundregeln (`schreibstil-manu`) immer durchsetzen.
 - **Keine Auto-Kundenmail aus Einzelaktionen** (seit 2026-06-24): Kundenmail bewusst über „Rechnung erstellen + Mail senden", nicht als Nebeneffekt eines Buttons.
 
-#### Dashboard-Aktionen / Buttons (neu 2026-06-24)
-- **Buchungen-Tab** öffnet auf **„Aktiv"** (zu-erledigen zuerst; `istAktiv` schließt offene Kaution + Guthaben ein) — `src/app/admin/buchungen/page.tsx`.
-- **Position/Service nachträglich entfernen** je Zeile im Buchungs-Detail → `…/position/[id]/delete` bzw. `…/buchung/[id]/service-entfernen` → `recalcBuchung` (Komponente `EntfernenPanel.tsx`).
-- **Überzahlung → Guthaben-Badge** „Guthaben X € — Rückzahlung offen" (Liste + Detail); Rückzahlung macht Manuel manuell (kein Auto-Versand).
+### Aktionen & Buttons (Entscheidungsfläche)
+
+Was Manuel im Dashboard auslösen kann — das ist die Fläche, auf die du zeigst, wenn du etwas ändern willst. Je Aktion: was sie tut + welche Optionen.
+
+- **Anfrage/Angebot:** Angebot freigeben · freigeben mit Anmerkung · Rückruf vorschlagen · Ablehnen · Erneut senden · Nachhaken (ab ~T+10) · Neue Version.
+- **Termin:** Übergabe-/Rückgabe-Termin setzen (löst Bestätigungs-Mail + Google-Kalender-Sync aus).
+- **Zahlung:** Zahlung erfassen (Bar/Überweisung; Anzahlung/Restzahlung/Kaution) · Payment-Link erzeugen.
+- **Übergabe/Rücknahme:** Übergabe dokumentieren (Fotos + Checkliste) · Rücknahme dokumentieren.
+- **Position/Leistung:** Position entfernen · Service entfernen (Lieferung/Abholung/Aufbau/Abbau) → Beträge werden über `recalcBuchung` neu gerechnet.
+- **Kaution:** Kaution auflösen mit den Optionen voll / Teilerstattung (Schadenbetrag) / Kompletter Einzug — intern, keine eigene Mail · IBAN anfordern (bei Bar-Kaution).
+- **Abschluss:** Rechnung erstellen + Mail senden → die EINE finale Mail (Rechnung-PDF + Kaution-Status + Bewertung).
+- **Storno:** durch Kunde (Member-Bereich) oder Backoffice.
+- **Liste:** Buchungen-Tab öffnet auf „Aktiv" (zu-erledigen zuerst; offene Kaution + Guthaben inklusive); Guthaben-Badge „Guthaben X € — Rückzahlung offen" bei Überzahlung (Rückzahlung macht Manuel manuell).
 
 ---
 
@@ -211,6 +241,53 @@ Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
 - **Storno:** `Storno_am`, `Storno_Stufe`, `Storno_Betrag_Eur`, `Storno_Grund`
 - **Engpass-Flag:** `Konflikt_Mit_Buchung_ID`
 
+### Daten-Landkarte (Entitäten + Verknüpfungen)
+
+Konzeptionelle Karte — Tabellen-IDs + Beziehungen, NICHT die vollständigen Felder (die leben in Baserow; nur logik-treibende Felder stehen unter „Status-Felder").
+
+```mermaid
+erDiagram
+    KUNDE ||--o{ BUCHUNG : hat
+    BUCHUNG ||--o{ BUCHUNGS_POSITION : enthält
+    BUCHUNG ||--o{ MAILQUEUE : erzeugt
+    BUCHUNG ||--o{ ANGEBOT : "Angebot zu"
+    BUCHUNG ||--o{ RECHNUNG : "Beleg zu"
+    BUCHUNG ||--o{ AUDIT_LOG : protokolliert
+    BUCHUNG ||--o{ EINNAHME : "Zufluss bucht"
+    BUCHUNGS_POSITION }o--|| ARTIKEL : referenziert
+```
+
+Tabellen (Baserow): Kunden 949 · Rechnungen 950 · Buchungen 951 · Angebote 952 · EmailLog 953 · System_Konfiguration 955 · Artikel 957 · Einnahmen 961 · Buchungs_Position 968 · MailQueue 969 · Audit_Log 970. Kern: alles hängt an der **Buchung (951)**; Mietsumme + Kaution-Soll werden aus den Positionen (`Buchungs_Position` → `Artikel`) per `recalcBuchung` berechnet.
+
+### Integrationen & Secrets-Landkarte
+
+Welche externen Dienste, was sie tun, WO die Keys liegen — **nie die Keys selbst**.
+
+- **Baserow** (Datenbank) — Host `baserow.mb-smartsystems.de`; Token `BASEROW_TOKEN` (Vercel-Env + master-.env).
+- **Stripe** (Zahlung + Kaution-Hold) — Webhook-Events siehe oben; Secret nur in der Vercel-Prod-Env.
+- **n8n** (Mailversand, PDF, Kalender) — Workflows u. a. eve-mailqueue-poll, eve-rechnung-render-mail, eve-calendar-sync, eve-termin-1h-reminder; Webhook-URLs als Vercel-Env (`N8N_RECHNUNG_PDF_URL`, `N8N_CALENDAR_SYNC_URL`).
+- **Gotenberg** (HTML→PDF) — intern vom n8n-Rechnungs-Workflow aufgerufen.
+- **Google Calendar** — Übergabe-/Rückgabe-Termine via n8n (`GCAL_EVENTVERLEIH_ID`).
+- **SMTP/Mailversand** — über n8n-Credential (der eigentliche Versand-Kanal).
+
+### Verfügbarkeits-/Konflikt-Logik
+
+Inventar wird **hart geblockt** bei Status Reserviert / Uebergeben / In_Miete (`src/lib/eventverleih/availability.ts`, `conflicts.ts`). „Reserviert" gilt erst **nach Anzahlung**. Artikel-Bestände sind endlich → Verfügbarkeit über `POST /api/availability` prüfen. Engpass wird über `Konflikt_Mit_Buchung_ID` markiert.
+
+### Automatik-Landkarte (was läuft von selbst)
+
+Alles, was OHNE Mensch feuert — drei Quellen:
+- **Vercel-Crons** → siehe Cron-Map unten (Restzahlung-/Kaution-/1h-Reminder mit Sub-Passes).
+- **Stripe-Webhooks** → siehe Stripe-Webhook-Tabelle oben (Zahlung verbuchen, Kaution-Hold setzen, Refund markieren).
+- **n8n-Schedules/Webhooks:** eve-mailqueue-poll (~1 Min, versendet Auto_Reply/Approved) · eve-termin-1h-reminder (~15 Min) · eve-calendar-sync (Termin → Kalender) · eve-rechnung-render-mail (auf Knopf „Rechnung erstellen").
+- **Faustregel:** Kundenmail-Versand passiert ausschließlich über eve-mailqueue-poll (MailQueue) bzw. die finale n8n-Rechnungs-Mail.
+
+### Rollen & Zugriff
+
+- **Backoffice/Admin** (Manuel): volles Dashboard unter `/admin/*` (Auth über `EVENTVERLEIH_ADMIN_PASSWORT`).
+- **Kunde/Member:** `/mein-bereich` (Magic-Link-Login) — eigene Buchung einsehen, Storno.
+- **Public:** Website + Token-Links (`/angebot/[token]`, `/vertrag/[token]`, `/rechnung/[token]`).
+
 ### Cron-Map (Vercel Hobby-Limit → wenige Crons mit Sub-Passes)
 
 | Cron-Route | Takt | löst aus |
@@ -247,3 +324,16 @@ Was die Geschäftslogik erwarten ließe, aber im Repo **nicht** existiert (Stand
 - ~~Keine dedizierte Rechnungs-Mail.~~ **Behoben 2026-06-24:** finale Abschluss-Mail (Button „Rechnung erstellen + Mail senden", n8n `eve-rechnung-render-mail`) = Rechnung/Beleg-PDF (`RG-<Nr>.pdf`) + Kaution-Status + Bewertungsbitte in EINER Mail.
 - **Keine Mahnung / Zahlungserinnerung** bei ausbleibender Restzahlung (über die freundlichen Reminder hinaus).
 - **Keine Rechnungskorrektur / Gutschrift-Mail.**
+
+---
+
+## Teil D — Runbook „Was tun wenn …"
+
+- **Kaution wird nicht angezeigt:** Stripe-Event `amount_capturable_updated` abonniert? (Vorfall 2026-06-19). PaymentIntent per `requires_capture` / `metadata.buchung_id` in Stripe suchen, ggf. in Baserow nachtragen.
+- **Mail kam nicht an:** MailQueue-Row prüfen — `Approval_Status` (Pending wartet auf Freigabe), läuft eve-mailqueue-poll? Self-Send-Falle (Absender = Empfänger-Postfach) übersehen?
+- **Zahlung fehlt im System:** Stripe `payment_intent.succeeded` abonniert? Sonst manuell über „Zahlung erfassen" eintragen.
+- **Finanzen-Reiter leer/falsch:** Einnahmen entstehen beim Zufluss (`bucheEinnahme`), nicht bei Rechnungserstellung; Jahres-Filter prüfen.
+- **PDF-Anhang falsch benannt:** n8n eve-rechnung-render-mail, Node „PDF benennen" (`RG-<Nr>.pdf`).
+- **Überzahlung / Guthaben:** Guthaben-Badge zeigt es; Rückzahlung manuell per Rücküberweisung (kein Stripe-Refund, wenn per Überweisung gezahlt wurde).
+- **Kaution-Auflösen wirft Stripe-Fehler:** verfallener Hold = ok (idempotent); echter Fehler nur bei bereits eingezogenem (captured) Hold.
+- **Handbuch weicht vom Code ab:** Drift-Check `python3 scripts/handbuch_drift_check.py` laufen lassen.
