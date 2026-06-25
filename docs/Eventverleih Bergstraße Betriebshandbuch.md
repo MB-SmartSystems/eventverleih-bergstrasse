@@ -14,24 +14,24 @@
 
 ## Teil A — Was passiert wann? (für Manuel)
 
-### Die vier Sendemodi
+### Wie Mails rausgehen — vier Arten
 
-Jede Mail liegt zuerst in der **MailQueue** (Baserow). Wie sie von dort rausgeht, steuert das Feld `Approval_Status`:
+Jede Kundenmail geht auf eine von vier Arten raus (die technischen Bezeichnungen dazu stehen in Teil B):
 
-| Modus | Was es bedeutet |
+| Art | Was es bedeutet |
 |---|---|
-| **`Pending`** | Wartet auf **deine** Freigabe im Dashboard-Backoffice. Geht erst raus, wenn du auf „freigeben" klickst. |
-| **`Auto_Reply`** | Geht **sofort** raus — der n8n-Poll `eve-mailqueue-poll` holt die Queue ~jede Minute ab. Keine Freigabe nötig. |
-| **`Approved`** | Folge einer Aktion von dir (z. B. „Angebot freigeben"): die Aktion *ist* die Freigabe → geht sofort raus. |
-| **`Rejected`** | Abgelehnt, wird nie versendet. |
+| **Wartet auf deine Freigabe** | Geht erst raus, wenn du sie im Backoffice freigibst. |
+| **Sofort automatisch** | Geht ohne dein Zutun raus (z. B. Eingangsbestätigung, Zahlungsbestätigung) — meist innerhalb einer Minute. |
+| **Mit deiner Aktion** | Eine Aktion von dir (z. B. „Angebot freigeben") ist zugleich die Freigabe → geht sofort raus. |
+| **Abgelehnt** | Wird nie versendet. |
 
-Faustregel: **`Pending`** = „ich schaue nochmal drüber" · **`Auto_Reply`/`Approved`** = „läuft automatisch, ich muss nichts tun".
+Faustregel: „Wartet auf deine Freigabe" = du schaust nochmal drüber · „Sofort automatisch / Mit deiner Aktion" = läuft von selbst, du musst nichts tun.
 
 ### Der Lebenszyklus einer Buchung (Zeitstrahl)
 
-Status-Feld der Buchung: `Status_Erweitert`. Werte:
-`Anfrage → Angebot_versendet → Bestaetigt → Reserviert → Uebergeben → (In_Miete) → Zurueckgegeben → Abgerechnet`.
-Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
+Eine Buchung durchläuft diese Zustände (so heißen sie auch im Status-Panel):
+Anfrage offen → Angebot an Kunde versendet → Vom Kunden bestätigt → Reserviert → Artikel übergeben → (Aktuell in Miete) → Zurückgegeben → Abgerechnet.
+Seitenpfade: Angebot abgelaufen, Storniert, Kunde nicht erschienen.
 
 ```
 ①  ANFRAGE
@@ -64,7 +64,8 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
     1 Stunde vor Übergabe „Gleich: Ihr Termin um …" → Auto (Schedule alle ~15 Min)
 
 ⑤  ÜBERGABE
-    Du dokumentierst Übergabe (Fotos + Checkliste) im Dashboard
+    Du dokumentierst die Übergabe im Dialog „Übergabe Buchung #…": Checkliste „Übergeben (x/y)" abhaken,
+    Fotos (optional) — und die Kaution-Methode wählen: „Bar erhalten" / „Stripe-Hold" / „Noch offen" — dann „Übergeben".
     → Auto: „Übergabe erfolgt — Ihre Mietartikel"
     Status: „Artikel übergeben" (Anzeige „Aktuell in Miete", sobald das Event läuft)
 
@@ -75,13 +76,12 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 
 ⑦  KAUTION (intern, KEINE eigene Mail — seit 2026-06-24)
     Du prüfst Kaution + Schäden (Prüffrist ~1–2 Tage).
-    Panel „Kaution-Prüfung offen" — Optionen „Volle Erstattung (kein Schaden)" / „Teilerstattung — Schaden eingezogen" / „Kompletter Einzug (Schaden >= Kaution)", Button „Kaution auflösen (ohne Mail)":
-      · Volle Erstattung → Stripe-Hold wird freigegeben (idempotent gegen verfallene Holds), 0 € abgebucht.
-      · Teilerstattung/Einzug → Schaden wird per Stripe captured, Rest verfällt.
-      · Verschickt KEINE eigene Kundenmail; die Kaution-Info steht in den Buchungs-Feldern
-        (Kaution_Pruefung_Status, _Rueckzahlung_Eur, Schaden_Betrag_Eur, _Schaden_Notiz)
-        und wird von der Abschluss-Mail in ⑧ aufgegriffen.
-    Bar-Kaution ohne Stripe-Hold: „IBAN für Rücküberweisung anfordern" → du überweist manuell per Bank-App.
+    Im Panel „Kaution-Prüfung offen" klickst du auf „Kaution erstatten / einbehalten" — dann öffnet sich die Auswahl:
+      · „Volle Erstattung (kein Schaden)" → der Stripe-Hold wird freigegeben, dem Kunden wird nichts abgebucht.
+      · „Teilerstattung — Schaden eingezogen" → du gibst die Schadensumme ein; nur der Schaden wird eingezogen, der Rest fällt weg.
+      · „Kompletter Einzug (Schaden >= Kaution)" → die ganze Kaution wird einbehalten.
+    Danach klickst du „Kaution auflösen (ohne Mail)". Es geht KEINE eigene Mail raus — die Kaution-Info erscheint später in der Abschluss-Mail (⑧).
+    Bar-Kaution (ohne Stripe-Hold): „IBAN für Rücküberweisung anfordern" → du überweist die Kaution manuell per Bank-App zurück.
     Status: Abgerechnet
 
 ⑧  ABSCHLUSS-MAIL — Rechnung + Kaution + Bewertung in EINER Mail
@@ -156,7 +156,7 @@ Wortgetreu, wie im Dashboard sichtbar — das ist die Fläche, auf die du zeigst
 - „Rückruf vorschlagen" (Status bleibt Anfrage)
 - „Ablehnen (höfliche Absage)" → Dropdown „Grund (bestimmt den Kundentext)": „Termin/Artikel ausgebucht" · „Außerhalb Liefergebiet" · „Artikel nicht verfügbar" · „Termin zu kurzfristig" · „Möchte nicht vermieten (neutrale Mail)" · „Sonstiges (eigener Kundentext)"; Checkbox „Ohne Mail ablehnen (Test/Spam)"; Button „Absage senden" bzw. „Ablehnen ohne Mail"
 
-**Anfragen-Liste — Schnellaktionen (kürzer beschriftet, gleiche Endpunkte):** „✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen". Bei Status „Angebot an Kunde versendet" stattdessen: „Nachhaken" · „Mail verloren? Erneut senden" · „✗ Ablehnen". (Das Ablehnen-Dropdown der Liste hat 5 Gründe — ohne „Sonstiges".) Neue Angebots-Version über „Senden als v2".
+**Anfragen-Liste — Schnellaktionen (kürzer beschriftet, gleiche Endpunkte):** „✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen". Bei Status „Angebot an Kunde versendet" stattdessen: „Nachhaken" · „Mail verloren? Erneut senden" · „✗ Ablehnen". Das Ablehnen-Dropdown der Liste hat 5 Gründe (ohne „Sonstiges"): „Termin/Artikel ausgebucht" · „Außerhalb Liefergebiet" · „Artikel nicht verfügbar" · „Termin zu kurzfristig" · „Möchte nicht vermieten (neutrale Mail)". Neue Angebots-Version über „Senden als v2".
 
 **Buchung — Panel „Status" (über „Notfall-Override"):** Optionen „Anfrage offen" · „Angebot erstellt" · „Angebot an Kunde versendet" · „Reserviert (Anzahlung eingegangen)" · „Vom Kunden bestaetigt (Anzahlung steht aus)" · „Artikel uebergeben" · „Aktuell in Miete" · „Zurueckgegeben — Pruefung laeuft" · „Abgerechnet" · „Storniert" · „Kunde nicht erschienen"; Button „Override speichern (mit Audit-Log)".
 
