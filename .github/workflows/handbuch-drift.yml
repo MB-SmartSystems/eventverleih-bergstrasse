@@ -1,0 +1,28 @@
+name: Handbuch-Konformität (Drift-Check)
+
+# Wächter: prüft, ob das Dashboard noch zum Betriebshandbuch passt
+# (Mail-Inventar Code vs. Handbuch). Läuft bei jedem Push am Code/Handbuch,
+# täglich um 06:00 UTC, und manuell. Schlägt fehl (rote Mail von GitHub),
+# wenn Handbuch und Code auseinanderlaufen → dann Handbuch nachziehen.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "docs/Eventverleih Bergstraße Betriebshandbuch.md"
+      - "scripts/handbuch_drift_check.py"
+  schedule:
+    - cron: "0 6 * * *"   # täglich 06:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  drift-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Drift-Check (Handbuch vs. Code)
+        run: python3 scripts/handbuch_drift_check.py
