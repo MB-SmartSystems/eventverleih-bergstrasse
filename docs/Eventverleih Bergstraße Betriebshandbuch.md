@@ -185,7 +185,7 @@ Wortgetreu, wie im Dashboard sichtbar — das ist die Fläche, auf die du zeigst
 
 **Buchung — Panel „Status" (über „Notfall-Override"):** Optionen „Anfrage offen" · „Angebot erstellt" · „Angebot an Kunde versendet" · „Reserviert (Anzahlung eingegangen)" · „Vom Kunden bestaetigt (Anzahlung steht aus)" · „Artikel uebergeben" · „Aktuell in Miete" · „Zurueckgegeben — Pruefung laeuft" · „Abgerechnet" · „Storniert" · „Kunde nicht erschienen"; Button „Override speichern (mit Audit-Log)".
 
-**Panel „Termine":** Felder „Übergabe-Termin", „Rückgabe-Termin"; Button „Termine speichern".
+**Panel „Termine":** Felder „Übergabe-Termin", „Rückgabe-Termin"; Button „Termine speichern". Eine Bestätigungs-Mail geht **nur** für einen Termin raus, der sich geändert hat **und** in der Zukunft liegt — erneutes Speichern oder das spätere Setzen des Rückgabe-Termins löst **keine** erneute Übergabe-Mail aus.
 
 **Panel „Zahlungseingang erfassen":** Typen „Anzahlung" / „Restzahlung" / „Kaution hinterlegt"; Methode „Bar" / „Überweisung" / „Stripe"; Button „Erfassen".
 
