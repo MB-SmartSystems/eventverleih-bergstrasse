@@ -63,8 +63,9 @@ export default function TerminePanel({
         <span className="text-xs text-warm-muted">Treffpunkt: Grillhütte Sandwiese</span>
       </div>
       <p className="text-xs text-warm-muted">
-        Trage hier den telefonisch abgestimmten Termin ein. Bei gesetztem GCAL_EVENTVERLEIH_ID
-        + N8N_CALENDAR_SYNC_URL wird er automatisch in Google Calendar synchronisiert.
+        Trage hier den telefonisch abgestimmten Termin ein. Beim Speichern wird <strong>nur der neu
+        gesetzte oder geänderte</strong> Termin per Mail an den Kunden bestätigt — eine bereits erfolgte
+        Übergabe wird nicht erneut gemailt. Der Termin wird automatisch in den Google-Kalender übernommen.
       </p>
       {error && <div className="p-2 rounded bg-red-50 border border-red-200 text-red-700 text-xs">{error}</div>}
       {saved && <div className="p-2 rounded bg-green-50 border border-green-200 text-green-700 text-xs">Termine gespeichert.</div>}
@@ -101,7 +102,7 @@ export default function TerminePanel({
         disabled={submitting}
         className="px-4 py-2 rounded bg-accent text-white text-sm font-medium hover:bg-accent-dark disabled:opacity-40"
       >
-        {submitting ? "Speichere…" : "Termine speichern"}
+        {submitting ? "Speichere…" : "Termine speichern + Mail senden"}
       </button>
     </section>
   );
