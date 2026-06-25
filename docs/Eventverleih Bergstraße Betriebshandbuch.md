@@ -64,6 +64,7 @@ Seitenpfade: Angebot abgelaufen, Storniert, Kunde nicht erschienen.
     1 Stunde vor Übergabe „Gleich: Ihr Termin um …" → Auto (Schedule alle ~15 Min)
 
 ⑤  ÜBERGABE
+    Übergabe-Ort: bei Selbstabholung der feste Treffpunkt Grillhütte Sandwiese; bei Lieferung an die Event-Adresse des Kunden.
     Du dokumentierst die Übergabe im Dialog „Übergabe Buchung #…": Checkliste „Übergeben (x/y)" abhaken,
     Fotos (optional) — und die Kaution-Methode wählen: „Bar erhalten" / „Stripe-Hold" / „Noch offen" — dann „Übergeben".
     → Auto: „Übergabe erfolgt — Ihre Mietartikel"
@@ -75,13 +76,13 @@ Seitenpfade: Angebot abgelaufen, Storniert, Kunde nicht erschienen.
     Du dokumentierst die Rückgabe („Rückgabe markieren") → Status: „Zurückgegeben — Prüfung läuft"
 
 ⑦  KAUTION (intern, KEINE eigene Mail — seit 2026-06-24)
-    Du prüfst Kaution + Schäden (Prüffrist ~1–2 Tage).
+    Du prüfst Kaution + Schäden. Die Prüffrist (1–2 Werktage) wird automatisch gesetzt.
     Im Panel „Kaution-Prüfung offen" klickst du auf „Kaution erstatten / einbehalten" — dann öffnet sich die Auswahl:
       · „Volle Erstattung (kein Schaden)" → der Stripe-Hold wird freigegeben, dem Kunden wird nichts abgebucht.
       · „Teilerstattung — Schaden eingezogen" → du gibst die Schadensumme ein; nur der Schaden wird eingezogen, der Rest fällt weg.
       · „Kompletter Einzug (Schaden >= Kaution)" → die ganze Kaution wird einbehalten.
     Danach klickst du „Kaution auflösen (ohne Mail)". Es geht KEINE eigene Mail raus — die Kaution-Info erscheint später in der Abschluss-Mail (⑧).
-    Bar-Kaution (ohne Stripe-Hold): „IBAN für Rücküberweisung anfordern" → du überweist die Kaution manuell per Bank-App zurück.
+    Bar-Kaution (ohne Stripe-Hold): „IBAN für Rücküberweisung anfordern" — du fragst den Kunden nach seiner IBAN und überweist die Kaution manuell per Bank-App zurück.
     Status: Abgerechnet
 
 ⑧  ABSCHLUSS-MAIL — Rechnung + Kaution + Bewertung in EINER Mail
@@ -145,6 +146,24 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 - **Angebot läuft still ab** (keine „Angebot abgelaufen"-Mail). Gültigkeit ~14 Tage. Nachhaken erst nach ~10 Tagen, „erneut senden" nur Ausnahme.
 - **Mail-Ton:** Erfolgsfall (volle Erstattung) warm + persönlich inkl. Bewertungsbitte; Schadensfälle (Teil/Einzug) sachlich-neutral. Stil-Grundregeln (`schreibstil-manu`) immer durchsetzen.
 - **Keine Auto-Kundenmail aus Einzelaktionen** (seit 2026-06-24): Kundenmail bewusst über „Rechnung erstellen + Mail senden", nicht als Nebeneffekt eines Buttons.
+
+### Dashboard-Übersicht (wo finde ich was)
+
+**Reiter „Anfragen":** jede neue Anfrage als Karte, mit den Schnellaktionen direkt dran („✓ Freigeben" · „Mit Anmerkung" · „Rückruf" · „✗ Ablehnen"). Klick öffnet das Detail.
+
+**Reiter „Buchungen":** öffnet auf dem Tab **„Aktiv"** (was zu erledigen ist, zuerst), daneben „Anstehend" · „Alle" · „Abgeschlossen" · „Storniert". Tabelle mit Event-Datum, Kunde, Status und Gesamtbetrag; bei Überzahlung ein Guthaben-Hinweis.
+
+**Buchungs-Detailseite** (Klick auf eine Buchung) — von oben nach unten:
+1. **Auf einen Blick** — Status, Kunde, Termine, Adresse.
+2. **Primäre Aktion** — der zum Status passende Hauptknopf: „Übergeben" (vor der Übergabe) · „Rückgabe markieren" (während der Miete) · „Kaution erstatten / einbehalten" (nach der Rückgabe).
+3. **Termine** — Übergabe-/Rückgabe-Termin setzen.
+4. **Rechnung** — „Rechnung erstellen + Mail senden" (die finale Kundenmail).
+5. **Bestellung** — Artikel + Services, je Zeile „Entfernen".
+6. **Zahlungen** — Übersicht + „Zahlungseingang erfassen"; Guthaben-Hinweis bei Überzahlung.
+7. **Checkliste** — Packliste/Status.
+8. Weiter unten: **Stripe-Zahlungslinks**, **Kaution-Hold**, **Stornieren**, und ganz unten der **„Status"-Override** (nur für den Notfall).
+
+**Roter Faden:** Der „Primäre Aktion"-Knopf oben führt dich durch den Ablauf (Übergeben → Rückgabe markieren → Kaution auflösen → Rechnung erstellen). Den „Status"-Override ganz unten brauchst du nur im Ausnahmefall.
 
 ### Aktionen & Buttons (exakte Dashboard-Beschriftungen)
 
