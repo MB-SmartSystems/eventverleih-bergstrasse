@@ -93,25 +93,36 @@ Seitenpfade: `Abgelaufen` (Angebot verstrichen), `Storniert`, `No_Show`.
 
 ```mermaid
 stateDiagram-v2
+    state "Anfrage offen" as Anfrage
+    state "Angebot an Kunde versendet" as Angebot_versendet
+    state "Vom Kunden bestätigt (Anzahlung steht aus)" as Bestaetigt
+    state "Reserviert (Anzahlung eingegangen)" as Reserviert
+    state "Artikel übergeben" as Uebergeben
+    state "Aktuell in Miete" as In_Miete
+    state "Zurückgegeben — Prüfung läuft" as Zurueckgegeben
+    state "Abgerechnet" as Abgerechnet
+    state "Storniert" as Storniert
+    state "Angebot abgelaufen" as Abgelaufen
+
     [*] --> Anfrage: Kontaktformular
-    Anfrage --> Anfrage: Rückruf vorschlagen (bleibt offen)
+    Anfrage --> Angebot_versendet: Angebot freigeben + Mail senden
+    Anfrage --> Angebot_versendet: Mit Anmerkung freigeben
+    Anfrage --> Anfrage: Rückruf vorschlagen
     Anfrage --> Storniert: Ablehnen (höfliche Absage)
-    Anfrage --> Angebot_erstellt: Angebot anlegen (manuell)
-    Angebot_erstellt --> Angebot_versendet: Angebot freigeben + Mail senden / Mit Anmerkung freigeben — Zahllinks entstehen
-    Angebot_versendet --> Abgelaufen: ~14 T ungenutzt (still)
-    Angebot_versendet --> Storniert: Ablehnen / Stornieren
-    Angebot_versendet --> Bestaetigt: Kunde nimmt an — Zahllinks neu + Bestätigung
-    Bestaetigt --> Reserviert: Anzahlung erhalten — Inventar gesperrt
-    Bestaetigt --> Storniert
-    Reserviert --> Uebergeben: Übergeben — Kaution-Hold gesetzt
-    Reserviert --> Storniert
+    Angebot_versendet --> Bestaetigt: Kunde nimmt an
+    Angebot_versendet --> Abgelaufen: ~14 Tage ungenutzt
+    Angebot_versendet --> Storniert: Stornieren
+    Bestaetigt --> Reserviert: Anzahlung erhalten
+    Bestaetigt --> Storniert: Stornieren
+    Reserviert --> Uebergeben: Übergeben
+    Reserviert --> Storniert: Stornieren
     Uebergeben --> In_Miete: Event läuft (nur Anzeige)
-    Uebergeben --> Zurueckgegeben: Rückgabe markieren — Kaution-Prüffrist
+    Uebergeben --> Zurueckgegeben: Rückgabe markieren
     In_Miete --> Zurueckgegeben: Rückgabe markieren
-    Zurueckgegeben --> Abgerechnet: Kaution auflösen + Rechnung erstellen + Mail senden
+    Zurueckgegeben --> Abgerechnet: Kaution auflösen + Rechnung erstellen
 ```
 
-Hinweis: `In_Miete` ist nur eine **Anzeige** (Event läuft gerade, datumsbasiert) — es gibt dafür keinen eigenen Status-Umschalt-Schritt im Code. Manuel kann jeden Status zur Not auch direkt über das Status-Panel setzen.
+Hinweise: Die Kästen tragen die **Status-Namen wie im Dashboard**. Beim Reinkommen einer Anfrage hast du **alle vier Aktionen zusammen** vor dir (Angebot freigeben + Mail senden / Mit Anmerkung freigeben / Rückruf vorschlagen / Ablehnen). „Angebot erstellt" ist ein interner Entwurf-Zwischenstatus (vor dem Versand) und im Bedienablauf nicht relevant. „Aktuell in Miete" ist nur eine datumsbasierte Anzeige (kein eigener Umschalt-Schritt). Jeden Status kannst du im Status-Panel notfalls manuell setzen.
 
 ### Zahllinks & Kaution-Hold — wann entstehen sie
 
