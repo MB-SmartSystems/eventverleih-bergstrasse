@@ -151,6 +151,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       console.error("[kaution-erstatten] audit-log fehlgeschlagen:", e);
     }
 
+    // Beleg-Row sicherstellen (vor Einnahme-Buchung, damit rechnungId verfügbar).
+    // Der Snapshot wird hier eingefroren — updateRow lief bereits → Kaution-Felder korrekt gesetzt.
+    let rechnungId: number | undefined;
+    try {
+      const existing = await findRechnungForBuchung(buchungId);
+      if (existing?.id) {
+        rechnungId = existing.id;
+      } else {
+        const r = await createRechnungForBuchung(buchungId, { sendMail: false });
+        if (r.ok) rechnungId = r.rechnung_id;
+        else console.error("[kaution-erstatten] Beleg nicht erstellt:", r.error);
+      }
+    } catch (e) {
+      console.error("[kaution-erstatten] Beleg-Schritt fehlgeschlagen:", e);
+    }
+
     // Einbehaltener Schaden ist eine Betriebseinnahme (Schadensersatz aus Kaution) —
     // als Einnahme buchen (Zuflussprinzip). Idempotent pro Buchung über den Marker.
     if (schadenEur > 0) {
@@ -160,19 +176,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
         betragEur: schadenEur,
         datum: heute,
         beschreibung: `Schadensersatz (Kaution) Buchung #${buchungId}`,
+        rechnungId,
       });
-    }
-
-    // Beleg-Row sicherstellen, falls noch keine existiert — non-blocking. Die finale Abschluss-Mail
-    // (separat über „Rechnung erstellen + Mail senden") greift Beleg + Kaution-Info dann auf.
-    try {
-      const existing = await findRechnungForBuchung(buchungId);
-      if (!existing?.url) {
-        const r = await createRechnungForBuchung(buchungId, { sendMail: false });
-        if (!r.ok) console.error("[kaution-erstatten] Beleg nicht erstellt:", r.error);
-      }
-    } catch (e) {
-      console.error("[kaution-erstatten] Beleg-Schritt fehlgeschlagen:", e);
     }
 
     // KEINE eigene Kunden-Mail mehr (Manuel 2026-06-24): die Kautions-Auflösung ist rein intern.

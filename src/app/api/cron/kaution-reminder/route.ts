@@ -2,23 +2,17 @@
  * GET /api/cron/kaution-reminder — Vercel-Cron taeglich
  *
  *  - listet alle Buchungen mit Status ∈ {Bestaetigt, Reserviert}
- *  - Event in genau T-5 Tagen, Kaution_Soll_Eur > 0, Hold noch nicht platziert
- *  - mailt den Stripe-Kaution-Hold-Link (Pre-Auth) via Helper queueKautionHoldMail
+ *  - Event in Fenster T-5..T-0, Kaution_Soll_Eur > 0, Kaution noch nicht als erhalten markiert
+ *  - Sendet "Kaution bitte bar bei Übergabe mitbringen"-Erinnerung (kein Stripe-Link mehr)
  *
- * Warum ~T-5 (nicht bei Bestaetigung): der Pre-Auth-Hold haelt nur 7 Tage
- * (mit Extended-Auth bis ~30 Tage). Bei Bestaetigung Wochen vor dem Event
- * waere der Hold laengst verfallen. ~5 Tage vorher deckt Uebergabe + Rueckgabe ab.
- * Fenster T-5..T-0 (nicht exakt T-5), damit auch Buchungen, die WENIGER als 5 Tage
- * vor dem Event bestaetigt werden, die Auto-Mail genau einmal bekommen (Idempotency-Key).
+ * Stabiler Idempotency-Key B<id>-kaution_bar_auto → genau EIN Auto-Versand pro Buchung.
  *
- * Stabiler Idempotency-Key B<id>-kaution_hold_auto → genau EIN Auto-Versand.
- * Manueller Re-Send weiter ueber den Admin-Button (date-suffixed Key) moeglich.
+ * Sub-Pass unten: Review-Reminder (kein eigener Cron wg. Hobby-Cron-Limit).
  *
  * Vercel-Cron-Auth via CRON_SECRET (Header Authorization: Bearer <CRON_SECRET>).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { listAllRows, listRows, TABLES } from "@/lib/baserow/client";
-import { queueKautionHoldMail } from "@/lib/eventverleih/kaution-mail";
+import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
 import { runReviewReminder } from "@/lib/eventverleih/review-reminder";
 
 export const dynamic = "force-dynamic";
@@ -32,6 +26,7 @@ interface BuchungRow {
   Event_datum_von: string | null;
   Kaution_Soll_Eur: string | number | null;
   Kaution_Hinterlegt_am: string | null;
+  Kunde_Link: Array<{ id: number; value: string }> | null;
 }
 
 function daysBetween(future: string): number {
@@ -50,7 +45,7 @@ function parseDec(v: string | number | null | undefined): number {
 export async function GET(req: NextRequest) {
   const auth = req.headers.get("authorization") || "";
   const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`) {
+  if (!expected || auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
@@ -72,16 +67,14 @@ export async function GET(req: NextRequest) {
       if (status !== "Bestaetigt" && status !== "Reserviert") continue;
       if (b.Kaution_Hinterlegt_am) continue;
       if (!b.Event_datum_von) continue;
-      if (parseDec(b.Kaution_Soll_Eur) <= 0) continue;
-      // Fenster: ab T-5 bis zum Event-Tag (T-0). Frueh-Buchungen feuern am ersten Tag
-      // im Fenster (T-5), Spaet-Buchungen sofort — Idempotency-Key haelt es bei genau 1 Mail.
+      const kautionSoll = parseDec(b.Kaution_Soll_Eur);
+      if (kautionSoll <= 0) continue;
       const tageBis = daysBetween(b.Event_datum_von);
       if (tageBis < 0 || tageBis > TAGE_VOR_EVENT) continue;
 
       result.pruefte++;
 
-      // Stabiler Idempotency-Check (genau ein Auto-Versand pro Buchung)
-      const idemKey = `B${b.id}-kaution_hold_auto`;
+      const idemKey = `B${b.id}-kaution_bar_auto`;
       const existing = await listRows<{ id: number; Idempotency_Key?: string }>(TABLES.MailQueue, {
         search: idemKey,
         size: 5,
@@ -92,22 +85,41 @@ export async function GET(req: NextRequest) {
       }
 
       try {
-        const r = await queueKautionHoldMail({ buchungId: b.id, idempotencyKey: idemKey });
-        if (r.ok) {
-          result.mails_versendet++;
-          result.details.push({ buchung_id: b.id, reused: r.reused });
-        } else {
-          result.skipped_other++;
-          result.details.push({ buchung_id: b.id, skip: r.reason });
-        }
+        const kundeId = b.Kunde_Link?.[0]?.id;
+        if (!kundeId) { result.skipped_other++; result.details.push({ buchung_id: b.id, skip: "no_kunde" }); continue; }
+        const kunde = await getRow<{ Vorname?: string; Nachname?: string; Email?: string }>(TABLES.Kunden, kundeId);
+        if (!kunde.Email) { result.skipped_other++; result.details.push({ buchung_id: b.id, skip: "no_email" }); continue; }
+
+        const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
+        const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const subject = "Kaution zur Übergabe | Eventverleih Bergstraße";
+        const mailBody =
+          `Hallo ${kundeName},\n\n` +
+          `zur Vorbereitung auf Ihre Übergabe in ${tageBis <= 1 ? "Kürze" : `ca. ${tageBis} Tagen`}: ` +
+          `Bitte denken Sie daran, die Kaution (${betrag} EUR) bar bei der Übergabe mitzubringen.\n\n` +
+          `Die Kaution erhalten Sie nach der Rückgabe ohne Schäden vollständig zurück.\n\n` +
+          `Bei Fragen jederzeit per WhatsApp oder Anruf: +49 156 79521124.\n\n` +
+          `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße`;
+
+        await createRow(TABLES.MailQueue, {
+          Erstellt_am: new Date().toISOString(),
+          Buchung_Link: [b.id],
+          Kunde_Link: [kundeId],
+          Template_Key: "kaution_bar_hinweis",
+          Subject: subject,
+          Body: mailBody,
+          Approval_Status: "Auto_Reply",
+          Idempotency_Key: idemKey,
+        });
+        result.mails_versendet++;
+        result.details.push({ buchung_id: b.id, tage_bis: tageBis });
       } catch (e) {
         result.fehler++;
-        console.error("[kaution-reminder] queue fehlgeschlagen:", b.id, e);
+        console.error("[kaution-reminder] mail-insert fehlgeschlagen:", b.id, e);
       }
     }
 
-    // Sub-Pass: Review-Reminder (kein eigener Cron wg. Hobby-Cron-Limit). Fail-soft —
-    // darf den Kaution-Cron nie kippen.
+    // Sub-Pass: Review-Reminder (kein eigener Cron wg. Hobby-Cron-Limit). Fail-soft.
     let review: unknown = null;
     try {
       review = await runReviewReminder();

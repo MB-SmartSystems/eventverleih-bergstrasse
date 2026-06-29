@@ -25,6 +25,7 @@ import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
 import KautionMailPanel from "./KautionMailPanel";
 import EntfernenPanel from "./EntfernenPanel";
+import UebergabeTypPanel from "./UebergabeTypPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 import { bezahltEur } from "@/lib/eventverleih/zahlung";
 import { statusKlartext, type StatusTon } from "@/lib/eventverleih/status";
@@ -85,6 +86,7 @@ type BuchungRow = {
   Stripe_Restzahlung_Link: string | null;
   Stripe_Kaution_Link: string | null;
   Uebergabe_Adresse: string | null;
+  Übergabe_Typ: { value: string } | null;
 };
 
 type KundeRow = {
@@ -868,12 +870,16 @@ Vertrag
         <summary className="cursor-pointer px-5 py-3 text-sm text-warm-muted hover:text-warm-text">
           Details (Quelle, Standort, Aufbau)
         </summary>
-        <div className="px-5 pb-5 text-xs space-y-1 text-warm-muted">
+        <div className="px-5 pb-5 text-xs space-y-2 text-warm-muted">
           <div>Quelle: {buchung.Buchung_Quelle?.value ?? "—"}</div>
           <div>Standort: {buchung.Standort_Typ?.value?.replace(/_/g, " ") ?? "—"}</div>
           {buchung.Aufbau_gewuenscht?.value === "Ja" && <div>✓ Aufbau gewünscht</div>}
           {buchung.Abbau_gewuenscht?.value === "Ja" && <div>✓ Abbau gewünscht</div>}
           {buchung.Lieferadresse && <div>Lieferung: {buchung.Lieferadresse}</div>}
+          <UebergabeTypPanel
+            buchungId={buchung.id}
+            currentTyp={buchung.Übergabe_Typ?.value ?? null}
+          />
         </div>
       </details>
     </div>

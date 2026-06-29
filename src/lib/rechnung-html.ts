@@ -38,6 +38,13 @@ export interface RechnungContext {
   summe_eur: number;
   kaution_eur: number;
   bezahlt?: boolean;
+  kaution_block?: {
+    soll_eur: number;
+    schaden_eur: number;
+    erstattung_eur: number;
+    schaden_notiz: string | null;
+    beleg_typ: "erstattung" | "einbehalt" | "keine";
+  };
 
   firma: {
     name: string;
@@ -127,6 +134,8 @@ table.positionen td.num, table.positionen th.num { text-align: right; white-spac
 .summary .row { display: flex; justify-content: space-between; padding: 5px 0; }
 .summary .total { border-top: 2px solid #1a1a1a; margin-top: 6px; padding-top: 10px; font-weight: 700; font-size: 13pt; }
 .kaution-note { margin-top: 12px; font-size: 9.5pt; color: #666; font-style: italic; }
+.kaution-block { margin-top: 14px; padding: 10px 12px; background: #f0f7f0; border-left: 3px solid #5a9c5a; font-size: 9.5pt; }
+.kaution-block.einbehalt { background: #fdf4e7; border-left-color: #b89758; }
 .zahlungshinweis { margin: 26px 0 18px; padding: 14px 16px; background: #f9f6f0; border-left: 3px solid #b89758; font-size: 10.5pt; }
 .zahlungshinweis strong { display: block; margin-bottom: 4px; }
 .zahlungshinweis .iban { font-family: 'Courier New', monospace; letter-spacing: 0.5px; }
@@ -178,7 +187,13 @@ ${leistung && leistung !== "—" ? `<div class="leistung">Leistungszeitraum: ${l
 <div class="summary">
   <div class="row total"><span>Gesamtbetrag</span><span>${fmt(ctx.summe_eur)} €</span></div>
   ${
-    ctx.kaution_eur > 0
+    ctx.kaution_block && ctx.kaution_block.beleg_typ !== "keine"
+      ? ctx.kaution_block.beleg_typ === "erstattung"
+        ? `<div class="kaution-block">✓ Kaution von ${fmt(ctx.kaution_block.soll_eur)} € wurde vollständig erstattet.</div>`
+        : ctx.kaution_block.erstattung_eur > 0
+        ? `<div class="kaution-block einbehalt">Kaution: ${fmt(ctx.kaution_block.soll_eur)} € hinterlegt — ${fmt(ctx.kaution_block.schaden_eur)} € einbehalten (Schaden)${ctx.kaution_block.schaden_notiz ? `: ${escape(ctx.kaution_block.schaden_notiz)}` : ""}, ${fmt(ctx.kaution_block.erstattung_eur)} € erstattet.</div>`
+        : `<div class="kaution-block einbehalt">Kaution von ${fmt(ctx.kaution_block.soll_eur)} € vollständig einbehalten (Schaden)${ctx.kaution_block.schaden_notiz ? `: ${escape(ctx.kaution_block.schaden_notiz)}` : ""}.</div>`
+      : ctx.kaution_eur > 0
       ? `<div class="kaution-note">Hinweis: Zusätzlich wird bei Übergabe eine Kaution von ${fmt(ctx.kaution_eur)} € hinterlegt und nach beanstandungsfreier Rückgabe vollständig erstattet.</div>`
       : ""
   }

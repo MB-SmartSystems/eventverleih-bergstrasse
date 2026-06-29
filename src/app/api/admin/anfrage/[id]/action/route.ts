@@ -13,7 +13,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
-import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, updateRow, listRows, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
@@ -383,16 +383,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // MailQueue-Row anlegen (Approved → Poll versendet) — bei "ohne Mail ablehnen" (Test/Spam) ueberspringen
     const skipMail = body.action === "ablehnen" && body.ohne_mail === true;
     if (!skipMail) {
-      await createRow(TABLES.MailQueue, {
-        Erstellt_am: new Date().toISOString(),
-        Buchung_Link: [buchungId],
-        Kunde_Link: [kundeId],
-        Template_Key: templateKey,
-        Subject: mail.subject,
-        Body: mail.body,
-        Approval_Status: "Approved",
-        Idempotency_Key: `A${angebotId}-${templateKey}`,
-      });
+      // Idempotenz-Vorprüfung (Audit P2): Doppelklick "Freigeben" darf nicht zwei
+      // identische Approved-MailQueue-Rows anlegen (sonst Angebot doppelt an den Kunden).
+      // Gleiches Idiom wie in den Reminder-/Übergabe-Pfaden.
+      const idemKey = `A${angebotId}-${templateKey}`;
+      const dup = await listRows<{ id: number; Idempotency_Key?: string }>(TABLES.MailQueue, { search: idemKey, size: 5 });
+      if (!dup.results.find((m) => m.Idempotency_Key === idemKey)) {
+        await createRow(TABLES.MailQueue, {
+          Erstellt_am: new Date().toISOString(),
+          Buchung_Link: [buchungId],
+          Kunde_Link: [kundeId],
+          Template_Key: templateKey,
+          Subject: mail.subject,
+          Body: mail.body,
+          Approval_Status: "Approved",
+          Idempotency_Key: idemKey,
+        });
+      }
     }
 
     // Angebots-PDF fuer den In-Portal-Download rendern lassen (Blob + Angebote.PDF_URL).

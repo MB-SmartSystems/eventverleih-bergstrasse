@@ -23,6 +23,11 @@ type BuchungRow = {
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution_Soll_Eur: string | null;
+  Kaution_Hinterlegt_am: string | null;
+  Kaution_Rueckzahlung_Eur: string | null;
+  Kaution_Pruefung_Status: { value: string } | null;
+  Schaden_Betrag_Eur: string | null;
+  Kaution_Schaden_Notiz: string | null;
   Status_Erweitert: { value: string } | null;
   Anzahlung_Bezahlt_am: string | null;
   Restzahlung_Bezahlt_am: string | null;
@@ -156,8 +161,20 @@ export async function createRechnungForBuchung(
       gesamt_eur: parseFloat(p.Position_Gesamt_Eur ?? "0"),
     }));
 
+  const kautionSoll = num(buchung.Kaution_Soll_Eur);
+  const kautionAbgeschlossen = buchung.Kaution_Pruefung_Status?.value === "abgeschlossen";
+  const kautionSchadenEur = num(buchung.Schaden_Betrag_Eur);
+  const kautionErstattungEur = num(buchung.Kaution_Rueckzahlung_Eur);
+  type KautionBelegTyp = "erstattung" | "einbehalt" | "keine";
+  const kautionBelegTyp: KautionBelegTyp =
+    !kautionAbgeschlossen || kautionSoll === 0
+      ? "keine"
+      : kautionSchadenEur > 0
+      ? "einbehalt"
+      : "erstattung";
+
   const snapshot = {
-    schema_version: 1,
+    schema_version: 2,
     gobd_frozen_at: new Date().toISOString(),
     kunde: {
       anrede_form: kunde.Firma ? "firma" : "person",
@@ -177,7 +194,16 @@ export async function createRechnungForBuchung(
       preis_abholung_eur: num(buchung.Preis_Abholung),
       preis_aufbau_eur: num(buchung.Preis_Aufbau),
       preis_abbau_eur: num(buchung.Preis_Abbau),
-      kaution_soll_eur: num(buchung.Kaution_Soll_Eur),
+      kaution_soll_eur: kautionSoll,
+    },
+    kaution: {
+      soll_eur: kautionSoll,
+      hinterlegt_am: buchung.Kaution_Hinterlegt_am ?? null,
+      schaden_eur: kautionSchadenEur,
+      erstattung_eur: kautionErstattungEur,
+      schaden_notiz: buchung.Kaution_Schaden_Notiz ?? null,
+      beleg_typ: kautionBelegTyp,
+      abgeschlossen: kautionAbgeschlossen,
     },
     positionen,
     rechnung: {

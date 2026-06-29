@@ -52,6 +52,15 @@ interface RechnungSnapshot {
     preis_abbau_eur: number;
     kaution_soll_eur: number;
   };
+  kaution?: {
+    soll_eur: number;
+    hinterlegt_am: string | null;
+    schaden_eur: number;
+    erstattung_eur: number;
+    schaden_notiz: string | null;
+    beleg_typ: "erstattung" | "einbehalt" | "keine";
+    abgeschlossen: boolean;
+  };
   positionen: Array<{
     artikel: string;
     anzahl: number;
@@ -80,6 +89,11 @@ type BuchungRow = {
   Preis_Aufbau: string | null;
   Preis_Abbau: string | null;
   Kaution_Soll_Eur: string | null;
+  Kaution_Hinterlegt_am: string | null;
+  Kaution_Rueckzahlung_Eur: string | null;
+  Kaution_Pruefung_Status: { value: string } | null;
+  Schaden_Betrag_Eur: string | null;
+  Kaution_Schaden_Notiz: string | null;
 };
 
 type KundeRow = {
@@ -144,14 +158,16 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
     }
   }
 
-  const [buchungLive, kundeLive, positionenAll, config] = await Promise.all([
-    snapshot ? Promise.resolve(null) : getRow<BuchungRow>(TABLES.Buchungen, buchungId),
+  // Buchung immer laden — Kaution-Status ist live (wird nach kaution-erstatten gesetzt).
+  const [buchungFull, kundeLive, positionenAll, config] = await Promise.all([
+    getRow<BuchungRow>(TABLES.Buchungen, buchungId),
     snapshot ? Promise.resolve(null) : getRow<KundeRow>(TABLES.Kunden, kundeId),
     snapshot ? Promise.resolve({ count: 0, results: [] as PositionRow[] }) : listRows<PositionRow>(TABLES.Buchungs_Position, { size: 200 }),
     getSystemKonfig(),
   ]);
+  const buchungLive: BuchungRow | null = snapshot ? null : buchungFull;
 
-  // Vereinheitlichte Datenquelle — Snapshot bevorzugt, sonst Live
+  // Vereinheitlichte Datenquelle — Snapshot für Preise/Positionen, buchungFull für Kaution-Status.
   const buchung: BuchungRow = snapshot
     ? {
         id: buchungId,
@@ -163,6 +179,12 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
         Preis_Aufbau: String(snapshot.buchung.preis_aufbau_eur),
         Preis_Abbau: String(snapshot.buchung.preis_abbau_eur),
         Kaution_Soll_Eur: String(snapshot.buchung.kaution_soll_eur),
+        // Kaution-Status aus live buchungFull (kann nach Snapshot-Erstellung gesetzt worden sein)
+        Kaution_Hinterlegt_am: buchungFull.Kaution_Hinterlegt_am,
+        Kaution_Rueckzahlung_Eur: buchungFull.Kaution_Rueckzahlung_Eur,
+        Kaution_Pruefung_Status: buchungFull.Kaution_Pruefung_Status,
+        Schaden_Betrag_Eur: buchungFull.Schaden_Betrag_Eur,
+        Kaution_Schaden_Notiz: buchungFull.Kaution_Schaden_Notiz,
       }
     : buchungLive!;
   const kunde: KundeRow = snapshot
@@ -191,6 +213,20 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
 
   const summe = num(rechnung.Betrag_Gesamt);
   const kaution = num(buchung.Kaution_Soll_Eur);
+
+  // Kaution-Status: aus Snapshot (schema_version 2) bevorzugt, sonst live Buchung.
+  const kautionSnap = snapshot?.kaution;
+  const kautionAbgeschlossen = kautionSnap?.abgeschlossen ?? buchungFull.Kaution_Pruefung_Status?.value === "abgeschlossen";
+  const kautionSchadenEur = kautionSnap?.schaden_eur ?? num(buchungFull.Schaden_Betrag_Eur);
+  const kautionErstattungEur = kautionSnap?.erstattung_eur ?? num(buchungFull.Kaution_Rueckzahlung_Eur);
+  const kautionSchadenNotiz = kautionSnap?.schaden_notiz ?? buchungFull.Kaution_Schaden_Notiz ?? null;
+  const kautionBelegTyp: "erstattung" | "einbehalt" | "keine" =
+    kautionSnap?.beleg_typ ??
+    (!kautionAbgeschlossen || kaution === 0
+      ? "keine"
+      : kautionSchadenEur > 0
+      ? "einbehalt"
+      : "erstattung");
   const zusatz = [
     { label: "Lieferpauschale", value: num(buchung.Preis_Lieferung) },
     { label: "Abholpauschale", value: num(buchung.Preis_Abholung) },
@@ -341,10 +377,30 @@ export default async function RechnungPublicPage({ params }: { params: Promise<{
                 <span>Gesamtbetrag</span>
                 <span className="font-mono">{fmtEur(summe)}</span>
               </div>
-              {kaution > 0 && (
+              {kaution > 0 && kautionBelegTyp === "keine" && (
                 <div className="text-xs text-gray-600 italic mt-3">
                   Hinweis: Zusätzlich wird bei Übergabe eine Kaution von {fmtEur(kaution)} hinterlegt und nach
                   beanstandungsfreier Rückgabe vollständig erstattet.
+                </div>
+              )}
+              {kautionBelegTyp === "erstattung" && (
+                <div className="mt-3 p-2 rounded bg-green-50 border-l-2 border-green-500 text-xs text-green-800">
+                  ✓ Kaution von {fmtEur(kaution)} wurde vollständig erstattet.
+                </div>
+              )}
+              {kautionBelegTyp === "einbehalt" && (
+                <div className="mt-3 p-2 rounded bg-amber-50 border-l-2 border-amber-500 text-xs text-amber-900">
+                  {kautionErstattungEur > 0 ? (
+                    <>
+                      Kaution: {fmtEur(kaution)} hinterlegt — {fmtEur(kautionSchadenEur)} einbehalten (Schaden)
+                      {kautionSchadenNotiz && `: ${kautionSchadenNotiz}`}, {fmtEur(kautionErstattungEur)} erstattet.
+                    </>
+                  ) : (
+                    <>
+                      Kaution von {fmtEur(kaution)} vollständig einbehalten (Schaden)
+                      {kautionSchadenNotiz && `: ${kautionSchadenNotiz}`}.
+                    </>
+                  )}
                 </div>
               )}
             </div>

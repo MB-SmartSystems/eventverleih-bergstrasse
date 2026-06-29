@@ -38,12 +38,12 @@ export function formatGermanShort(iso: string): string {
 }
 
 /**
- * Kaution auf die nächste ganze € aufrunden — sauberer für Bar-Handhabung
- * (z.B. 39,60 € → 40 €). Immer auf, nie ab; die Kaution ist erstattbar.
- * Epsilon gegen Float-Artefakte (40.0000001 soll 40 bleiben, nicht 41).
+ * Kaution auf die nächste volle €5 aufrunden — bequemer für Barzahlung bei Übergabe
+ * (z.B. 33,60 € → 35 €, 41 € → 45 €). Immer auf, nie ab; die Kaution ist erstattbar.
+ * Epsilon gegen Float-Artefakte (35.0000001 soll 35 bleiben, nicht 40).
  */
 export function rundeKaution(eur: number): number {
-  return Math.ceil(eur - 1e-9);
+  return Math.ceil((eur - 1e-9) / 5) * 5;
 }
 
 /**

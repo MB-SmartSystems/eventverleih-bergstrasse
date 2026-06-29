@@ -129,10 +129,9 @@ export async function POST(
             if (body.kaution_methode === "bar" && Number(body.kaution_eur) > 0) {
               kautionLine = `\n\nDie Kaution (${eur(kautionSoll)} EUR) habe ich bar erhalten — Sie bekommen sie nach der Rückgabe vollständig zurück.`;
             } else if (body.kaution_methode === "stripe_preauth" || b.Kaution_Hinterlegt_am) {
-              kautionLine = `\n\nIhre Kaution (${eur(kautionSoll)} EUR) ist als Vormerkung hinterlegt — sie wird nach der Rückgabe ohne Schäden automatisch wieder aufgelöst.`;
+              kautionLine = `\n\nIhre Kaution (${eur(kautionSoll)} EUR) ist hinterlegt — sie wird nach der Rückgabe ohne Schäden vollständig zurückgegeben.`;
             } else {
-              const link = (b.Stripe_Kaution_Link || "").trim();
-              kautionLine = `\n\nBitte denken Sie noch an die Kaution (${eur(kautionSoll)} EUR) — Sie bekommen sie nach der Rückgabe vollständig zurück.${link ? `\nAm einfachsten hier hinterlegen:\n${link}` : ""}`;
+              kautionLine = `\n\nBitte denken Sie an die Kaution (${eur(kautionSoll)} EUR) — diese wird bar bei der Übergabe erhoben und nach der Rückgabe vollständig zurückgegeben.`;
             }
           }
 

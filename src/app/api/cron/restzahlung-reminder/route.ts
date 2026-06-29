@@ -65,8 +65,8 @@ function buildMail(
   meinBereichUrl: string | null,
 ): { subject: string; body: string } {
   const linkLine = stripeLink
-    ? `Vorab online geht am bequemsten hier:\n${stripeLink}\n\n`
-    : `Vorab online geht bequem über Ihren Kundenbereich (Link unten).\n\n`;
+    ? `Vorab online geht am bequemsten hier:\n${stripeLink}\n\nAlternativ auch per PayPal an info@eventverleih-bergstrasse.de möglich (bitte „Waren & Dienstleistungen" wählen, nicht „Freunde & Familie").\n\n`
+    : `Vorab online geht bequem über Ihren Kundenbereich (Link unten) oder per PayPal an info@eventverleih-bergstrasse.de (bitte „Waren & Dienstleistungen" wählen).\n\n`;
   const memberBlock = meinBereichUrl
     ? `\nIhren aktuellen Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
     : "";
@@ -79,7 +79,7 @@ function buildMail(
 
   const core =
     `Kurz zur Info: Die Restzahlung von ${betragFmt} EUR ist spätestens zur Übergabe fällig. ` +
-    `Am einfachsten begleichen Sie sie vorab bequem online über Ihren Zahlungslink.`;
+    `Am einfachsten vorab online oder alternativ bar bei der Übergabe.`;
 
   const pscript = `Falls die Restzahlung schon raus ist und sich nur überschnitten hat — alles gut, ignorieren Sie die Mail einfach.`;
 
@@ -93,7 +93,7 @@ export async function GET(req: NextRequest) {
   // Vercel-Cron-Auth: Header Authorization: Bearer <CRON_SECRET>
   const auth = req.headers.get("authorization") || "";
   const expected = process.env.CRON_SECRET;
-  if (expected && auth !== `Bearer ${expected}`) {
+  if (!expected || auth !== `Bearer ${expected}`) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 

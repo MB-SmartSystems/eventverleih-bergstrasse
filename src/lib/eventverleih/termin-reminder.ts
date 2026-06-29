@@ -1,6 +1,6 @@
 /**
  * Termin-Erinnerung — erinnert ~1 Tag vor der Übergabe an Datum/Uhrzeit/Treffpunkt,
- * inkl. Kaution-Hinweis + Stripe-Link, falls die Kaution noch offen ist.
+ * inkl. Kaution-Hinweis (Barzahlung bei Übergabe), falls die Kaution noch offen ist.
  *
  * Als LIB (KEIN eigener Vercel-Cron — Hobby-Plan limitiert Crons), Sub-Pass im
  * restzahlung-reminder-Cron (morgens). Idempotent je Buchung (B<id>-termin_erinnerung).
@@ -8,8 +8,7 @@
  *
  * Zeitangabe IMMER in Europe/Berlin formatieren (Server läuft UTC).
  */
-import { listAllRows, listRows, getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
-import { createKautionCheckoutSession } from "@/lib/stripe/payment-links";
+import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
 import { uebergabeOrt } from "@/lib/eventverleih/config";
 
 const TZ = "Europe/Berlin";
@@ -23,6 +22,7 @@ interface BuchungRow {
   Lieferadresse: string | null;
   Preis_Lieferung: string | null;
   Preis_Abholung: string | null;
+  Übergabe_Typ: { value: string } | null;
   Kaution_Soll_Eur: string | number | null;
   Kaution_Hinterlegt_am: string | null;
   Stripe_Kaution_Link: string | null;
@@ -120,30 +120,15 @@ export async function runTerminReminder(): Promise<{
         (restLink ? `\nIhr Zahlungslink:\n${restLink}` : "");
     }
 
-    // Kaution-Hinweis nur, wenn Kaution offen
+    // Kaution-Hinweis: Barzahlung bei Übergabe (kein Stripe mehr)
     const kautionSoll = parseDec(b.Kaution_Soll_Eur);
     const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
     let kautionBlock = "";
     if (kautionOffen) {
-      let link = (b.Stripe_Kaution_Link || "").trim();
-      if (!link) {
-        try {
-          const s = await createKautionCheckoutSession({
-            buchungId: b.id,
-            amountEur: kautionSoll,
-            kundeName: kundeName || "Kunde",
-          });
-          link = s.url;
-          await updateRow(TABLES.Buchungen, b.id, { Stripe_Kaution_Link: link });
-        } catch (e) {
-          console.error("[termin-reminder] kaution-link fehlgeschlagen:", e);
-        }
-      }
       const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       kautionBlock =
-        `\n\nNoch offen ist die Kaution (${betrag} EUR) — diese bekommen Sie nach der Rückgabe vollständig zurück. ` +
-        `Wir buchen nichts ab, Stripe merkt den Betrag nur auf Ihrer Karte vor.` +
-        (link ? `\nAm einfachsten vorab hier hinterlegen:\n${link}` : "");
+        `\n\nBitte denken Sie an die Kaution (${betrag} EUR) — diese wird bar bei der Übergabe erhoben ` +
+        `und nach der Rückgabe ohne Schäden vollständig zurückgegeben.`;
     }
 
     const subject = "Erinnerung an Ihren Übergabe-Termin morgen";

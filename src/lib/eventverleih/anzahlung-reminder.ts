@@ -80,8 +80,8 @@ function buildMail(
   meinBereichUrl: string | null,
 ): { subject: string; body: string } {
   const linkLine = stripeLink
-    ? `Am bequemsten online (sofort eingebucht):\n${stripeLink}\n\n`
-    : `Den Zahlungslink finden Sie in Ihrem Kundenbereich (Link unten) — oder melden Sie sich kurz, ich schicke ihn Ihnen direkt.\n\n`;
+    ? `Am bequemsten online (sofort eingebucht):\n${stripeLink}\n\nAlternativ auch per PayPal an info@eventverleih-bergstrasse.de möglich (bitte „Waren & Dienstleistungen" wählen, nicht „Freunde & Familie").\n\n`
+    : `Den Zahlungslink finden Sie in Ihrem Kundenbereich (Link unten) — oder melden Sie sich kurz, ich schicke ihn Ihnen direkt. Alternativ auch per PayPal an info@eventverleih-bergstrasse.de (bitte „Waren & Dienstleistungen" wählen).\n\n`;
   const memberBlock = meinBereichUrl
     ? `\nIhren Buchungsstatus + alle Zahlungs-Links sehen Sie hier:\n${meinBereichUrl}\n`
     : "";

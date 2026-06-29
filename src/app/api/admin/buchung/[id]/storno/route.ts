@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRow, updateRow, createRow, TABLES } from "@/lib/baserow/client";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { refundPayment } from "@/lib/stripe/payment-links";
+import { bucheEinnahme, gebuchteEinnahmenSumme } from "@/lib/eventverleih/einnahme";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -74,6 +75,31 @@ export async function POST(
       Storno_am: new Date().toISOString().slice(0, 10),
       Storno_Betrag_Eur: erstattungEur,
     });
+
+    // P1-Fix (EÜR-Integrität): Bei NICHT-Stripe-Erstattung (Bar/Überweisung) eine
+    // negative Gegenbuchung im Zuflussmodell. Sonst bleibt die ursprünglich beim
+    // Zahlungseingang gebuchte Einnahme stehen und die EÜR überzeichnet die Einnahmen
+    // dauerhaft. Beim Stripe-Refund macht die Gegenbuchung der charge.refunded-Webhook
+    // -> hier NUR im Nicht-Stripe-Fall buchen, sonst doppelte Gegenbuchung.
+    // Gedeckelt auf die tatsächlich gebuchten Zuflüsse (kein Über-Zurückbuchen),
+    // idempotent über den stabilen Marker (quelle="storno-manual").
+    if (!refundViaStripe && erstattungEur > 0) {
+      try {
+        const gebucht = await gebuchteEinnahmenSumme(buchungId);
+        const gegen = Math.min(erstattungEur, Math.max(0, gebucht));
+        if (gegen > 0) {
+          await bucheEinnahme({
+            buchungId,
+            quelle: "storno-manual",
+            betragEur: -gegen,
+            datum: new Date().toISOString().slice(0, 10),
+            beschreibung: `Storno-Erstattung (manuell, Bar/Überweisung) Buchung #${buchungId}`,
+          });
+        }
+      } catch (e) {
+        console.error("[storno gegenbuchung]", e);
+      }
+    }
 
     // Audit
     try {

@@ -14,12 +14,12 @@ export const TREFFPUNKT_HINWEIS = "Der Treffpunkt liegt zentral und ist gut erre
 export const TREFFPUNKT_LABEL = "Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein";
 
 /**
- * Übergabe-/Rückgabe-Ort nach fester Regel:
- *  - Liefere ICH (Preis_Lieferung > 0) → Übergabe an der Event-/Lieferadresse.
- *  - Hole ICH ab (Preis_Abholung > 0)   → Rückgabe an der Event-/Lieferadresse.
- *  - Sonst (Kunde holt selbst / bringt selbst zurück) → Treffpunkt Grillhütte.
- * Eine explizit gesetzte Uebergabe_Adresse (z. B. telefonisch vereinbart) gewinnt immer,
- * für beide Richtungen.
+ * Übergabe-/Rückgabe-Ort.
+ *  - Explizite Uebergabe_Adresse gewinnt immer (manuelle Override).
+ *  - Übergabe_Typ "Beim_Kunden" / "Lieferung" → Lieferadresse des Kunden.
+ *  - Übergabe_Typ "Standard" → Treffpunkt Grillhütte.
+ *  - Übergabe_Typ leer/null → Fallback Preis-Logik (Backward-Compat für alte Buchungen):
+ *      Preis_Lieferung > 0 (Übergabe) / Preis_Abholung > 0 (Rückgabe) → Lieferadresse.
  */
 export function uebergabeOrt(
   b: {
@@ -27,11 +27,24 @@ export function uebergabeOrt(
     Lieferadresse?: string | null;
     Preis_Lieferung?: string | number | null;
     Preis_Abholung?: string | number | null;
+    Übergabe_Typ?: { value: string } | string | null;
   },
   which: "uebergabe" | "rueckgabe",
 ): string {
   const override = (b.Uebergabe_Adresse ?? "").trim();
   if (override) return override;
+
+  const typVal =
+    typeof b.Übergabe_Typ === "object" && b.Übergabe_Typ !== null
+      ? (b.Übergabe_Typ as { value: string }).value
+      : ((b.Übergabe_Typ as string | null | undefined) ?? "");
+  if (typVal === "Beim_Kunden" || typVal === "Lieferung") {
+    const liefer = (b.Lieferadresse ?? "").trim();
+    return liefer || TREFFPUNKT_LABEL;
+  }
+  if (typVal === "Standard") return TREFFPUNKT_LABEL;
+
+  // Fallback: Preis-basierte Logik für Buchungen ohne Übergabe_Typ
   const num = (v: string | number | null | undefined): number =>
     typeof v === "number" ? v : parseFloat(String(v ?? "0")) || 0;
   const manuelFaehrt = which === "uebergabe" ? num(b.Preis_Lieferung) > 0 : num(b.Preis_Abholung) > 0;

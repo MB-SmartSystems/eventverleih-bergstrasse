@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type Typ = "anzahlung" | "restzahlung" | "kaution";
-type Methode = "Bar" | "Ueberweisung" | "Stripe";
+type Methode = "Bar" | "Ueberweisung" | "PayPal" | "Stripe";
 
 const LABELS: Record<Typ, string> = {
   anzahlung: "Anzahlung",
@@ -142,6 +142,7 @@ export default function ZahlungsPanel({
             >
               <option value="Bar">Bar</option>
               <option value="Ueberweisung">Überweisung</option>
+              <option value="PayPal">PayPal</option>
               <option value="Stripe">Stripe</option>
             </select>
             <input

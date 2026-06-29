@@ -32,6 +32,13 @@ interface SnapshotKunde {
   adresse_plz?: string;
   adresse_ort?: string;
 }
+interface SnapshotKautionBlock {
+  soll_eur?: number;
+  schaden_eur?: number;
+  erstattung_eur?: number;
+  schaden_notiz?: string | null;
+  beleg_typ?: string;
+}
 interface SnapshotBuchung {
   event_datum_von?: string | null;
   event_datum_bis?: string | null;
@@ -40,6 +47,9 @@ interface SnapshotBuchung {
   preis_aufbau_eur?: number;
   preis_abbau_eur?: number;
   kaution_soll_eur?: number;
+}
+interface RechnungSnapshotV2 {
+  kaution?: SnapshotKautionBlock;
 }
 interface SnapshotRechnung {
   rechnungsnummer?: string;
@@ -54,7 +64,7 @@ interface SnapshotPosition {
   einzelpreis_eur?: number;
   gesamt_eur?: number;
 }
-interface RechnungSnapshot {
+interface RechnungSnapshot extends RechnungSnapshotV2 {
   kunde?: SnapshotKunde;
   buchung?: SnapshotBuchung;
   rechnung?: SnapshotRechnung;
@@ -92,6 +102,18 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
   if ((b.preis_aufbau_eur ?? 0) > 0) zusatz.push({ bezeichnung: "Aufbau", betrag_eur: b.preis_aufbau_eur! });
   if ((b.preis_abbau_eur ?? 0) > 0) zusatz.push({ bezeichnung: "Abbau", betrag_eur: b.preis_abbau_eur! });
 
+  const snapKaution = snap.kaution;
+  const kaution_block =
+    snapKaution && snapKaution.beleg_typ && snapKaution.beleg_typ !== "keine"
+      ? {
+          soll_eur: snapKaution.soll_eur ?? 0,
+          schaden_eur: snapKaution.schaden_eur ?? 0,
+          erstattung_eur: snapKaution.erstattung_eur ?? 0,
+          schaden_notiz: snapKaution.schaden_notiz ?? null,
+          beleg_typ: snapKaution.beleg_typ as "erstattung" | "einbehalt" | "keine",
+        }
+      : undefined;
+
   const context: RechnungContext = {
     rechnungsnummer: r.rechnungsnummer ?? "",
     rechnungsdatum: r.rechnungsdatum ?? "",
@@ -116,6 +138,7 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
     zusatz_positionen: zusatz,
     summe_eur: r.betrag_gesamt_eur ?? 0,
     kaution_eur: b.kaution_soll_eur ?? 0,
+    kaution_block,
     firma: FIRMA,
   };
 

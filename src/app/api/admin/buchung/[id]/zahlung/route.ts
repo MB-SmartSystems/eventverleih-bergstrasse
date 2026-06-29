@@ -24,7 +24,7 @@ import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetig
 import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
 
 const TYPEN = new Set(["anzahlung", "restzahlung", "kaution"]);
-const METHODEN = new Set(["Bar", "Ueberweisung", "Stripe"]);
+const METHODEN = new Set(["Bar", "Ueberweisung", "PayPal", "Stripe"]);
 
 interface ZahlungsEintrag {
   datum: string;
