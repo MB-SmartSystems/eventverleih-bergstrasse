@@ -297,6 +297,7 @@ Spalten: **Auslöser · Sendemodus · Datei:Zeile · `Template_Key` · Betreff**
 |---|---|---|---|---|
 | Kaution-Hold-Link | `POST …/buchung/[id]/kaution-mail` (manuell) **oder** Cron `kaution-reminder` (T-5) | `Auto_Reply` | `lib/eventverleih/kaution-mail.ts:124` | `kaution_hold_link` |
 | Kaution IBAN anfordern (Bar) | `POST …/buchung/[id]/kaution-iban-anfordern` | `Approved` | `api/admin/buchung/[id]/kaution-iban-anfordern/route.ts:77` | `kaution_iban_anfordern` |
+| Kaution-Barzahlungs-Hinweis | Cron `kaution-reminder` (T-3 bis T-1 vor Übergabe, wenn Kaution-Soll > 0 und kein Hold-Link) | `Auto_Reply` | `api/cron/kaution-reminder/route.ts:108` | `kaution_bar_hinweis` |
 
 > **Hinweis (2026-06-24):** Die früheren Kaution-Erstattungs-Mails (`kaution_rueckzahlung`/`_teilerstattung`/`_einzug`) sind **entfernt**. „Kaution auflösen" ist jetzt rein intern; die Kaution-Info läuft über die Abschluss-Mail (siehe nächster Abschnitt).
 
