@@ -141,6 +141,21 @@ export async function uploadUserFile(
   filename: string,
   contentType: string
 ): Promise<string> {
+  const { url } = await uploadUserFileMeta(buffer, filename, contentType);
+  return url;
+}
+
+/**
+ * Wie uploadUserFile, gibt aber die volle Metadaten zurueck. Das Feld `name`
+ * (interner Baserow-Dateiname) wird gebraucht, um die Datei an ein File-Feld
+ * einer Zeile zu haengen: PATCH row { FileField: [{ name }] }. `url` ist die
+ * oeffentliche Media-URL (z.B. fuer einen Download-Link in einem url-Feld).
+ */
+export async function uploadUserFileMeta(
+  buffer: Buffer,
+  filename: string,
+  contentType: string
+): Promise<{ url: string; name: string }> {
   if (!TOKEN) throw new Error("BASEROW_TOKEN missing");
   const form = new FormData();
   const blob = new Blob([new Uint8Array(buffer)], { type: contentType });
@@ -154,7 +169,9 @@ export async function uploadUserFile(
     const errBody = await r.text();
     throw new Error(`Baserow user-file upload failed: HTTP ${r.status} ${errBody.slice(0, 200)}`);
   }
-  const json = (await r.json()) as { url?: string };
-  if (!json.url) throw new Error("Baserow user-file upload: keine URL in der Antwort");
-  return json.url;
+  const json = (await r.json()) as { url?: string; name?: string };
+  if (!json.url || !json.name) {
+    throw new Error("Baserow user-file upload: url/name fehlt in der Antwort");
+  }
+  return { url: json.url, name: json.name };
 }

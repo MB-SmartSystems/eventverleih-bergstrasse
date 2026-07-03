@@ -3,14 +3,16 @@
  *
  * Body: multipart/form-data mit "file" (image).
  *
- * Speichert Foto in Vercel Blob unter eve/buchung-{id}/{type}-{timestamp}.{ext}.
- * Returns: { url }
+ * Speichert Foto im Baserow-User-File-Store und gibt die oeffentliche Media-URL
+ * zurueck. Returns: { url }
  *
- * Die URL wird Client-seitig in das Foto-URLs-JSON-Array eingebaut und
- * beim Uebergabe/Ruecknahme-Submit als Gesamtarray gespeichert.
+ * Die URL wird Client-seitig in das Foto-URLs-JSON-Array eingebaut und beim
+ * Uebergabe/Ruecknahme-Submit als Gesamtarray in Buchungen.Uebergabe_Foto_URLs /
+ * Ruecknahme_Foto_URLs (long_text/JSON) gespeichert — das ist die einzige Ablage
+ * dieser Fotos (kein separates File-Feld, um keine zweite Quelle zu erzeugen).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
+import { uploadUserFile } from "@/lib/baserow/client";
 import { isAuthenticated } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -37,19 +39,16 @@ export async function POST(
     if (!file || !(file instanceof Blob)) {
       return NextResponse.json({ error: "missing file" }, { status: 400 });
     }
-    const filename = (file as File).name || "foto.jpg";
-    const ext = filename.split(".").pop()?.toLowerCase() || "jpg";
+    const origName = (file as File).name || "foto.jpg";
+    const ext = origName.split(".").pop()?.toLowerCase() || "jpg";
     const ts = Date.now();
-    const key = `eve/buchung-${buchungId}/${type}-${ts}.${ext}`;
+    const key = `buchung-${buchungId}-${type}-${ts}.${ext}`;
+    const contentType = (file as File).type || "image/jpeg";
 
-    const blob = await put(key, file, {
-      access: "public",
-      addRandomSuffix: false,
-      allowOverwrite: true,
-      cacheControlMaxAge: 0,
-    });
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const url = await uploadUserFile(buffer, key, contentType);
 
-    return NextResponse.json({ ok: true, url: blob.url, key });
+    return NextResponse.json({ ok: true, url, key });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
     return NextResponse.json({ error: "internal", detail: msg.slice(0, 200) }, { status: 500 });

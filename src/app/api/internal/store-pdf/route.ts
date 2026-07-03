@@ -2,25 +2,26 @@
  * POST /api/internal/store-pdf?table=rechnung|angebot&id=<rowId>
  *
  * Interner Endpoint fuer den n8n-Render-Flow (eve-pdf-render): nimmt eine
- * gerenderte PDF (Binary-Body, application/pdf) entgegen, laedt sie zu Vercel
- * Blob und schreibt die URL nach Baserow (Rechnungen.PDF_URL / Angebote.PDF_URL).
+ * gerenderte PDF (Binary-Body, application/pdf) entgegen, laedt sie in den
+ * Baserow-User-File-Store und schreibt die Ablage nach Baserow:
+ *   - PDF_URL (url-Feld) = oeffentliche Media-URL → Download-Button im Kundenbereich
+ *   - Angebot_PDF / Rechnung_PDF (file-Feld) = die PDF an der Zeile (GoBD: Beleg
+ *     bleibt in der Datenbank auffindbar, unabhaengig von einer externen URL).
  *
- * Dadurch erscheint im Kundenbereich der Download-Button (rendert bei gesetzter
- * PDF_URL). Der bestehende Rechnungs-MAIL-Workflow bleibt davon unberuehrt —
- * dieser Pfad dient nur der Ablage zum spaeteren Download.
+ * Der bestehende Rechnungs-MAIL-Workflow bleibt davon unberuehrt — dieser Pfad
+ * dient nur der Ablage zum spaeteren Download.
  *
  * Auth: Header `x-internal-secret` === STORE_PDF_SECRET (Vercel-Env, geteilt mit n8n).
  */
 import { NextRequest, NextResponse } from "next/server";
-import { put } from "@vercel/blob";
-import { updateRow, TABLES } from "@/lib/baserow/client";
+import { updateRow, uploadUserFileMeta, TABLES } from "@/lib/baserow/client";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
-const TABLE_MAP: Record<string, { tableId: number; prefix: string }> = {
-  rechnung: { tableId: TABLES.Rechnungen, prefix: "rechnungen" },
-  angebot: { tableId: TABLES.Angebote, prefix: "angebote" },
+const TABLE_MAP: Record<string, { tableId: number; fileField: string }> = {
+  rechnung: { tableId: TABLES.Rechnungen, fileField: "Rechnung_PDF" },
+  angebot: { tableId: TABLES.Angebote, fileField: "Angebot_PDF" },
 };
 
 export async function POST(req: NextRequest) {
@@ -43,15 +44,13 @@ export async function POST(req: NextRequest) {
     if (buf.byteLength < 200 || buf.subarray(0, 5).toString("latin1") !== "%PDF-") {
       return NextResponse.json({ error: "kein gueltiger PDF-Body" }, { status: 422 });
     }
-    const pathname = `${cfg.prefix}/${table}-${id}.pdf`;
-    const blob = await put(pathname, buf, {
-      access: "public",
-      contentType: "application/pdf",
-      addRandomSuffix: false,
-      allowOverwrite: true,
+    const filename = `${table}-${id}.pdf`;
+    const { url, name } = await uploadUserFileMeta(buf, filename, "application/pdf");
+    await updateRow(cfg.tableId, id, {
+      PDF_URL: url,
+      [cfg.fileField]: [{ name }],
     });
-    await updateRow(cfg.tableId, id, { PDF_URL: blob.url });
-    return NextResponse.json({ ok: true, url: blob.url, bytes: buf.byteLength });
+    return NextResponse.json({ ok: true, url, bytes: buf.byteLength });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
     console.error("[store-pdf]", msg);

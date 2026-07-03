@@ -365,8 +365,19 @@ bei gesperrtem Store still leer lief). **Es gibt keine `products.json` mehr.**
 - **Fehler werden nicht mehr verschluckt:** ist Baserow nicht erreichbar, liefert `/api/products` einen
   echten Fehler statt still einen leeren/Seed-Katalog (das stille Leerlaufen hatte die Blob-Sperre
   wochenlang unsichtbar gemacht). Health-Check: `GET /api/health` (prüft Baserow-Erreichbarkeit, 503 bei Ausfall).
-- **Noch am Blob (separate Migrationsschritte, Stand 2026-07):** Angebots-PDFs
-  (`api/internal/store-pdf`) und Buchungs-Fotos (`api/admin/buchung/[id]/upload-foto`) — noch nicht umgestellt.
+- **Angebots-/Rechnungs-PDFs (`api/internal/store-pdf`, seit 2026-07 auf Baserow):** Der n8n-Render-Flow
+  postet die gerenderte PDF an diesen Endpoint; sie wird in den Baserow-User-File-Store geladen und an der
+  Zeile abgelegt — `PDF_URL` (Media-URL für den Download-Button im Kundenbereich) **und** das File-Feld
+  `Angebot_PDF` (Angebote 952) bzw. `Rechnung_PDF` (Rechnungen 950), damit der Beleg GoBD-konform direkt in
+  der Datenbank auffindbar bleibt. Kein Vercel-Blob mehr. Die 8 historischen Angebots-PDFs aus dem Blob-Backup
+  wurden nachträglich zugeordnet (5 an noch existierende Angebote-Zeilen; 3 gehörten zu inzwischen gelöschten
+  Angeboten). Rechnungs-PDFs lagen nie im Blob (In-Portal-Download war fail-soft nie befüllt; die
+  verbindlichen Rechnungs-Belege sind die per n8n zugestellten Mail-PDFs).
+- **Buchungs-Fotos (`api/admin/buchung/[id]/upload-foto`, seit 2026-07 auf Baserow):** Übergabe-/Rücknahme-Fotos
+  werden in den Baserow-User-File-Store geladen; der Endpoint gibt die Media-URL zurück. Die URLs werden
+  clientseitig gesammelt und beim Übergabe-/Rücknahme-Submit als JSON-Array in `Buchungen.Uebergabe_Foto_URLs`
+  bzw. `Ruecknahme_Foto_URLs` (long_text) gespeichert — das ist die **einzige** Ablage dieser Fotos (bewusst
+  kein separates File-Feld, um keine zweite Quelle zu erzeugen). Kein Vercel-Blob mehr.
 
 ### Integrationen & Secrets-Landkarte
 
