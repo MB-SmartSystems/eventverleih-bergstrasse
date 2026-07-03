@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated } from '@/lib/auth';
-import { loadProductsData, saveProductsData, uploadImage } from '@/lib/blob-data';
+import { loadProductsData, saveProductsData, uploadImage } from '@/lib/baserow-data';
 
 export const dynamic = 'force-dynamic';
 

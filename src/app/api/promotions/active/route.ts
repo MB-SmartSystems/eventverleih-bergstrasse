@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { loadProductsData } from '@/lib/blob-data';
+import { loadProductsData } from '@/lib/baserow-data';
 
 export const dynamic = 'force-dynamic';
 

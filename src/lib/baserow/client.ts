@@ -119,3 +119,42 @@ export async function updateRow<T = Record<string, unknown>>(
   }
   return r.json();
 }
+
+/**
+ * Leichter Health-Ping: eine Zeile aus System_Konfiguration (955) lesen.
+ * Wirft bei Netz-/Auth-Fehler — Aufrufer mappt auf 503.
+ */
+export async function pingBaserow(): Promise<void> {
+  const url = `${BASE}/api/database/rows/table/${TABLES.System_Konfiguration}/?size=1`;
+  const r = await fetch(url, { headers: authHeaders(), cache: "no-store" });
+  if (!r.ok) throw new Error(`Baserow ping failed: HTTP ${r.status}`);
+}
+
+/**
+ * Laedt eine Datei in den Baserow-User-File-Store und gibt die oeffentliche
+ * Media-URL zurueck. Ersetzt Vercel-Blob-Uploads fuer neu im Admin hochgeladene
+ * Produktbilder. multipart/form-data — daher NICHT authHeaders() (die setzen
+ * Content-Type: application/json).
+ */
+export async function uploadUserFile(
+  buffer: Buffer,
+  filename: string,
+  contentType: string
+): Promise<string> {
+  if (!TOKEN) throw new Error("BASEROW_TOKEN missing");
+  const form = new FormData();
+  const blob = new Blob([new Uint8Array(buffer)], { type: contentType });
+  form.append("file", blob, filename);
+  const r = await fetch(`${BASE}/api/user-files/upload-file/`, {
+    method: "POST",
+    headers: { Authorization: `Token ${TOKEN}` },
+    body: form,
+  });
+  if (!r.ok) {
+    const errBody = await r.text();
+    throw new Error(`Baserow user-file upload failed: HTTP ${r.status} ${errBody.slice(0, 200)}`);
+  }
+  const json = (await r.json()) as { url?: string };
+  if (!json.url) throw new Error("Baserow user-file upload: keine URL in der Antwort");
+  return json.url;
+}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isAuthenticated } from '@/lib/auth';
-import { loadProductsData, saveProductsData, uploadImage, deleteImage } from '@/lib/blob-data';
+import { loadProductsData, saveProductsData, uploadImage, deleteImage } from '@/lib/baserow-data';
 
 export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
   if (!isAuthenticated()) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

@@ -340,6 +340,34 @@ erDiagram
 
 Tabellen (Baserow): Kunden 949 · Rechnungen 950 · Buchungen 951 · Angebote 952 · EmailLog 953 · System_Konfiguration 955 · Artikel 957 · Einnahmen 961 · Buchungs_Position 968 · MailQueue 969 · Audit_Log 970. Kern: alles hängt an der **Buchung (951)**; Mietsumme + Kaution-Soll werden aus den Positionen (`Buchungs_Position` → `Artikel`) per `recalcBuchung` berechnet.
 
+### Storefront-Katalog: Datenquelle = Baserow (seit 2026-07 — vorher Vercel Blob)
+
+Der öffentliche Produktkatalog (Menü **Produkte · Kategorien · Aktionen** im Admin, sowie die
+öffentliche Sortiment-Seite) liest **und schreibt** seit der Blob→Baserow-Migration ausschließlich
+über `src/lib/baserow-data.ts` (ersetzt das alte `src/lib/blob-data.ts`, das an Vercel-Blob hing und
+bei gesperrtem Store still leer lief). **Es gibt keine `products.json` mehr.**
+
+- **Produkte** = **dieselbe** `Artikel`-Tabelle (**957**) wie das Buchungssystem — **eine** Quelle der
+  Wahrheit, kein Zweit-Katalog. Sichtbar auf der Website sind nur Zeilen mit `Sichtbar_Public = true`.
+  Website-Felder der Zeile: `Beschreibung` (Freitext), `Bild_URL` (Hauptbild) + `Bild_URLs_weitere`
+  (JSON-Array weiterer Bilder), `Youtube_Link`, `Pinned`. Der im Admin editierte **Preis** schreibt
+  direkt `Mietpreis_WE_Eur` (kein separater Anzeige-Preis mehr → kein Drift zwischen Website und Buchung).
+- **Website-Kategorie** (zelte/tische/beleuchtung/deko) wird im Code aus dem Artikel-Feld `Kategorie`
+  (9 Werte) abgeleitet: Zelt+Zubehoer+Gewicht→zelte · Tisch+Stuhl→tische · Beleuchtung+Heizung→beleuchtung
+  · Deko+Spiel→deko. Kein eigenes Website-Kategorie-Feld an der Zeile.
+- **Kategorien-Liste, Aktionen/Promotions, Storefront-Settings** liegen als Key/Value-Zeilen in
+  `System_Konfiguration` (**955**): `website.categories` (JSON), `website.promotions` (JSON),
+  `website.whatsapp` / `website.instagram` / `website.hero_image`. Telefon/E-Mail der Storefront kommen
+  aus den kanonischen Zeilen `Telefon` / `Email` derselben Tabelle.
+- **Bilder:** Bestandsbilder liegen statisch im Repo (`public/images/products/…`) und sind als Pfad in
+  `Bild_URL`/`Bild_URLs_weitere` hinterlegt. **Neu** über den Admin hochgeladene Bilder gehen in den
+  Baserow-User-File-Store (öffentliche Media-URL) — kein Vercel-Blob mehr.
+- **Fehler werden nicht mehr verschluckt:** ist Baserow nicht erreichbar, liefert `/api/products` einen
+  echten Fehler statt still einen leeren/Seed-Katalog (das stille Leerlaufen hatte die Blob-Sperre
+  wochenlang unsichtbar gemacht). Health-Check: `GET /api/health` (prüft Baserow-Erreichbarkeit, 503 bei Ausfall).
+- **Noch am Blob (separate Migrationsschritte, Stand 2026-07):** Angebots-PDFs
+  (`api/internal/store-pdf`) und Buchungs-Fotos (`api/admin/buchung/[id]/upload-foto`) — noch nicht umgestellt.
+
 ### Integrationen & Secrets-Landkarte
 
 Welche externen Dienste, was sie tun, WO die Keys liegen — **nie die Keys selbst**.
