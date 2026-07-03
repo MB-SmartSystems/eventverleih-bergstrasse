@@ -3,7 +3,7 @@
 const faelle = [
   {
     title: "Regen",
-    text: "Ein Schauer um 18 Uhr? Unterm Zelt merkt ihn keiner.",
+    text: "Ein Schauer um 18 Uhr? Das wasserabweisende Zelt schützt Ihre Gäste — die Feier geht einfach weiter.",
     icon: (
       <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={1.5}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 15.75l-2.489 4.978a.563.563 0 01-1.022-.014L10.5 15.75m5.25 0H10.5m5.25 0a4.5 4.5 0 10-9.064-.713 3.75 3.75 0 10.814 7.463h8.25a3.75 3.75 0 000-7.5c-.18 0-.357.013-.53.038" />
