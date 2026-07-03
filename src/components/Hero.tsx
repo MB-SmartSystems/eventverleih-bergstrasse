@@ -77,8 +77,8 @@ export default function Hero() {
           <p className="text-gray-300 text-lg md:text-xl leading-relaxed mb-10 max-w-2xl">
             Geburtstag, Gartenfest oder kleine Hochzeit im eigenen Garten:
             Zelt, Tische, Stühle und Licht mieten Sie hier direkt online —
-            Datum wählen, 30&nbsp;% anzahlen, an der Bergstraße abholen oder
-            liefern lassen.
+            Datum auswählen, unkompliziert zahlen, abholen oder liefern
+            lassen.
           </p>
         </div>
 
