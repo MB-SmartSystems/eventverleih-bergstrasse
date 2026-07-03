@@ -209,6 +209,14 @@ function categoryContentPriority(categorySlug: string, name: string): number {
     if (n.includes("licht")) return 0; // Lichterkette, Lichternetz
     return 3;
   }
+  if (categorySlug === "deko") {
+    // Manuel, 2026-07-03: "Riesenjenga, dann Hochzeitsbogen, dann Kamera, dann Film."
+    if (n.includes("riesenjenga")) return 0;
+    if (n.includes("hochzeitsbogen")) return 1;
+    if (n.includes("sofortbildkamera")) return 2;
+    if (n.includes("film")) return 3;
+    return 4;
+  }
   return 0;
 }
 
