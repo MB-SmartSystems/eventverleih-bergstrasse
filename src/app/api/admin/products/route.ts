@@ -65,7 +65,12 @@ export async function POST(request: NextRequest) {
     internalNotes,
   };
   data.products.push(product);
-  await saveProductsData(data);
+  const idRemap = await saveProductsData(data);
+  // saveProductsData vergibt fuer neue Artikel eine echte Baserow-Artikel_ID statt
+  // der lokalen Platzhalter-ID (product.id) — die muss an den Client zurueckgehen,
+  // sonst zeigt die Admin-UI direkt nach dem Anlegen auf eine ID, die es in Baserow
+  // nie gab, und der naechste Edit/Delete faellt mit 404 durch.
+  const persisted = idRemap.get(product.id) ?? product;
 
-  return NextResponse.json({ ok: true, product });
+  return NextResponse.json({ ok: true, product: persisted });
 }

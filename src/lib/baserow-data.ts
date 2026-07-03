@@ -276,8 +276,17 @@ function productToArtikelFields(p: RentalProduct, opts: { setCategory: boolean; 
   return fields;
 }
 
-export async function saveProductsData(data: ProductsData): Promise<void> {
+// Rueckgabe: Map von der ID, unter der ein Produkt im incoming-Payload ankam
+// (bei Neuanlage die clientseitig erzeugte Platzhalter-ID wie `p-<timestamp>`),
+// auf das tatsaechlich in Baserow persistierte Produkt (echte Artikel_ID).
+// Aufrufer, die direkt nach dem Speichern mit dem Ergebnis weiterarbeiten (z.B.
+// die create-Response an den Client zurueckgeben), MUESSEN diese Map nutzen,
+// statt die eingehenden Platzhalter-IDs zu recyceln — sonst zeigt der Client auf
+// eine ID, die es in Baserow nie gab, und die naechste Aktion (Edit/Delete) faellt
+// mit 404 durch.
+export async function saveProductsData(data: ProductsData): Promise<Map<string, RentalProduct>> {
   const incoming = data.products || [];
+  const idRemap = new Map<string, RentalProduct>();
 
   // Guardrail: nie alle sichtbaren Produkte loeschen, weil ein Lade-Fehler ein
   // leeres Array durchreichte (Schutz gegen versehentlichen Katalog-Wipe).
@@ -311,7 +320,9 @@ export async function saveProductsData(data: ProductsData): Promise<void> {
     } else {
       // Neuer Artikel (Admin „Produkt hinzufuegen") -> POST. Artikel_ID vergibt Baserow (autonumber).
       const fields = productToArtikelFields(p, { setCategory: true, forCreate: true });
-      await createRow(BASEROW_ROW, fields);
+      const created = await createRow<ArtikelRow>(BASEROW_ROW, fields);
+      keptArtikelIds.add(created.Artikel_ID);
+      idRemap.set(p.id, rowToProduct(created));
     }
   }
 
@@ -327,6 +338,8 @@ export async function saveProductsData(data: ProductsData): Promise<void> {
   await upsertKonfigJson(KEY.categories, data.categories || []);
   await upsertKonfigJson(KEY.promotions, data.promotions || []);
   // Settings (Telefon/Email) bleiben kanonisch in ihren eigenen Zeilen — hier NICHT ueberschreiben.
+
+  return idRemap;
 }
 
 // Vergleich Roh-Zellwert (Baserow) mit gewuenschtem Schreibwert -> unnoetige PATCHes vermeiden.
