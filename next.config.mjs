@@ -6,6 +6,12 @@ const nextConfig = {
         protocol: 'https',
         hostname: '*.public.blob.vercel-storage.com',
       },
+      {
+        // Produktbilder aus dem Admin-Upload landen seit der Baserow-Migration
+        // im Baserow-User-File-Store (uploadUserFile in lib/baserow/client.ts).
+        protocol: 'https',
+        hostname: 'baserow.mb-smartsystems.de',
+      },
     ],
   },
   // Security-Header (Audit P2/P3): Clickjacking-, MIME-, Referrer-Schutz + HSTS.
