@@ -104,8 +104,8 @@ export default function HeroBookingPanel() {
         )}
 
         <p className="mt-4 pt-4 border-t border-white/10 text-xs text-gray-400">
-          Sicher online zahlen (Stripe) · Abholung in Alsbach-Hähnlein oder
-          Lieferung auf Wunsch
+          30&nbsp;% online anzahlen (Stripe) · Rest bei Übergabe · Abholung in
+          Alsbach-Hähnlein oder Lieferung auf Wunsch
         </p>
       </div>
 
