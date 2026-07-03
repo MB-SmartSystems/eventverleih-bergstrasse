@@ -183,6 +183,18 @@ function ProductCard({
   );
 }
 
+// Innerhalb der Kategorie "zelte" ist die Baserow-Kategorie (Zelt/Zubehoer/Gewicht)
+// zu grob (Seitenwaende haben dieselbe Kategorie "Zelt" wie die Zelte selbst) ->
+// Reihenfolge stattdessen ueber Namens-Muster: Zelte, dann Seitenwaende, dann
+// Bodenanker/Gewichte, Rest zuletzt (Manuel, 2026-07-03: "sinnvoll sortieren").
+function zeltContentPriority(name: string): number {
+  const n = name.toLowerCase();
+  if (n.includes("faltzelt")) return 0;
+  if (n.includes("seitenwand")) return 1;
+  if (n.includes("gewicht") || n.includes("bodenanker") || n.includes("ratsche")) return 2;
+  return 3;
+}
+
 export default function Sortiment() {
   const [data, setData] = useState<ProductsData | null>(null);
   const [error, setError] = useState(false);
@@ -326,7 +338,14 @@ export default function Sortiment() {
             .map((category: ProductCategory) => {
               const products = data.products
                 .filter((p) => p.visible !== false && p.category === category.slug)
-                .sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0));
+                .sort((a, b) => {
+                  const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
+                  if (pinDiff !== 0) return pinDiff;
+                  if (category.slug === "zelte") {
+                    return zeltContentPriority(a.name) - zeltContentPriority(b.name);
+                  }
+                  return 0;
+                });
               if (products.length === 0) return null;
               return (
                 <div key={category.slug} id={category.slug} className="mb-16 last:mb-0">

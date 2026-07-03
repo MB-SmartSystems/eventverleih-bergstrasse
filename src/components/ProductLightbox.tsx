@@ -36,6 +36,11 @@ export default function ProductLightbox({
       }}
       carousel={{ finite: slides.length <= 1 }}
       controller={{ closeOnBackdropClick: true }}
+      render={
+        slides.length <= 1
+          ? { buttonPrev: () => null, buttonNext: () => null }
+          : undefined
+      }
       styles={{
         container: { backgroundColor: "rgba(7, 18, 36, 0.92)" },
       }}
