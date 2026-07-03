@@ -24,6 +24,7 @@ export function resizeImage(file: File, maxWidth: number = 1200): Promise<File> 
         0.85
       );
     };
+    img.onerror = () => resolve(file);
     img.src = URL.createObjectURL(file);
   });
 }
