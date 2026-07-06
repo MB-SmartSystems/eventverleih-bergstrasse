@@ -138,7 +138,7 @@ export default function ZahlungsPanel({
               value={methode[typ]}
               onChange={(e) => setMethode({ ...methode, [typ]: e.target.value as Methode })}
               disabled={submitting !== null}
-              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
             >
               <option value="Bar">Bar</option>
               <option value="Ueberweisung">Überweisung</option>
@@ -150,7 +150,7 @@ export default function ZahlungsPanel({
               value={datum[typ]}
               onChange={(e) => setDatum({ ...datum, [typ]: e.target.value })}
               disabled={submitting !== null}
-              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+              className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
             />
             <button
               onClick={() => setze(typ)}

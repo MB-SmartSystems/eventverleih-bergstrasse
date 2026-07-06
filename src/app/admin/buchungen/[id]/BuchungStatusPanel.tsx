@@ -123,7 +123,7 @@ export default function BuchungStatusPanel({
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             disabled={submitting}
-            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
           >
             {STATI.map((s) => (
               <option key={s} value={s}>

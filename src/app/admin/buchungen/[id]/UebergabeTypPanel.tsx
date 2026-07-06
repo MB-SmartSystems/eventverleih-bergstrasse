@@ -51,7 +51,7 @@ export default function UebergabeTypPanel({
         value={typ}
         onChange={(e) => setTyp(e.target.value)}
         disabled={saving}
-        className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40"
+        className="px-2 py-1 rounded border border-warm-border bg-warm-bg text-warm-text text-xs focus:outline-none focus:ring-1 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
       >
         {OPTIONEN.map((o) => (
           <option key={o.value} value={o.value}>

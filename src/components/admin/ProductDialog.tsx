@@ -590,7 +590,7 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                 id="prod-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
+                className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm [&>option]:bg-warm-surface [&>option]:text-warm-text"
                 required
               >
                 {categories.map((cat) => (

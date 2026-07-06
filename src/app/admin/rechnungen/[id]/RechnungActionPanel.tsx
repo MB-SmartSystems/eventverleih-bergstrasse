@@ -56,7 +56,7 @@ export default function RechnungActionPanel({
             value={zahlungsMethode}
             onChange={(e) => setZahlungsMethode(e.target.value)}
             disabled={submitting}
-            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
           >
             {ZAHLUNGSMETHODEN.map((m) => (
               <option key={m} value={m}>
@@ -81,7 +81,7 @@ export default function RechnungActionPanel({
             value={neueMahnstufe}
             onChange={(e) => setNeueMahnstufe(e.target.value)}
             disabled={submitting}
-            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+            className="w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
           >
             {MAHNSTUFEN.map((s) => (
               <option key={s} value={s}>

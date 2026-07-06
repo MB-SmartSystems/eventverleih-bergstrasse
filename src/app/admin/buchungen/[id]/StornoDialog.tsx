@@ -114,7 +114,7 @@ export default function StornoDialog({
             <select
               value={grund}
               onChange={(e) => setGrund(e.target.value as (typeof GRUENDE)[number])}
-              className="w-full px-3 py-2 rounded-lg border border-warm-border text-sm"
+              className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-bg text-warm-text text-sm [&>option]:bg-warm-surface [&>option]:text-warm-text"
             >
               {GRUENDE.map((g) => (
                 <option key={g} value={g}>

@@ -315,7 +315,7 @@ export default function ProduktePage() {
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent"
+          className="px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent [&>option]:bg-warm-surface [&>option]:text-warm-text"
         >
           <option value="">Alle Kategorien</option>
           {categories.map((cat) => (
@@ -635,7 +635,7 @@ export default function ProduktePage() {
               <select
                 value={bulkCategory}
                 onChange={(e) => setBulkCategory(e.target.value)}
-                className="px-2 py-1.5 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-xs focus:outline-none focus:ring-2 focus:ring-accent/40"
+                className="px-2 py-1.5 rounded-lg border border-warm-border bg-warm-surface text-warm-text text-xs focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
               >
                 <option value="">Kategorie ändern...</option>
                 {categories.map((cat) => (

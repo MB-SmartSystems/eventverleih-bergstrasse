@@ -121,7 +121,7 @@ export default function NeueAnfrageForm({
   }
 
   const kundeSelected = kunden.find((k) => k.id === kundeId);
-  const cls = "w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40";
+  const cls = "w-full px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text";
 
   return (
     <div className="space-y-5">
@@ -278,7 +278,7 @@ export default function NeueAnfrageForm({
             <select
               value={artikelToAdd}
               onChange={(e) => setArtikelToAdd(e.target.value ? parseInt(e.target.value, 10) : "")}
-              className="flex-1 px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40"
+              className="flex-1 px-3 py-2 rounded border border-warm-border bg-warm-bg text-warm-text text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 [&>option]:bg-warm-surface [&>option]:text-warm-text"
             >
               <option value="">— Artikel wählen —</option>
               {artikel.map((a) => (

@@ -197,7 +197,7 @@ export default function AnfrageQuickActions({
           <select
             value={ablehnenKategorie}
             onChange={(e) => setAblehnenKategorie(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500/50"
+            className="w-full bg-white/5 border border-white/10 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-red-500/50 [&>option]:bg-warm-surface [&>option]:text-warm-text"
           >
             <option value="ausgebucht">Termin/Artikel ausgebucht</option>
             <option value="liefergebiet">Außerhalb Liefergebiet</option>
