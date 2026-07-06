@@ -1,7 +1,7 @@
 import Header from "@/components/Header";
 import PromoBanner from "@/components/PromoBanner";
 import Hero from "@/components/Hero";
-import AnlassSets from "@/components/AnlassSets";
+import GaestezahlSet from "@/components/GaestezahlSet";
 import WetterSektion from "@/components/WetterSektion";
 import PreisKlartext from "@/components/PreisKlartext";
 import Gallery from "@/components/Gallery";
@@ -25,7 +25,7 @@ export default function Home() {
       <Header />
       <main>
         <Hero />
-        <AnlassSets />
+        <GaestezahlSet />
         <WetterSektion />
         <PreisKlartext />
         <Sortiment />
