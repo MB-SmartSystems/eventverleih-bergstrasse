@@ -187,7 +187,6 @@ Warenkorb-Inhalt nach „Set übernehmen" (Gewicht-Default = Metallplatten):
 - ✅ Default-Gewicht = **Metallplatten-Gewicht** (entschieden 2026-07-06).
 - ✅ **Warenkorb schon gefüllt → Kunde wählt selbst** (ersetzen ODER dazulegen), Rückfrage beim Klick
   (entschieden 2026-07-06). Leerer Warenkorb: direkt übernehmen.
-- ❓ **Live-Preis-Schätzung im Tool** (vor „In den Warenkorb"): „Dein Set: ca. X € Miete, zzgl. Y €
-  Kaution" — empfehle ich (Transparenz, Conversion, deckt sich mit „Summe der Auswahl"; alle
-  Wettbewerber zeigen eine Preisübersicht). **Frage an Manuel: mit rein?**
+- ✅ **Keine Live-Preis-Schätzung im Tool** (Manuel 2026-07-06: „sieht man im Warenkorb"). Der Preis wird
+  erst im Warenkorb angezeigt.
 - Genauer Anker/`id` der Section + ob bestehende Verlinkungen (Hero/FAQ) angepasst werden.
