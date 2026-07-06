@@ -1,7 +1,9 @@
 # Design: Gästezahl-basierte Set-Empfehlung (ersetzt Anlass-Sets)
 
 **Datum:** 2026-07-06
-**Status:** Design zur Freigabe
+**Status:** Design komplett — alle offenen Punkte mit Manuel geklärt (2026-07-06), bereit für Umsetzungsplan
+**Ton:** warm + einladend (kurzer einladender Einstiegssatz wie bei den alten Anlass-Kacheln, dann sachlich der Vorschlag)
+**Verwandt (eigener Change VOR dem Tool):** Kaution überall auf nächsten **1 €** aufrunden (siehe Projekt-Memory)
 **Betrifft:** `src/components/AnlassSets.tsx` (Ersatz), Warenkorb (`CartContext`/`CartPage`), `/api/products`
 
 ## Problem
@@ -34,8 +36,8 @@ Die drei Anlass-Kacheln entfallen.
 | Lichterkette 18 m | 1 |
 
 **Nur als „passt dazu?"-Empfehlung daneben (NICHT automatisch im Warenkorb, 1-Klick zum Hinzufügen):**
-- **Stehtische** (Sitz-Setup braucht sie nicht zwingend; spätere Entscheidung, ob feste Regel).
-- **Heizpilz** — nur in der kalten Jahreszeit (**Okt–Apr**) eingeblendet. Hinweis: Heizstrahler braucht
+- **Stehtische** — dezente „passt dazu?"-Empfehlung, immer eingeblendet (in v1 enthalten, Manuel 2026-07-06). Nicht im Warenkorb, 1-Klick zum Hinzufügen.
+- **Heizpilz** — Empfehlung nur in der kalten Jahreszeit (**Okt–Apr**) eingeblendet (in v1 enthalten). Hinweis: Heizstrahler braucht
   eine **Gasflasche 11 kg** zum Betrieb → wird der Heizpilz hinzugefügt, die Gasflasche mit-empfehlen
   (sonst steht der Kunde ohne Gas da).
 
@@ -89,9 +91,9 @@ Schematische **Draufsicht als Inline-SVG** (Marken-Look, kein Foto, keine Fremd-
 - „Set in den Warenkorb"-Button fügt alle Auto-Positionen mit ihren Mengen hinzu (Namen + Preise aus
   `/api/products`), danach frei im Warenkorb anpassbar.
 - **Preis = Summe der Auswahl**, kein Paketaufschlag (bestehende Zusage bleibt).
-- Aufbau-Service bleibt der bestehende globale Toggle (inkl. des kürzlich gebauten
-  Faltzelt-Aufbau-Helfer-Hinweises). Der Set-Vorschlag aktiviert Aufbau **nicht** automatisch —
-  das bleibt die Kundenentscheidung.
+- Aufbau-Service wird im Tool **NICHT beworben oder vorgeschlagen** (Manuel 2026-07-06: nicht proaktiv
+  anbieten). Der bestehende Warenkorb-Toggle bleibt opt-in (nicht vorausgewählt, inkl. Faltzelt-Aufbau-
+  Helfer-Hinweis) — bucht ihn jemand aktiv, wird er gemacht. Das Tool aktiviert/erwähnt ihn nicht.
 - **Mengen exakt setzen:** `addItem(name, price)` erhöht nur um 1 → für N Stück `updateQuantity(name, N)`
   nutzen (Key = exakter `product.name` inkl. Suffix). Preis-String im **gleichen Format wie die
   bestehenden Produktkarten** übergeben, damit `matchProduct`/`parsePriceString` im Warenkorb weiter
@@ -189,4 +191,7 @@ Warenkorb-Inhalt nach „Set übernehmen" (Gewicht-Default = Metallplatten):
   (entschieden 2026-07-06). Leerer Warenkorb: direkt übernehmen.
 - ✅ **Keine Live-Preis-Schätzung im Tool** (Manuel 2026-07-06: „sieht man im Warenkorb"). Der Preis wird
   erst im Warenkorb angezeigt.
-- Genauer Anker/`id` der Section + ob bestehende Verlinkungen (Hero/FAQ) angepasst werden.
+- ✅ Zusatz-Empfehlungen (Stehtisch + Heizpilz saisonal) **beide in v1** (Manuel 2026-07-06).
+- ✅ Aufbau im Tool **nicht** anbieten (Manuel 2026-07-06). Ton: warm + einladend.
+- Section bleibt an gleicher Stelle; Überschrift „Wie viele Gäste? – wir stellen dein Set zusammen"
+  (Default, von Hermes gesetzt); Anker-`id`/Verlinkungen beim Bau prüfen. Mindest-Gästezahl = 2.
