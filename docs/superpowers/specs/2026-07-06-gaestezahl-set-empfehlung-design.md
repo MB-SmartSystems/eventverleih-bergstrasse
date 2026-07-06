@@ -30,12 +30,14 @@ Die drei Anlass-Kacheln entfallen.
 | Tischdecken | 1 pro Tisch |
 | Zelt | `G ≤ 12` → Faltzelt **3×3** · `13 ≤ G ≤ 24` → Faltzelt **3×6** |
 | Seitenwände | 3×3: **2× Reißverschluss + 2× Fenster** (4) · 3×6: **2× Reißverschluss + 4× Fenster** (6) |
-| Gewichte/Anker | 1 pro Zeltbein — 3×3 → **4**, 3×6 → **6**. Volle Anzahl (KEINE Ersparnis bei Kombi). Default-Artikel: „Bodenanker & Ratsche" (weicher Gartenboden); Kunde kann im Warenkorb auf Metallplatten-/Wasser-Gewicht wechseln. |
+| Gewichte/Anker | 1 pro Zeltbein — 3×3 → **4**, 3×6 → **6**. Volle Anzahl (KEINE Ersparnis bei Kombi). Default-Artikel: **Metallplatten-Gewicht** (Manuels Wahl 2026-07-06: am einfachsten zu handhaben; Bestand 12); Kunde kann im Warenkorb auf Wasser-Gewicht/Bodenanker wechseln. |
 | Lichterkette 18 m | 1 |
 
 **Nur als „passt dazu?"-Empfehlung daneben (NICHT automatisch im Warenkorb, 1-Klick zum Hinzufügen):**
 - **Stehtische** (Sitz-Setup braucht sie nicht zwingend; spätere Entscheidung, ob feste Regel).
-- **Heizpilz** — nur in der kalten Jahreszeit (**Okt–Apr**) eingeblendet.
+- **Heizpilz** — nur in der kalten Jahreszeit (**Okt–Apr**) eingeblendet. Hinweis: Heizstrahler braucht
+  eine **Gasflasche 11 kg** zum Betrieb → wird der Heizpilz hinzugefügt, die Gasflasche mit-empfehlen
+  (sonst steht der Kunde ohne Gas da).
 
 **Regeln, die aktuell NICHT gebraucht werden** (durch Bestand ausgeschlossen, siehe unten), aber als
 Notiz für später: Bei Zelt-Kombinationen wäre `Lichterketten = Anzahl(3×6) + ceil(Anzahl(3×3) / 2)`
@@ -44,14 +46,22 @@ das derzeit nie.
 
 ## Bestandsgrenze (dynamisch)
 
-Die Obergrenze wird **live aus dem Baserow-Bestand (`Bestand_OK`)** berechnet, nicht hart codiert:
+Die Obergrenze wird **live aus dem Baserow-Bestand (`Bestand_OK`)** berechnet, nicht hart codiert —
+ABER mit einer dritten, in v1 bindenden Schranke: der **Kapazität EINES Zeltes** (weil v1 nie zwei
+Zelte kombiniert):
 
 ```
-MAX_G = min( Bestand_OK[Stuhl] , Bestand_OK[Klapptisch] × 8 )
+MAX_G = min( Bestand_OK[Stuhl] , Bestand_OK[Klapptisch] × 8 , EINZELZELT_KAPAZITAET=24 )
 ```
 
-Aktuell: `min(30, 3×8) = 24`. Kauft Manuel einen 4. Tisch → `min(30, 32) = 30`; mehr Stühle → passt
-sich ebenfalls an. Manuel pflegt nur die Bestandszahlen, die Grenze zieht automatisch nach.
+Aktuell: `min(30, 3×8, 24) = 24`. **Wichtige Korrektur (Denkfehler im Erstentwurf):** Ein einzelnes
+3×6-Zelt fasst max. 24 Sitzplätze. Da v1 immer nur EIN Zelt vorschlägt, kann der Auto-Vorschlag NIE
+über 24 gehen — auch nicht, wenn Manuel einen 4. Tisch oder mehr Stühle kauft (dann bleibt die Grenze
+bei 24, weil das Zelt limitiert). **Über 24 zu kommen ist keine Bestands-, sondern eine Feature-Frage:**
+es braucht die Zelt-Kombi-Logik (unten als v2 dokumentiert). Diese lohnt aber erst, wenn Manuel auch
+den Tisch-Bestand über 3 erhöht (Tische deckeln aktuell ohnehin bei 24). → v1 bleibt sauber bei 24;
+die Stock-Formel sorgt dafür, dass die Grenze automatisch sinkt/steigt, sobald Stühle/Tische UND die
+Einzelzelt-Kapazität es zulassen.
 
 **`G > MAX_G`:** kein Auto-Set. Stattdessen Hinweis:
 > „Für größere Feiern (mehr als N Gäste) stellst du dir dein Set unten im Sortiment selbst zusammen —
@@ -77,7 +87,8 @@ Schematische **Draufsicht als Inline-SVG** (Marken-Look, kein Foto, keine Fremd-
   `/api/products`), danach frei im Warenkorb anpassbar.
 - **Preis = Summe der Auswahl**, kein Paketaufschlag (bestehende Zusage bleibt).
 - Aufbau-Service bleibt der bestehende globale Toggle (inkl. des kürzlich gebauten
-  Faltzelt-Aufbau-Helfer-Hinweises).
+  Faltzelt-Aufbau-Helfer-Hinweises). Der Set-Vorschlag aktiviert Aufbau **nicht** automatisch —
+  das bleibt die Kundenentscheidung.
 
 ## Technische Notizen
 
@@ -105,5 +116,9 @@ Schematische **Draufsicht als Inline-SVG** (Marken-Look, kein Foto, keine Fremd-
 
 ## Offene Detailpunkte (beim Bau kurz bestätigen)
 
-- Exakter Default-Gewicht-Artikel (Bodenanker-Set vs. Metallplatten) und ob „Ratsche" mitgehört.
+- ✅ Default-Gewicht = **Metallplatten-Gewicht** (entschieden 2026-07-06).
+- **Warenkorb schon gefüllt + Kunde klickt „Set übernehmen": ersetzen oder dazulegen?** Empfehlung:
+  **ersetzen** (mit kurzer Rückfrage, wenn Warenkorb nicht leer) — das Set ist ein frischer Startpunkt;
+  „dazulegen" würde Dubletten erzeugen. → mit Manuel bestätigen.
 - Genauer Anker/`id` der Section + ob bestehende Verlinkungen (Hero/FAQ) angepasst werden.
+- Ergebnisse der Wettbewerbs-Recherche einarbeiten (läuft; ggf. UX-Verbesserungen ergänzen).
