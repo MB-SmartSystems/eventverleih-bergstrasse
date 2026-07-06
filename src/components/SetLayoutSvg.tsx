@@ -26,18 +26,29 @@ function drittel(a: number, len: number): number[] {
   return [a + len / 6, a + len / 2, a + (len * 5) / 6];
 }
 
-// single: 1 Tisch horizontal. Langseiten 3+3 (Reihenfolge L-oben,L-unten,M-oben,…),
-// dann 2 Stehenseiten.
-function buildSingle(): { tables: Rect[]; slots: Pt[] } {
+// single: 1 Tisch horizontal. Wenige Stühle werden SYMMETRISCH über die Langseiten
+// verteilt (nicht links geklumpt): pro Seite 1 → Mitte, 2 → links+rechts, 3 → alle.
+// Aufteilung oben/unten möglichst gleich; Überschuss (7./8.) an die Stehenseiten.
+// Beispiele: 3 = 2 oben (l+r) + 1 unten Mitte · 4 = 2 oben + 2 unten (je l+r).
+function seiteVerteilt(cnt: number, xl: number, xm: number, xr: number): number[] {
+  if (cnt <= 0) return [];
+  if (cnt === 1) return [xm];
+  if (cnt === 2) return [xl, xr];
+  return [xl, xm, xr];
+}
+function buildSingle(stuehle: number): { tables: Rect[]; slots: Pt[] } {
   const x = -TL / 2, y = -TW / 2;
   const [xl, xm, xr] = drittel(x, TL);
   const top = y - OFF, bot = y + TW + OFF;
-  const slots: Pt[] = [
-    { x: xl, y: top }, { x: xl, y: bot },
-    { x: xm, y: top }, { x: xm, y: bot },
-    { x: xr, y: top }, { x: xr, y: bot },
-    { x: x - OFF, y: 0 }, { x: x + TL + OFF, y: 0 },
-  ];
+  const nLong = Math.min(Math.max(0, stuehle), 6);
+  const oben = Math.ceil(nLong / 2);
+  const unten = nLong - oben;
+  const slots: Pt[] = [];
+  seiteVerteilt(oben, xl, xm, xr).forEach((px) => slots.push({ x: px, y: top }));
+  seiteVerteilt(unten, xl, xm, xr).forEach((px) => slots.push({ x: px, y: bot }));
+  const rest = Math.max(0, stuehle) - nLong; // 0..2 → Stehenseiten
+  if (rest >= 1) slots.push({ x: x - OFF, y: 0 });
+  if (rest >= 2) slots.push({ x: x + TL + OFF, y: 0 });
   return { tables: [{ x, y, w: TL, h: TW }], slots };
 }
 
@@ -93,22 +104,25 @@ function buildParallel(n: number): { tables: Rect[]; slots: Pt[] } {
   const totalW = n * pitch;
   const startX = -totalW / 2;
   const yTop = -TL / 2;
+  const [yl, ym, yr] = drittel(yTop, TL); // 3 Höhen-Positionen (Langseiten links/rechts)
   const tables: Rect[] = [];
-  const slots: Pt[] = [];
+  const lang: Pt[] = [];
+  const steh: Pt[] = [];
   for (let i = 0; i < n; i++) {
     const cx = startX + i * pitch + pitch / 2;
     const tx = cx - TW / 2;
     tables.push({ x: tx, y: yTop, w: TW, h: TL });
-    const [yl, ym, yr] = drittel(yTop, TL); // 3 Höhen-Positionen
     const lx = tx - OFF, rx = tx + TW + OFF;
-    slots.push(
+    lang.push(
       { x: lx, y: yl }, { x: rx, y: yl },
       { x: lx, y: ym }, { x: rx, y: ym },
       { x: lx, y: yr }, { x: rx, y: yr },
-      { x: cx, y: yTop - OFF }, { x: cx, y: yTop + TL + OFF },
     );
+    steh.push({ x: cx, y: yTop - OFF }, { x: cx, y: yTop + TL + OFF });
   }
-  return { tables, slots };
+  // Erst ALLE Langseiten (6 je Tisch), dann die Stirnseiten (2 je Tisch) — Stehenseiten
+  // zuletzt. → z.B. bei 21: Tisch 1 = 8, Tisch 2 = 7, Tisch 3 = 6.
+  return { tables, slots: [...lang, ...steh] };
 }
 
 export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProps) {
@@ -122,7 +136,7 @@ export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProp
     nT <= 1 ? "single" : zelt === "3x3" ? "block" : stuehle >= 21 ? "parallel" : "row";
 
   const { tables, slots } =
-    modus === "single" ? buildSingle()
+    modus === "single" ? buildSingle(stuehle)
       : modus === "block" ? buildBlock()
         : modus === "parallel" ? buildParallel(nT)
           : buildRow(nT);
