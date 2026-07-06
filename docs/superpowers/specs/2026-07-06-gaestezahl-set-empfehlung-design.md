@@ -107,6 +107,29 @@ Schematische **Draufsicht als Inline-SVG** (Marken-Look, kein Foto, keine Fremd-
 - Artikel für die Empfehlung nicht im Bestand (z. B. Lichterkette 0 verfügbar) → betroffene Position
   weglassen oder als „aktuell nicht verfügbar" markieren, Rest trotzdem anbieten.
 
+## Wettbewerbs-Erkenntnisse & UX-Ergänzungen (Recherche 2026-07-06)
+
+7 Anbieter geprüft (DACH + US, u. a. Daschners, Fischer, M&M Event, Profizelt24, Bright, Victory).
+**Keiner** bietet Live-Anordnungs-Grafik UND Direkt-Warenkorb aus der Gästezahl — sie enden bei einer
+m²-Zahl oder einer Anfrage. → Grafik + „in den Warenkorb" ist das Alleinstellungsmerkmal; bleibt Kern.
+
+**Aus der Recherche übernehmen (kleine, lohnende Ergänzungen):**
+- **Eingabe = Slider + Zahlenfeld kombiniert** (Slider fürs schnelle mobile Gefühl, Zahlenfeld daneben
+  für die exakte Zahl, z. B. 18). Daschners nutzt Slider, Victory Zahlenfeld — beides zusammen ist besser.
+- **Schwellen sichtbar machen** statt stillem Rundungs-Rätsel: kurze Zeile wie „ab 9 Gästen kommt ein
+  2. Tisch dazu" / „ab 13 Gästen das größere 3×6-Zelt". Reduziert Rückfragen/Reklamationen.
+- **Vorschlag bleibt editierbar** (ist durch die Warenkorb-Anpassung schon gegeben) — aktiv so kommunizieren.
+
+**Bewusst NICHT übernommen:** eine zweite Eingabe-Achse „Veranstaltungsart" (Steh-Empfang / Bankett /
+mit Tanzfläche), wie sie größere Verleiher nutzen. Für den sitzplatz-fokussierten Garten-Verleih ist das
+Overkill; der Steh-Fall ist bei uns über die optionale **Stehtisch**-Empfehlung bereits abgedeckt.
+Single-Axis (nur Gästezahl) bleibt — deckt sich mit Manuels Wunsch nach Einfachheit.
+
+**Faustregel-Abgleich:** Eigene Werte (8 Personen/Klapptisch, 3×3 = 12, 3×6 = 24 sitzend) sind plausibel;
+Branchenquellen nennen 6–8 Personen/Tisch bei Bankett-Stil (Einzelstühle) — passt. Kein Änderungsbedarf.
+(Referenz: Bierzeltgarnitur-Bänke fassen mehr/Tisch als Banketttisch+Einzelstühle — für uns irrelevant,
+da wir Klapptisch + Einzelstühle vermieten.)
+
 ## Explizit NICHT im Scope (v1)
 
 - Zelt-Kombinationen / Mehrfach-Lichterketten (durch Bestand ausgeschlossen).
