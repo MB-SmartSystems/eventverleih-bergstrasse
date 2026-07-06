@@ -2,7 +2,7 @@
  * Nach jeder Position-Änderung Buchungs-Summen neu berechnen:
  *   Preis_Artikel = sum(Anzahl * Einzelpreis_Eur)
  *   Anzahlung 30 %, Restzahlung 70 %
- *   Kaution = sum(Anzahl * Artikel.Kaution_Pro_Stueck_Eur)
+ *   Kaution = sum(Anzahl * Kaution_Pro_Stueck_Snapshot_Eur der Position; Fallback: Artikel-Live-Wert)
  * Außerdem Angebot.Gesamtpreis updaten, falls Angebot existiert.
  *
  * Stripe-Links: wenn Anzahlung / Komplettzahlung sich geandert hat UND die jeweilige
@@ -18,6 +18,8 @@ type PositionRow = {
   id: number;
   Anzahl: string;
   Einzelpreis_Eur: string;
+  // Bei Positions-Anlage eingefrorener Kaution-pro-Stueck-Wert (contact/anfrage-neu schreiben ihn).
+  Kaution_Pro_Stueck_Snapshot_Eur: string | null;
   Buchung_Link: Array<{ id: number }>;
   Artikel_Link: Array<{ id: number }>;
 };
@@ -82,8 +84,18 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
     const anz = num(p.Anzahl);
     const ep = num(p.Einzelpreis_Eur);
     mietsumme += anz * ep;
+    // Kaution aus dem bei Anlage eingefrorenen Positions-Snapshot rechnen, damit eine spaetere
+    // Artikel-Kautionsaenderung (Tabelle 957) bestehende Buchungen NICHT rueckwirkend aendert.
+    // Fallback auf den Live-Artikelwert nur fuer Alt-Positionen ohne gespeicherten Snapshot.
     const artikelId = p.Artikel_Link?.[0]?.id;
-    if (artikelId) kaution += anz * (kautionMap.get(artikelId) ?? 0);
+    const snapK = p.Kaution_Pro_Stueck_Snapshot_Eur;
+    const kautionProStueck =
+      snapK !== null && snapK !== undefined && String(snapK).trim() !== ""
+        ? num(snapK)
+        : artikelId
+          ? kautionMap.get(artikelId) ?? 0
+          : 0;
+    kaution += anz * kautionProStueck;
   }
   // Float-Artefakte der Summen sofort an der Quelle wegrunden, damit alle abgeleiteten Werte
   // (Anzahlung, Gesamt, Kaution, Angebot, Stripe-Beträge) Baserow-konform 2-stellig sind.
