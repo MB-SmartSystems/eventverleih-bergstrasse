@@ -38,13 +38,19 @@ export function maxGaeste(bestand: { stuhl: number; tisch: number }): number {
   return Math.max(0, Math.min(bestand.stuhl, bestand.tisch * 8, EINZELZELT_KAP));
 }
 
-/** Vollständiges Auto-Set für eine Gästezahl (Mengen + Zeltgröße). */
+/**
+ * Vollständiges Auto-Set für eine Gästezahl (Mengen + Zeltgröße).
+ * Das kleine 3×3-Zelt reicht bis 10 Gäste (ab 11 braucht die Tafel das 3×6).
+ * Im ≤10-Bereich kann der Kunde freiwillig aufs große Zelt umschalten (`grossesZelt`).
+ */
 export function empfehlung(
   g: number,
   bestand: { stuhl: number; tisch: number },
+  grossesZelt: boolean = false,
 ): SetEmpfehlung {
   const maxG = maxGaeste(bestand);
-  const zelt: "3x3" | "3x6" = g <= 12 ? "3x3" : "3x6";
+  const kleinesReicht = g <= 10;
+  const zelt: "3x3" | "3x6" = kleinesReicht && !grossesZelt ? "3x3" : "3x6";
   const tische = Math.ceil(g / 8);
   const gueltig = Number.isInteger(g) && g >= MIN_GAESTE && g <= maxG;
   const beine = zelt === "3x6" ? 6 : 4;

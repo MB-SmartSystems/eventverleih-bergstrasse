@@ -30,6 +30,7 @@ export default function GaestezahlSet() {
   const [g, setG] = useState(10);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [showChoice, setShowChoice] = useState(false);
+  const [grossesZelt, setGrossesZelt] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -65,7 +66,7 @@ export default function GaestezahlSet() {
   }, [bySlug]);
 
   const maxG = maxGaeste(bestand);
-  const e = useMemo(() => empfehlung(g, bestand), [g, bestand]);
+  const e = useMemo(() => empfehlung(g, bestand, grossesZelt), [g, bestand, grossesZelt]);
 
   // Nur Positionen mit vorhandenem Produkt (unabhängig von Bestand → für Anzeige);
   // Verfügbarkeit wird pro Zeile separat markiert.
@@ -256,6 +257,45 @@ export default function GaestezahlSet() {
                     <h3 className="font-display text-xl font-semibold text-white mb-4">
                       Dein Set für {e.stuehle} Gäste
                     </h3>
+
+                    {g <= 10 && (
+                      <div className="mb-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setGrossesZelt(false)}
+                            aria-pressed={!grossesZelt}
+                            className={`flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                              !grossesZelt
+                                ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
+                                : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
+                            }`}
+                          >
+                            3×3 – kompakt
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGrossesZelt(true)}
+                            aria-pressed={grossesZelt}
+                            className={`flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                              grossesZelt
+                                ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
+                                : g >= 9
+                                  ? "bg-gold-500/10 border-gold-400/60 text-gold-200 ring-2 ring-gold-400/50 animate-pulse"
+                                  : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20"
+                            }`}
+                          >
+                            3×6 – mehr Platz
+                          </button>
+                        </div>
+                        {g >= 9 && !grossesZelt && (
+                          <p className="text-[11px] text-gold-300/80 mt-1.5">
+                            Bei {g} Gästen wird es im 3×3 mit zwei Tischen eng – für mehr Platz das große Zelt.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <ul className="space-y-2 mb-4">
                       {aufgeloest.map((pos) => {
                         if (!pos.product) return null;
@@ -280,8 +320,8 @@ export default function GaestezahlSet() {
                     </ul>
 
                     <p className="text-xs text-gray-500 mb-5">
-                      ab 9 Gästen kommt ein 2. Tisch dazu · ab 13 das größere
-                      3×6-Zelt
+                      ab 9 Gästen kommt ein 2. Tisch dazu · ab 11 Gästen das
+                      große 3×6-Zelt
                     </p>
 
                     <button
