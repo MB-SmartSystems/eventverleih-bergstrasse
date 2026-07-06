@@ -162,6 +162,7 @@ function rowToProduct(r: ArtikelRow): RentalProduct {
   return {
     id: String(r.Artikel_ID),
     category: CATEGORY_TO_SLUG[katValue] || 'deko',
+    slug: r.Slug || slugify(r.Bezeichnung || ''),
     images,
     image: images[0] || '',
     name: r.Bezeichnung || '',

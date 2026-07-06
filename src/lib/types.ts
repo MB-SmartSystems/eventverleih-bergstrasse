@@ -1,6 +1,8 @@
 export interface RentalProduct {
   id: string;
   category: string;
+  /** Artikel-Slug aus Baserow (immer bei echten Produkten; Legacy-Seed hat ihn nicht). */
+  slug?: string;
   images: string[];
   image: string;
   name: string;

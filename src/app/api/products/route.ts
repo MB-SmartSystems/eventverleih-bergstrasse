@@ -66,6 +66,8 @@ export async function GET() {
     kautionEur: p.kautionEur ?? null,
     aufbauEur: p.aufbauEur ?? null,
     artikelId: p.artikelId ?? null,
+    slug: p.slug,
+    bestandOk: p.quantityOk,
   }));
 
   return NextResponse.json(
