@@ -63,6 +63,9 @@ den Tisch-Bestand über 3 erhöht (Tische deckeln aktuell ohnehin bei 24). → v
 die Stock-Formel sorgt dafür, dass die Grenze automatisch sinkt/steigt, sobald Stühle/Tische UND die
 Einzelzelt-Kapazität es zulassen.
 
+**Eingabe:** Zahlenfeld (beliebige positive Ganzzahl) + Slider (Bereich `1 .. MAX_G`). Wird per
+Zahlenfeld eine Zahl `> MAX_G` eingegeben, greift der Fallback (kein Set, keine Grafik).
+
 **`G > MAX_G`:** kein Auto-Set. Stattdessen Hinweis:
 > „Für größere Feiern (mehr als N Gäste) stellst du dir dein Set unten im Sortiment selbst zusammen —
 > oder melde dich für ein persönliches Angebot." (N = MAX_G, dynamisch)
@@ -89,23 +92,48 @@ Schematische **Draufsicht als Inline-SVG** (Marken-Look, kein Foto, keine Fremd-
 - Aufbau-Service bleibt der bestehende globale Toggle (inkl. des kürzlich gebauten
   Faltzelt-Aufbau-Helfer-Hinweises). Der Set-Vorschlag aktiviert Aufbau **nicht** automatisch —
   das bleibt die Kundenentscheidung.
+- **Mengen exakt setzen:** `addItem(name, price)` erhöht nur um 1 → für N Stück `updateQuantity(name, N)`
+  nutzen (Key = exakter `product.name` inkl. Suffix). Preis-String im **gleichen Format wie die
+  bestehenden Produktkarten** übergeben, damit `matchProduct`/`parsePriceString` im Warenkorb weiter
+  greifen — den bestehenden Add-to-Cart-Codepfad wiederverwenden, kein eigenes Preisformat erfinden.
+- **Warenkorb schon gefüllt** + Klick „Set übernehmen": den Kunden **fragen** — *ersetzen* oder
+  *dazulegen* (Manuel 2026-07-06: Kunde wählt selbst). Leerer Warenkorb → direkt übernehmen.
 
 ## Technische Notizen
 
-- `/api/products` muss zusätzlich **`bestandOk`** (aus `Bestand_OK`) je Artikel liefern, damit die
-  Grenze client-seitig gerechnet werden kann. Artikel werden über ihren **Namen** (CartItem-Key)
-  bzw. Slug referenziert; die Seitenwand-/Gewicht-/Zelt-Artikel müssen eindeutig auffindbar sein
-  (Slug/Kategorie prüfen — z. B. Zelt-Kategorie „Zelt", Seitenwand „seitenwand-fenster"/„…-reissverschluss",
-  Gewicht-Default „bodenanker-ratsche-set").
+- `/api/products` muss zusätzlich **`bestandOk`** (aus `Bestand_OK`) je Artikel liefern (aktuell nur
+  name/mietpreisEur/kautionEur/aufbauEur/category), damit die Grenze client-seitig gerechnet werden kann.
+- **Artikel werden über ihren stabilen `Slug` aufgelöst** (NICHT über den Anzeigenamen — der trägt
+  Suffixe wie „(Reinigung inkl.)"). Zuordnung Empfehlungs-Slot → Slug (aus Baserow 957 verifiziert):
+
+  | Slot | Slug |
+  |---|---|
+  | Zelt 3×3 | `faltzelt-3x3m` |
+  | Zelt 3×6 | `faltzelt-3x6m` |
+  | Stuhl | `stuhl` |
+  | Klapptisch | `klapptisch` |
+  | Tischdecke | `tischdecke` |
+  | Seitenwand Fenster | `seitenwand-fenster` |
+  | Seitenwand Reißverschluss | `seitenwand-reissverschluss` |
+  | Gewicht (Default) | `metallplatten-gewicht` |
+  | Lichterkette | `lichterkette-18m` |
+  | Stehtisch (Empfehlung) | `stehtisch-mit-husse` |
+  | Heizpilz (Empfehlung, Okt–Apr) | `heizstrahler` |
+  | Gasflasche (mit Heizpilz) | `gasflasche-11kg` |
+
 - Neue Komponente ersetzt `AnlassSets.tsx` (gleiche Section-Position auf `page.tsx`, `id="sets"` kann
   bleiben oder zu `id="set-finder"` werden — Anker in Hero/FAQ/Contact ggf. mitziehen).
+- Die bestehende **„andere Feiern / Kontakt"-Zeile** aus `AnlassSets` als schlanke Zeile unter dem Tool
+  erhalten (Soft-Fallback für Taufe/Jubiläum/Sonderfälle + „mehr als N Gäste").
 
 ## Randfälle
 
 - `G = 0` / leer → keine Empfehlung, neutraler Hinweis.
 - `G` sehr klein (z. B. 2–4) → 1 Tisch, 1× 3×3, konsistent (kein Sonderfall).
-- Artikel für die Empfehlung nicht im Bestand (z. B. Lichterkette 0 verfügbar) → betroffene Position
-  weglassen oder als „aktuell nicht verfügbar" markieren, Rest trotzdem anbieten.
+- Besitzt Manuel einen empfohlenen Rand-Artikel gar nicht (`Bestand_OK = 0`, z. B. Lichterkette): diese
+  **eine** Position aus dem Set weglassen (nicht in den Warenkorb) + dezent „aktuell nicht verfügbar"
+  anzeigen, Rest normal. (Betrifft nur Rand-Artikel — Zelt/Tisch/Stuhl sind vorhanden und über MAX_G
+  ohnehin gedeckelt.)
 
 ## Wettbewerbs-Erkenntnisse & UX-Ergänzungen (Recherche 2026-07-06)
 
@@ -130,6 +158,23 @@ Branchenquellen nennen 6–8 Personen/Tisch bei Bankett-Stil (Einzelstühle) —
 (Referenz: Bierzeltgarnitur-Bänke fassen mehr/Tisch als Banketttisch+Einzelstühle — für uns irrelevant,
 da wir Klapptisch + Einzelstühle vermieten.)
 
+## Akzeptanzkriterien (Worked Examples — dienen zugleich als Testfälle)
+
+Warenkorb-Inhalt nach „Set übernehmen" (Gewicht-Default = Metallplatten):
+
+| G | Stühle | Klapptische | Tischdecken | Zelt | Seitenw. Reißv. | Seitenw. Fenster | Gewichte | Lichterkette |
+|---|---|---|---|---|---|---|---|---|
+| 10 | 10 | 2 | 2 | 1× 3×3 | 2 | 2 | 4 | 1 |
+| 12 | 12 | 2 | 2 | 1× 3×3 | 2 | 2 | 4 | 1 |
+| 13 | 13 | 2 | 2 | 1× 3×6 | 2 | 4 | 6 | 1 |
+| 18 | 18 | 3 | 3 | 1× 3×6 | 2 | 4 | 6 | 1 |
+| 24 | 24 | 3 | 3 | 1× 3×6 | 2 | 4 | 6 | 1 |
+
+- `G = 25` (> MAX_G = 24) → **kein** Set, kein Warenkorb-Add, Fallback-Hinweis, keine Grafik.
+- `G = 0` / leer → nichts.
+- Grafik-Check bei `G = 18`: 3 Tische als Tafel in Reihe, 18 Stühle rundherum, länglicher 3×6-Rahmen.
+- Grenz-Check: `G = 12` → 3×3 · `G = 13` → 3×6 (Zeltwechsel exakt bei 13).
+
 ## Explizit NICHT im Scope (v1)
 
 - Zelt-Kombinationen / Mehrfach-Lichterketten (durch Bestand ausgeschlossen).
@@ -140,8 +185,9 @@ da wir Klapptisch + Einzelstühle vermieten.)
 ## Offene Detailpunkte (beim Bau kurz bestätigen)
 
 - ✅ Default-Gewicht = **Metallplatten-Gewicht** (entschieden 2026-07-06).
-- **Warenkorb schon gefüllt + Kunde klickt „Set übernehmen": ersetzen oder dazulegen?** Empfehlung:
-  **ersetzen** (mit kurzer Rückfrage, wenn Warenkorb nicht leer) — das Set ist ein frischer Startpunkt;
-  „dazulegen" würde Dubletten erzeugen. → mit Manuel bestätigen.
+- ✅ **Warenkorb schon gefüllt → Kunde wählt selbst** (ersetzen ODER dazulegen), Rückfrage beim Klick
+  (entschieden 2026-07-06). Leerer Warenkorb: direkt übernehmen.
+- ❓ **Live-Preis-Schätzung im Tool** (vor „In den Warenkorb"): „Dein Set: ca. X € Miete, zzgl. Y €
+  Kaution" — empfehle ich (Transparenz, Conversion, deckt sich mit „Summe der Auswahl"; alle
+  Wettbewerber zeigen eine Preisübersicht). **Frage an Manuel: mit rein?**
 - Genauer Anker/`id` der Section + ob bestehende Verlinkungen (Hero/FAQ) angepasst werden.
-- Ergebnisse der Wettbewerbs-Recherche einarbeiten (läuft; ggf. UX-Verbesserungen ergänzen).
