@@ -111,7 +111,9 @@ export default function GaestezahlSet() {
     return zusatzSlugs
       .map((slug) => {
         const prod = bySlug.get(slug);
-        if (!prod || prod.bestandOk <= 0) return null;
+        // Zusatz-Empfehlungen (Stehtisch/Heizpilz) auch zeigen, wenn bestellbar (Bestand_OK=0):
+        // es sind kuratierte "passt dazu?"-Vorschläge, keine Auto-Set-Positionen.
+        if (!prod) return null;
         return { slug, product: prod };
       })
       .filter((x): x is { slug: string; product: Product } => x !== null);
