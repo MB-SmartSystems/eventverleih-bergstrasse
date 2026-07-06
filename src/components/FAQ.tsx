@@ -6,7 +6,7 @@ const faqs = [
   {
     question: "Welches Zelt passt zu meinem Fest?",
     answer:
-      "Als Faustregel: Das 3×6-m-Zelt nimmt Tafel und Buffet auf, der 3×3-m-Pavillon reicht für Stehtische und Bar. Im Zweifel schicken Sie uns einfach Anlass, Datum und ungefähre Gästezahl — Sie bekommen einen konkreten Vorschlag zurück.",
+      "Als Faustregel: Das 3×3-m-Zelt bietet Platz für bis zu 12 Sitzplätze, z. B. für Stehtische und Bar, das 3×6-m-Zelt für bis zu 24, z. B. für Tafel und Buffet — je nach Tafelgröße und Programm wählen Sie einfach die passende Größe. Im Zweifel schicken Sie uns einfach Anlass, Datum und ungefähre Gästezahl — Sie bekommen einen konkreten Vorschlag zurück.",
   },
   {
     question: "Was, wenn am Festtag Regen gemeldet ist?",

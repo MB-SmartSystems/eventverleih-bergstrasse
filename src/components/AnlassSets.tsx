@@ -75,8 +75,10 @@ export default function AnlassSets() {
         {/* Größen-Orientierung */}
         <div className="glass-card p-6 md:p-8 max-w-3xl mx-auto border-gold-500/20 text-center mb-8">
           <p className="text-gray-300 leading-relaxed">
-            Als Faustregel: Das 3×6-m-Zelt nimmt Tafel und Buffet auf, der
-            3×3-m-Pavillon reicht für Stehtische und Bar.{" "}
+            Als Faustregel: Das 3×3-m-Zelt bietet Platz für bis zu 12
+            Sitzplätze, z. B. für Stehtische und Bar, das 3×6-m-Zelt für bis
+            zu 24, z. B. für Tafel und Buffet — je nach Tafelgröße und
+            Programm wählen Sie einfach die passende Größe.{" "}
             <span className="text-white font-medium">
               Unsicher bei Ihrer Gästezahl?
             </span>{" "}
