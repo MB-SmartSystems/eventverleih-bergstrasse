@@ -13,6 +13,7 @@
 import { getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { createPaymentLink, deactivatePaymentLinksFor } from "@/lib/stripe/payment-links";
 import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
+import { rundeKaution } from "@/lib/eventverleih/constants";
 
 type PositionRow = {
   id: number;
@@ -101,6 +102,8 @@ export async function recalcBuchung(buchungId: number): Promise<void> {
   // (Anzahlung, Gesamt, Kaution, Angebot, Stripe-Beträge) Baserow-konform 2-stellig sind.
   mietsumme = round2(mietsumme);
   kaution = round2(kaution);
+  // Kaution auf 1 € aufrunden — konsistent mit Cart/Admin-Anlage (Manuel 2026-07-06)
+  kaution = rundeKaution(kaution);
 
   // Lieferung + Abholung + Aufbau bleiben aus dem Pre-State erhalten (recalc setzt nur Artikel).
   // Anzahlung/Gesamt berücksichtigen sie aber, damit Stripe-Links und Sidebar konsistent

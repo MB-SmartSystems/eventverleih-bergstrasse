@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
+import { rundeKaution } from "@/lib/eventverleih/constants";
 
 interface CartItem { artikel_id: number; anzahl: number }
 interface ArtikelRow {
@@ -165,7 +166,7 @@ export async function POST(req: NextRequest) {
       Preis_Artikel: mietsumme.toFixed(2),
       Anzahlung_Soll_Eur: (mietsumme * 0.3).toFixed(2),
       Restzahlung_Soll_Eur: (mietsumme * 0.7).toFixed(2),
-      Kaution_Soll_Eur: kautionSumme.toFixed(2),
+      Kaution_Soll_Eur: rundeKaution(kautionSumme).toFixed(2),
       Gesamt: (mietsumme + kautionSumme).toFixed(2),
     });
     created.push({ table: TABLES.Buchungen, id: buchung.id });
