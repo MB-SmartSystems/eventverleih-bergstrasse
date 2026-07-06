@@ -15,9 +15,9 @@ import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/cl
 import { createPaymentLink } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { recalcBuchung } from "@/lib/buchung-recalc";
-import { buildSnapshot } from "@/lib/angebot-snapshot";
+import { buildSnapshot, parseSnapshot } from "@/lib/angebot-snapshot";
 import { kundeNameById } from "@/lib/eventverleih/kunde-name";
-import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { UEBERGABE_HINWEIS, AUFBAU_HELFER_HINWEIS, enthaeltFaltzelt } from "@/lib/eventverleih/constants";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -371,6 +371,12 @@ Oder direkt komplett zahlen (dann ist alles erledigt):
         console.error("[vertrag-akzeptieren] memberAutoLoginUrl fehlgeschlagen:", e);
       }
 
+      // Aufbau-Helfer-Hinweis nur wenn Faltzelt + Aufbau gebucht (Faltzelt nicht sicher allein aufbaubar)
+      const zeigeAufbauHelfer =
+        num(buchungFresh.Preis_Aufbau) > 0 &&
+        enthaeltFaltzelt((parseSnapshot(angebot.Snapshot_JSON)?.positionen ?? []).map((p) => p.bezeichnung));
+      const aufbauAbsatz = zeigeAufbauHelfer ? `\n\n${AUFBAU_HELFER_HINWEIS}` : "";
+
       const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
       const body = `${anrede}
 
@@ -382,7 +388,7 @@ Verwendungszweck: ${angebot.Angebotsnummer}
 
 Restzahlung und Kaution folgen vor bzw. bei der Übergabe — bequem online per Zahlungslink.
 
-Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit. ${UEBERGABE_HINWEIS}
+Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit. ${UEBERGABE_HINWEIS}${aufbauAbsatz}
 
 Ihren vollständigen Mietvertrag mit allen Bedingungen finden Sie hier:
 ${vertragsUrl}${meinBereichUrl ? `

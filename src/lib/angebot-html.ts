@@ -7,6 +7,8 @@
  * ueber den Bestaetigungs-Flow bezahlt, nicht per Ueberweisung auf das Dokument.
  */
 
+import { AUFBAU_HELFER_HINWEIS } from "@/lib/eventverleih/constants";
+
 export interface AngebotHtmlContext {
   angebotsnummer: string;
   angebotsdatum: string | null;
@@ -36,6 +38,9 @@ export interface AngebotHtmlContext {
     bezeichnung: string;
     betrag_eur: number;
   }>;
+
+  /** Faltzelt + Aufbau gebucht → Aufbau-Helfer-Hinweis im PDF anzeigen. */
+  aufbau_helfer_hinweis?: boolean;
 
   gesamt_eur: number;
   anzahlung_eur: number;
@@ -194,6 +199,11 @@ ${leistung && leistung !== "—" ? `<div class="leistung">Mietzeitraum: ${leistu
   <strong>So geht es weiter</strong>
   Sie können dieses Angebot online ansehen und mit einem Klick bestätigen — den Link finden Sie in Ihrer E-Mail bzw. in Ihrem Kundenbereich. Mit Eingang der Anzahlung ist Ihr Termin verbindlich reserviert.
 </div>
+${
+  ctx.aufbau_helfer_hinweis
+    ? `<div class="hinweis"><strong>Hinweis zum Aufbau</strong>${escape(AUFBAU_HELFER_HINWEIS)}</div>`
+    : ""
+}
 
 <div class="ust">${escape(f.ust_hinweis)}</div>
 

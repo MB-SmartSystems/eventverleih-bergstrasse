@@ -53,3 +53,17 @@ export function rundeKaution(eur: number): number {
  */
 export const UEBERGABE_HINWEIS =
   "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung — an unserem Treffpunkt (Grillhütte Sandwiese, Alsbach-Hähnlein) oder per vereinbarter Lieferung. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich.";
+
+/**
+ * Hinweis für die Kundenkommunikation, wenn ein Faltzelt MIT Aufbau-Service gebucht wird:
+ * ein Faltzelt lässt sich nicht sicher allein aufstellen, daher muss vor Ort mindestens eine
+ * Person mithelfen. Erscheint nur bei Faltzelt-Positionen + gebuchtem Aufbau (Warenkorb,
+ * Angebot-PDF, Bestätigungs-Mail).
+ */
+export const AUFBAU_HELFER_HINWEIS =
+  "Bitte beachten: Beim Aufbau der Zelte wird vor Ort mindestens eine helfende Person benötigt — ein Faltzelt lässt sich nicht sicher allein aufstellen.";
+
+/** True, wenn eine der Positions-Bezeichnungen ein Faltzelt ist (Aufbau-Helfer-Hinweis-Trigger). */
+export function enthaeltFaltzelt(bezeichnungen: string[]): boolean {
+  return bezeichnungen.some((b) => /faltzelt/i.test(b));
+}

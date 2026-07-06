@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { useCart } from "./CartContext";
 import DateRangeSheet from "./DateRangeSheet";
-import { formatGerman, rangeDays, rundeKaution } from "@/lib/eventverleih/constants";
+import { formatGerman, rangeDays, rundeKaution, AUFBAU_HELFER_HINWEIS } from "@/lib/eventverleih/constants";
 import type { RentalProduct, ProductsData } from "@/lib/types";
 
 function normalize(s: string): string {
@@ -143,6 +143,10 @@ export default function CartPage() {
   const totalGesamt = totalMiete + totalKaution + totalAufbau + lieferpreis + abholpreis;
   const aufAnfrageCount = itemPricing.filter((p) => p.aufAnfrage).length;
   const aufbauVerfuegbar = aufbauSumme > 0;
+  // Aufbau-Helfer-Hinweis: nur wenn ein Faltzelt im Warenkorb ist UND Aufbau gebucht wird
+  // (Faltzelt nicht sicher allein aufbaubar; den Rest baut Manuel allein auf).
+  const hatFaltzelt = itemPricing.some((p) => /faltzelt/i.test(p.item.name));
+  const zeigeAufbauHelfer = hatFaltzelt && aufbauKomplett && aufbauVerfuegbar;
   const lieferAktiv = lieferungGewuenscht || abholungGewuenscht;
   const lieferAdresseKomplett =
     lieferStrasse.trim().length > 1 &&
@@ -508,6 +512,13 @@ export default function CartPage() {
                     </p>
                   </div>
                 </label>
+              )}
+
+              {zeigeAufbauHelfer && (
+                <p className="mt-2 flex items-start gap-2 text-amber-300/90 text-xs leading-relaxed px-1">
+                  <span aria-hidden>⚠️</span>
+                  <span>{AUFBAU_HELFER_HINWEIS}</span>
+                </p>
               )}
 
               {/* Lieferung + Abholung */}
