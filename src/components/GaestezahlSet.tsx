@@ -320,8 +320,8 @@ export default function GaestezahlSet() {
                     </ul>
 
                     <p className="text-xs text-gray-500 mb-5">
-                      ab 9 Gästen kommt ein 2. Tisch dazu · ab 11 Gästen das
-                      große 3×6-Zelt
+                      ab 9 Gästen ein 2. Tisch · ab 11 das große 3×6-Zelt · ab 15
+                      ein 3. Tisch
                     </p>
 
                     <button

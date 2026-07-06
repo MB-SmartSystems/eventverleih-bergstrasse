@@ -51,7 +51,9 @@ export function empfehlung(
   const maxG = maxGaeste(bestand);
   const kleinesReicht = g <= 10;
   const zelt: "3x3" | "3x6" = kleinesReicht && !grossesZelt ? "3x3" : "3x6";
-  const tische = Math.ceil(g / 8);
+  // Tischzahl nach Sitz-Kapazität (nicht stur 8/Tisch): 1 Tisch bis 8, 2 bis 14, 3 bis 24.
+  // (1 Tisch=8, 2 Tische Block=10 / Reihe=14, 3 Tische Reihe=20 / parallel/hochkant=24.)
+  const tische = g <= 8 ? 1 : g <= 14 ? 2 : 3;
   const gueltig = Number.isInteger(g) && g >= MIN_GAESTE && g <= maxG;
   const beine = zelt === "3x6" ? 6 : 4;
   const fenster = zelt === "3x6" ? 4 : 2; // immer 2 Reißverschluss, Rest Fenster

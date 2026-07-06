@@ -1,11 +1,10 @@
-// Maßstäbliche schematische Draufsicht eines Sets (40 px/m). Drei Aufbau-Modi:
-//  • single: 1 Tisch — 3 Stühle je Langseite + 1 je Schmalseite.
-//  • block : 2 Tische parallel (lange Seiten aneinander) im 3×3 — Stühle rundum,
-//            niemand an der (inneren) Stoßfläche.
-//  • row   : Tische in Reihe (Stirnseiten aneinander) im 3×6 — Stühle an den
-//            Langseiten, niemand an der Stoßfläche.
-// Tisch 1,82 × 0,74 m, Zelt 3×3 / 3×6 m — Verhältnis stimmt; Überlauf wird sichtbar.
-// Rein deterministisch, keine Fremd-Lib.
+// Maßstäbliche schematische Draufsicht (40 px/m). Vier Aufbau-Modi:
+//  • single   : 1 Tisch — 3 je Langseite + 1 je Schmalseite (bis 8).
+//  • block    : 2 Tische parallel (breite Seiten aneinander) im 3×3 — bis 10.
+//  • row      : 2–3 Tische in Reihe (Stirnseiten aneinander) im 3×6 — bis 20.
+//  • parallel : 3 Tische hochkant nebeneinander im 3×6 — 8/Tisch, bis 24.
+// Sitz-Füllregel: zuerst Langseiten (3 je Tischseite, in fester Reihenfolge, Tisch
+// für Tisch, eng), dann Stehenseiten — NIE an einer Stoßfläche. Tisch 1,82 × 0,74 m.
 
 interface SetLayoutSvgProps {
   zelt: "3x3" | "3x6";
@@ -13,107 +12,145 @@ interface SetLayoutSvgProps {
   stuehle: number;
 }
 
-interface Pt {
-  x: number;
-  y: number;
+interface Pt { x: number; y: number; }
+interface Rect { x: number; y: number; w: number; h: number; }
+
+const PXM = 40;
+const TL = 1.82 * PXM; // Tischlänge  72,8
+const TW = 0.74 * PXM; // Tischbreite 29,6
+const CR = 9;          // Stuhl-Radius
+const OFF = CR + 5;    // Kante → Stuhlmitte
+
+// Drei Positionen je Langseite (links/mitte/rechts, Anteile 1/6, 1/2, 5/6).
+function drittel(a: number, len: number): number[] {
+  return [a + len / 6, a + len / 2, a + (len * 5) / 6];
 }
 
-const PX_PER_M = 40;
-const TABLE_L = 1.82 * PX_PER_M; // Tischlänge (Langseite)  = 72,8 px
-const TABLE_W = 0.74 * PX_PER_M; // Tischbreite (Schmalseite) = 29,6 px
-const CHAIR_R = 9;
-const CHAIR_OFF = CHAIR_R + 5;
-
-// Reihe / Einzeltisch: Stühle an den beiden Langseiten (3 je Tisch), Überschuss
-// (max. 2) an die äußeren Schmalseiten. Innere Stoßflächen bleiben frei.
-function chairsRow(x: number, y: number, w: number, h: number, tische: number, stuehle: number): Pt[] {
-  const pts: Pt[] = [];
-  if (stuehle <= 0) return pts;
-  const longCap = 3 * Math.max(1, tische);
-  const onLong = Math.min(stuehle, longCap * 2);
-  const top = Math.ceil(onLong / 2);
-  const bottom = onLong - top;
-  const rest = stuehle - onLong;
-  const leftEnd = rest >= 1 ? 1 : 0;
-  const rightEnd = rest >= 2 ? 1 : 0;
-  for (let i = 0; i < top; i++) pts.push({ x: x + (w * (i + 1)) / (top + 1), y: y - CHAIR_OFF });
-  for (let i = 0; i < bottom; i++) pts.push({ x: x + (w * (i + 1)) / (bottom + 1), y: y + h + CHAIR_OFF });
-  if (leftEnd) pts.push({ x: x - CHAIR_OFF, y: y + h / 2 });
-  if (rightEnd) pts.push({ x: x + w + CHAIR_OFF, y: y + h / 2 });
-  return pts;
+// single: 1 Tisch horizontal. Langseiten 3+3 (Reihenfolge L-oben,L-unten,M-oben,…),
+// dann 2 Stehenseiten.
+function buildSingle(): { tables: Rect[]; slots: Pt[] } {
+  const x = -TL / 2, y = -TW / 2;
+  const [xl, xm, xr] = drittel(x, TL);
+  const top = y - OFF, bot = y + TW + OFF;
+  const slots: Pt[] = [
+    { x: xl, y: top }, { x: xl, y: bot },
+    { x: xm, y: top }, { x: xm, y: bot },
+    { x: xr, y: top }, { x: xr, y: bot },
+    { x: x - OFF, y: 0 }, { x: x + TL + OFF, y: 0 },
+  ];
+  return { tables: [{ x, y, w: TL, h: TW }], slots };
 }
 
-// Block (2 Tische parallel gestapelt): 3 Stühle je lange Kante (oben/unten),
-// 2 je kurze Kante (links/rechts) = bis 10. Innere Stoßfläche bleibt frei.
-function chairsBlock(x: number, y: number, w: number, h: number, stuehle: number): Pt[] {
-  const pts: Pt[] = [];
-  let rem = Math.max(0, stuehle);
-  const top = Math.min(rem, 3); rem -= top;
-  const bottom = Math.min(rem, 3); rem -= bottom;
-  const left = Math.min(rem, 2); rem -= left;
-  const right = Math.min(rem, 2); rem -= right;
-  for (let i = 0; i < top; i++) pts.push({ x: x + (w * (i + 1)) / (top + 1), y: y - CHAIR_OFF });
-  for (let i = 0; i < bottom; i++) pts.push({ x: x + (w * (i + 1)) / (bottom + 1), y: y + h + CHAIR_OFF });
-  for (let i = 0; i < left; i++) pts.push({ x: x - CHAIR_OFF, y: y + (h * (i + 1)) / (left + 1) });
-  for (let i = 0; i < right; i++) pts.push({ x: x + w + CHAIR_OFF, y: y + (h * (i + 1)) / (right + 1) });
-  return pts;
+// block: 2 Tische gestapelt (breite Seiten aneinander). Langseiten = Ober-/Unterkante
+// (je 3), Stehenseiten = 2 links + 2 rechts (je Tisch-Mitte, NIE am Stoß). Bis 10.
+function buildBlock(): { tables: Rect[]; slots: Pt[] } {
+  const x = -TL / 2, yTop = -TW;
+  const [xl, xm, xr] = drittel(x, TL);
+  const top = yTop - OFF, bot = yTop + 2 * TW + OFF;
+  const long: Pt[] = [
+    { x: xl, y: top }, { x: xl, y: bot },
+    { x: xm, y: top }, { x: xm, y: bot },
+    { x: xr, y: top }, { x: xr, y: bot },
+  ];
+  const short: Pt[] = [
+    { x: x - OFF, y: yTop + TW / 2 }, { x: x - OFF, y: yTop + TW + TW / 2 },
+    { x: x + TL + OFF, y: yTop + TW / 2 }, { x: x + TL + OFF, y: yTop + TW + TW / 2 },
+  ];
+  return {
+    tables: [
+      { x, y: yTop, w: TL, h: TW },
+      { x, y: yTop + TW, w: TL, h: TW },
+    ],
+    slots: [...long, ...short],
+  };
+}
+
+// row: N Tische in Reihe. Je Tisch 6 Langseiten-Plätze (Tisch für Tisch), dann die
+// 2 äußeren Stehenseiten. Stoßflächen bleiben frei. Bis 20 (3 Tische).
+function buildRow(n: number): { tables: Rect[]; slots: Pt[] } {
+  const totalW = n * TL;
+  const x0 = -totalW / 2, y = -TW / 2;
+  const top = y - OFF, bot = y + TW + OFF;
+  const tables: Rect[] = [];
+  const long: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const tx = x0 + i * TL;
+    tables.push({ x: tx, y, w: TL, h: TW });
+    const [xl, xm, xr] = drittel(tx, TL);
+    long.push({ x: xl, y: top }, { x: xl, y: bot }, { x: xm, y: top }, { x: xm, y: bot }, { x: xr, y: top }, { x: xr, y: bot });
+  }
+  const short: Pt[] = [
+    { x: x0 - OFF, y: 0 },
+    { x: x0 + totalW + OFF, y: 0 },
+  ];
+  return { tables, slots: [...long, ...short] };
+}
+
+// parallel: N Tische hochkant nebeneinander (eigene Inseln, je 8). Langseiten links/rechts
+// (je 3), Stehenseiten oben/unten (je 1). Tisch für Tisch. Bis 24 (3 Tische).
+function buildParallel(n: number): { tables: Rect[]; slots: Pt[] } {
+  const pitch = TW + 2 * (OFF + CR); // Insel-Breite inkl. Stühle links/rechts
+  const totalW = n * pitch;
+  const startX = -totalW / 2;
+  const yTop = -TL / 2;
+  const tables: Rect[] = [];
+  const slots: Pt[] = [];
+  for (let i = 0; i < n; i++) {
+    const cx = startX + i * pitch + pitch / 2;
+    const tx = cx - TW / 2;
+    tables.push({ x: tx, y: yTop, w: TW, h: TL });
+    const [yl, ym, yr] = drittel(yTop, TL); // 3 Höhen-Positionen
+    const lx = tx - OFF, rx = tx + TW + OFF;
+    slots.push(
+      { x: lx, y: yl }, { x: rx, y: yl },
+      { x: lx, y: ym }, { x: rx, y: ym },
+      { x: lx, y: yr }, { x: rx, y: yr },
+      { x: cx, y: yTop - OFF }, { x: cx, y: yTop + TL + OFF },
+    );
+  }
+  return { tables, slots };
 }
 
 export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProps) {
   const isLang = zelt === "3x6";
-  const tentW = (isLang ? 6 : 3) * PX_PER_M;
-  const tentH = 3 * PX_PER_M;
-  const tentX = -tentW / 2;
-  const tentY = -tentH / 2;
+  const tentW = (isLang ? 6 : 3) * PXM;
+  const tentH = 3 * PXM;
+  const tentX = -tentW / 2, tentY = -tentH / 2;
 
   const nT = Math.max(1, tische);
-  const modus: "single" | "row" | "block" = nT <= 1 ? "single" : zelt === "3x3" ? "block" : "row";
+  const modus: "single" | "block" | "row" | "parallel" =
+    nT <= 1 ? "single" : zelt === "3x3" ? "block" : stuehle >= 21 ? "parallel" : "row";
 
-  const tables: { x: number; y: number }[] = [];
-  let chairs: Pt[];
+  const { tables, slots } =
+    modus === "single" ? buildSingle()
+      : modus === "block" ? buildBlock()
+        : modus === "parallel" ? buildParallel(nT)
+          : buildRow(nT);
 
-  if (modus === "block") {
-    // Tische parallel gestapelt → Block TABLE_L × (TABLE_W·nT)
-    const bw = TABLE_L;
-    const bh = TABLE_W * nT;
-    const bx = -bw / 2;
-    const by = -bh / 2;
-    for (let i = 0; i < nT; i++) tables.push({ x: bx, y: by + i * TABLE_W });
-    chairs = chairsBlock(bx, by, bw, bh, stuehle);
-  } else {
-    // Einzeltisch oder Reihe: horizontal nebeneinander
-    const tw = TABLE_L * nT;
-    const tx = -tw / 2;
-    const ty = -TABLE_W / 2;
-    for (let i = 0; i < nT; i++) tables.push({ x: tx + i * TABLE_L, y: ty });
-    chairs = chairsRow(tx, ty, tw, TABLE_W, nT, stuehle);
-  }
+  const chairs = slots.slice(0, Math.max(0, stuehle));
 
-  const isBlock = modus === "block";
-  const tblW = TABLE_L;
-  const tblH = TABLE_W;
-
-  // ViewBox = Bounding-Box über Zelt + Tische + Stühle (+ Rand) → Überlauf sichtbar.
   const M = 16;
   const xs = [
     tentX, tentX + tentW,
-    ...tables.flatMap((t) => [t.x, t.x + tblW]),
-    ...chairs.map((c) => c.x - CHAIR_R), ...chairs.map((c) => c.x + CHAIR_R),
+    ...tables.flatMap((t) => [t.x, t.x + t.w]),
+    ...chairs.map((c) => c.x - CR), ...chairs.map((c) => c.x + CR),
   ];
   const ys = [
     tentY, tentY + tentH,
-    ...tables.flatMap((t) => [t.y, t.y + tblH]),
-    ...chairs.map((c) => c.y - CHAIR_R), ...chairs.map((c) => c.y + CHAIR_R),
+    ...tables.flatMap((t) => [t.y, t.y + t.h]),
+    ...chairs.map((c) => c.y - CR), ...chairs.map((c) => c.y + CR),
   ];
   const minX = Math.min(...xs) - M;
   const minY = Math.min(...ys) - M;
   const vbW = Math.max(...xs) - minX + M;
   const vbH = Math.max(...ys) - minY + M;
 
-  const zeltLabel = isLang ? "3×6" : "3×3";
-  const tischWort = tische === 1 ? "Tisch" : "Tische";
-  const modusWort = isBlock ? " (parallel)" : nT > 1 ? " (in Reihe)" : "";
-  const ariaLabel = `Maßstäbliche Skizze: ${zeltLabel}-Zelt mit ${tische} ${tischWort}${modusWort} und ${stuehle} Stühlen`;
+  const modusWort =
+    modus === "block" ? " (parallel)"
+      : modus === "parallel" ? " (hochkant)"
+        : modus === "row" ? " (in Reihe)"
+          : "";
+  const ariaLabel = `Maßstäbliche Skizze: ${isLang ? "3×6" : "3×3"}-Zelt mit ${tische} ${tische === 1 ? "Tisch" : "Tischen"}${modusWort} und ${stuehle} Stühlen`;
 
   return (
     <svg
@@ -124,51 +161,22 @@ export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProp
       style={{ width: "100%", height: "auto", display: "block" }}
     >
       <rect
-        x={tentX}
-        y={tentY}
-        width={tentW}
-        height={tentH}
-        rx={10}
-        ry={10}
-        fill="rgba(212,175,102,0.05)"
-        stroke="#d4af66"
-        strokeWidth={2}
-        strokeDasharray="6 5"
+        x={tentX} y={tentY} width={tentW} height={tentH} rx={10} ry={10}
+        fill="rgba(212,175,102,0.05)" stroke="#d4af66" strokeWidth={2} strokeDasharray="6 5"
       />
       {[
-        [tentX, tentY],
-        [tentX + tentW, tentY],
-        [tentX, tentY + tentH],
-        [tentX + tentW, tentY + tentH],
+        [tentX, tentY], [tentX + tentW, tentY], [tentX, tentY + tentH], [tentX + tentW, tentY + tentH],
       ].map(([cx, cy], i) => (
-        <circle key={`corner-${i}`} cx={cx} cy={cy} r={4} fill="#d4af66" opacity={0.7} />
+        <circle key={`c-${i}`} cx={cx} cy={cy} r={4} fill="#d4af66" opacity={0.7} />
       ))}
-
       {tables.map((t, i) => (
         <rect
-          key={`tisch-${i}`}
-          x={t.x}
-          y={t.y}
-          width={tblW}
-          height={tblH}
-          rx={2}
-          ry={2}
-          fill="rgba(255,255,255,0.10)"
-          stroke="rgba(255,255,255,0.45)"
-          strokeWidth={1.2}
+          key={`t-${i}`} x={t.x} y={t.y} width={t.w} height={t.h} rx={2} ry={2}
+          fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.45)" strokeWidth={1.2}
         />
       ))}
-
       {chairs.map((p, i) => (
-        <circle
-          key={`stuhl-${i}`}
-          cx={p.x}
-          cy={p.y}
-          r={CHAIR_R}
-          fill="rgba(212,175,102,0.85)"
-          stroke="#8a6d2f"
-          strokeWidth={1}
-        />
+        <circle key={`s-${i}`} cx={p.x} cy={p.y} r={CR} fill="rgba(212,175,102,0.85)" stroke="#8a6d2f" strokeWidth={1} />
       ))}
     </svg>
   );
