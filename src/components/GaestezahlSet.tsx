@@ -29,6 +29,7 @@ export default function GaestezahlSet() {
   const [loadError, setLoadError] = useState(false);
   const [g, setG] = useState(10);
   const [feedback, setFeedback] = useState<string | null>(null);
+  const [showChoice, setShowChoice] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -86,22 +87,26 @@ export default function GaestezahlSet() {
     updateQuantity(name, n); // überschreibt auf N
   }
 
-  function inDenWarenkorb() {
+  // Set anwenden: optional erst leeren (ersetzen), dann alle Positionen setzen.
+  function applySet(ersetzen: boolean) {
     const gueltigePos = aufgeloest.filter((p) => p.verfuegbar && p.product);
     if (gueltigePos.length === 0) return;
-
-    if (items.length > 0) {
-      const ersetzen = window.confirm(
-        "Du hast bereits Artikel im Warenkorb.\n\nOK = Warenkorb durch dieses Set ersetzen\nAbbrechen = Set zusätzlich hinzufügen",
-      );
-      if (ersetzen) clearCart();
-    }
-
+    if (ersetzen) clearCart();
     gueltigePos.forEach((p) => {
       if (p.product) setMenge(p.product.name, p.product.price, p.anzahl);
     });
-
     setFeedback("Set im Warenkorb – Mengen kannst du dort noch anpassen.");
+    setShowChoice(false);
+  }
+
+  function inDenWarenkorb() {
+    const gueltigePos = aufgeloest.filter((p) => p.verfuegbar && p.product);
+    if (gueltigePos.length === 0) return;
+    if (items.length > 0) {
+      setShowChoice(true); // In-Page-Auswahl statt Chrome-window.confirm
+      return;
+    }
+    applySet(false); // leerer Warenkorb → direkt übernehmen
   }
 
   // Zusatz-Empfehlungen (dezent, nicht automatisch)
@@ -354,6 +359,48 @@ export default function GaestezahlSet() {
           </div>
         )}
       </div>
+
+      {showChoice && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          role="dialog"
+          aria-modal="true"
+          onClick={() => setShowChoice(false)}
+        >
+          <div className="glass-card max-w-sm w-full p-6 text-center" onClick={(ev) => ev.stopPropagation()}>
+            <h3 className="font-display text-lg font-semibold text-white mb-2">
+              Du hast schon Artikel im Warenkorb
+            </h3>
+            <p className="text-gray-400 text-sm mb-5">
+              Sollen wir deine bestehende Auswahl durch dieses Set ersetzen oder das Set zusätzlich
+              hinzufügen?
+            </p>
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => applySet(true)}
+                className="w-full py-3 rounded-lg bg-gold-500 hover:bg-gold-400 text-navy-900 text-sm font-semibold transition-colors"
+              >
+                Warenkorb ersetzen
+              </button>
+              <button
+                type="button"
+                onClick={() => applySet(false)}
+                className="w-full py-3 rounded-lg border border-gold-500/40 text-gold-300 hover:bg-gold-500/10 text-sm font-medium transition-colors"
+              >
+                Zusätzlich hinzufügen
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowChoice(false)}
+                className="w-full py-2 text-gray-400 hover:text-gray-200 text-xs transition-colors"
+              >
+                Abbrechen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
