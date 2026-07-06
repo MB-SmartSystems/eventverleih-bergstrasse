@@ -61,6 +61,7 @@ export async function GET() {
     tags: p.tags,
     visible: p.visible,
     pinned: p.pinned,
+    sortOrder: p.sortOrder ?? 0,
     mietpreisEur: p.mietpreisEur ?? null,
     kautionEur: p.kautionEur ?? null,
     aufbauEur: p.aufbauEur ?? null,

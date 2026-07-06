@@ -183,43 +183,6 @@ function ProductCard({
   );
 }
 
-// Die Baserow-Kategorie (Zelt/Zubehoer/Gewicht/...) ist fuer die Website-Reihenfolge
-// zu grob (z.B. haben Seitenwaende dieselbe Kategorie "Zelt" wie die Zelte selbst) ->
-// Reihenfolge pro Website-Kategorie ueber Namens-Muster: Hauptartikel zuerst, danach
-// Zubehoer/Verbrauchsmaterial, das zum Hauptartikel gehoert (Manuel, 2026-07-03:
-// "sinnvoll sortieren" fuer Zelte; 2026-07-03 Folgefund fuer Tische + Beleuchtung:
-// "Tischdecke erst nach Tisch, Gas erst nach Heizpilz").
-function categoryContentPriority(categorySlug: string, name: string): number {
-  const n = name.toLowerCase();
-  if (categorySlug === "zelte") {
-    if (n.includes("faltzelt")) return 0;
-    if (n.includes("seitenwand")) return 1;
-    if (n.includes("gewicht") || n.includes("bodenanker") || n.includes("ratsche")) return 2;
-    return 3;
-  }
-  if (categorySlug === "tische") {
-    if (n.includes("tischdecke")) return 2; // Zubehoer zum Tisch -> zuletzt
-    if (n.includes("tisch")) return 0; // Klapptisch, Stehtisch
-    if (n.includes("stuhl")) return 1;
-    return 3;
-  }
-  if (categorySlug === "beleuchtung") {
-    if (n.includes("gasflasche")) return 2; // Verbrauchsmaterial zum Heizstrahler -> danach
-    if (n.includes("heizstrahler")) return 1;
-    if (n.includes("licht")) return 0; // Lichterkette, Lichternetz
-    return 3;
-  }
-  if (categorySlug === "deko") {
-    // Manuel, 2026-07-03: "Riesenjenga, dann Hochzeitsbogen, dann Kamera, dann Film."
-    if (n.includes("riesenjenga")) return 0;
-    if (n.includes("hochzeitsbogen")) return 1;
-    if (n.includes("sofortbildkamera")) return 2;
-    if (n.includes("film")) return 3;
-    return 4;
-  }
-  return 0;
-}
-
 export default function Sortiment() {
   const [data, setData] = useState<ProductsData | null>(null);
   const [error, setError] = useState(false);
@@ -366,10 +329,7 @@ export default function Sortiment() {
                 .sort((a, b) => {
                   const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
                   if (pinDiff !== 0) return pinDiff;
-                  return (
-                    categoryContentPriority(category.slug, a.name) -
-                    categoryContentPriority(category.slug, b.name)
-                  );
+                  return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
                 });
               if (products.length === 0) return null;
               return (

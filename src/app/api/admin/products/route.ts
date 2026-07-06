@@ -45,6 +45,11 @@ export async function POST(request: NextRequest) {
   }
 
   const data = await loadProductsData();
+  // Neues Produkt ans Ende seiner Kategorie sortieren (hoechster bestehender
+  // Website_Sortierung-Wert der Kategorie + 10), statt an Position 0 zu drängen.
+  const categoryMaxSortOrder = data.products
+    .filter((p) => p.category === category)
+    .reduce((max, p) => Math.max(max, p.sortOrder ?? 0), 0);
   const product = {
     id: `p-${Date.now()}`,
     category,
@@ -58,6 +63,7 @@ export async function POST(request: NextRequest) {
     tags,
     visible: true,
     pinned: false,
+    sortOrder: categoryMaxSortOrder + 10,
     quantityOk,
     quantityRepair,
     quantityBroken,

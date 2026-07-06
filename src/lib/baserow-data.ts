@@ -94,6 +94,7 @@ interface ArtikelRow {
   Bild_URLs_weitere: string | null;
   Youtube_Link: string | null;
   Pinned: boolean;
+  Website_Sortierung: string | number | null;
   [k: string]: unknown;
 }
 
@@ -171,6 +172,7 @@ function rowToProduct(r: ArtikelRow): RentalProduct {
     tags: [],
     visible: r.Sichtbar_Public === true,
     pinned: r.Pinned === true,
+    sortOrder: intOr0(r.Website_Sortierung),
     quantityOk: intOr0(r.Bestand_OK),
     quantityRepair: intOr0(r.Bestand_Reparatur),
     quantityBroken: intOr0(r.Bestand_Defekt),
@@ -255,6 +257,7 @@ function productToArtikelFields(p: RentalProduct, opts: { setCategory: boolean; 
     Youtube_Link: p.youtubeLink ?? '',
     Sichtbar_Public: p.visible !== false,
     Pinned: Boolean(p.pinned),
+    Website_Sortierung: intOr0(p.sortOrder),
     Bestand_OK: intOr0(p.quantityOk),
     Bestand_Reparatur: intOr0(p.quantityRepair),
     Bestand_Defekt: intOr0(p.quantityBroken),

@@ -48,8 +48,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
   const visibleStr = formData.get('visible') as string | null;
   const pinnedStr = formData.get('pinned') as string | null;
+  const sortOrderStr = formData.get('sortOrder') as string | null;
   if (visibleStr !== null) product.visible = visibleStr === 'true';
   if (pinnedStr !== null) product.pinned = pinnedStr === 'true';
+  setIfNonNegInt(sortOrderStr, (n) => { product.sortOrder = n; });
 
   const existingImages: string[] = existingImagesStr ? JSON.parse(existingImagesStr) : product.images || [product.image];
   const removeImages: string[] = removeImagesStr ? JSON.parse(removeImagesStr) : [];

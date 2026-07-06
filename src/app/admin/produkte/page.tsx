@@ -107,6 +107,51 @@ export default function ProduktePage() {
     }
   }
 
+  // Reihenfolge innerhalb einer Kategorie: Nachbarn per sortOrder ermitteln und tauschen.
+  // Arbeitet immer auf ALLEN Produkten der Kategorie (nicht der gefilterten Ansicht),
+  // damit Such-/Sichtbarkeits-Filter die Nachbarschaft nicht verfaelschen.
+  function categorySiblings(categorySlug: string): GalleryProduct[] {
+    return products
+      .filter((p) => p.category === categorySlug)
+      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+  }
+
+  async function patchSortOrder(id: string, sortOrder: number) {
+    const formData = new FormData();
+    formData.append('sortOrder', String(sortOrder));
+    const res = await fetch(`/api/admin/products/${id}`, { method: 'PUT', body: formData });
+    if (!res.ok) throw new Error('Save failed');
+  }
+
+  async function moveProduct(product: GalleryProduct, direction: 'up' | 'down') {
+    const siblings = categorySiblings(product.category);
+    const idx = siblings.findIndex((p) => p.id === product.id);
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= siblings.length) return;
+    const other = siblings[swapIdx];
+    const aOrder = product.sortOrder ?? 0;
+    const bOrder = other.sortOrder ?? 0;
+
+    setProducts((prev) =>
+      prev.map((p) => {
+        if (p.id === product.id) return { ...p, sortOrder: bOrder };
+        if (p.id === other.id) return { ...p, sortOrder: aOrder };
+        return p;
+      })
+    );
+    try {
+      await Promise.all([patchSortOrder(product.id, bOrder), patchSortOrder(other.id, aOrder)]);
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) => {
+          if (p.id === product.id) return { ...p, sortOrder: aOrder };
+          if (p.id === other.id) return { ...p, sortOrder: bOrder };
+          return p;
+        })
+      );
+    }
+  }
+
   // Bulk actions
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -337,7 +382,12 @@ export default function ProduktePage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filtered.map((product) => (
+          {filtered.map((product) => {
+          const siblings = categorySiblings(product.category);
+          const siblingIdx = siblings.findIndex((p) => p.id === product.id);
+          const canMoveUp = siblingIdx > 0;
+          const canMoveDown = siblingIdx !== -1 && siblingIdx < siblings.length - 1;
+          return (
             <div
               key={product.id}
               className={`group bg-warm-surface rounded-xl border border-warm-border overflow-hidden hover:shadow-md transition-all relative ${
@@ -454,6 +504,26 @@ export default function ProduktePage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                       </svg>
                     </button>
+                    <button
+                      onClick={() => moveProduct(product, 'up')}
+                      disabled={!canMoveUp}
+                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors text-warm-text disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Nach oben (Reihenfolge in Kategorie)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => moveProduct(product, 'down')}
+                      disabled={!canMoveDown}
+                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors text-warm-text disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Nach unten (Reihenfolge in Kategorie)"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
                   </div>
                 )}
               </div>
@@ -517,6 +587,26 @@ export default function ProduktePage() {
                       </svg>
                     </button>
                     <button
+                      onClick={() => moveProduct(product, 'up')}
+                      disabled={!canMoveUp}
+                      className="p-1.5 rounded-lg bg-accent-50 text-accent-dark hover:bg-accent-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Nach oben"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => moveProduct(product, 'down')}
+                      disabled={!canMoveDown}
+                      className="p-1.5 rounded-lg bg-accent-50 text-accent-dark hover:bg-accent-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Nach unten"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    <button
                       onClick={() => setDeleteConfirm(product)}
                       className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                     >
@@ -528,7 +618,8 @@ export default function ProduktePage() {
                 )}
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
 

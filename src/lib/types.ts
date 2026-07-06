@@ -11,6 +11,7 @@ export interface RentalProduct {
   tags: string[];
   visible: boolean;
   pinned: boolean;
+  sortOrder: number;
   quantityOk: number;
   quantityRepair: number;
   quantityBroken: number;
