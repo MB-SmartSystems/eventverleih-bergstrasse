@@ -31,6 +31,7 @@ export default function GaestezahlSet() {
   const [feedback, setFeedback] = useState<string | null>(null);
   const [showChoice, setShowChoice] = useState(false);
   const [grossesZelt, setGrossesZelt] = useState(false);
+  const [mehrPlatz, setMehrPlatz] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -62,11 +63,16 @@ export default function GaestezahlSet() {
   const bestand = useMemo(() => {
     const stuhl = bySlug.get(SLUGS.stuhl)?.bestandOk ?? 0;
     const tisch = bySlug.get(SLUGS.tisch)?.bestandOk ?? 0;
-    return { stuhl, tisch };
+    const zelt3x6 = bySlug.get(SLUGS.zelt3x6)?.bestandOk ?? 2;
+    const zelt3x3 = bySlug.get(SLUGS.zelt3x3)?.bestandOk ?? 2;
+    return { stuhl, tisch, zelt3x6, zelt3x3 };
   }, [bySlug]);
 
   const maxG = maxGaeste(bestand);
-  const e = useMemo(() => empfehlung(g, bestand, grossesZelt), [g, bestand, grossesZelt]);
+  const e = useMemo(
+    () => empfehlung(g, bestand, grossesZelt, mehrPlatz),
+    [g, bestand, grossesZelt, mehrPlatz],
+  );
 
   // Nur Positionen mit vorhandenem Produkt (unabhängig von Bestand → für Anzeige);
   // Verfügbarkeit wird pro Zeile separat markiert.
@@ -247,7 +253,7 @@ export default function GaestezahlSet() {
               <div className="glass-card p-6 md:p-8">
                 <div className="grid md:grid-cols-2 gap-6 md:gap-8 items-center">
                   <div className="bg-navy-900/50 rounded-xl p-4">
-                    <SetLayoutSvg zelt={e.zelt} tische={e.tische} stuehle={e.stuehle} />
+                    <SetLayoutSvg tents={e.zelte} />
                     <p className="text-center text-xs text-gray-500 mt-2">
                       Schematische Draufsicht – grobe Orientierung
                     </p>
@@ -296,6 +302,43 @@ export default function GaestezahlSet() {
                       </div>
                     )}
 
+                    {e.mehrPlatzMoeglich && (
+                      <div className="mb-4">
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setMehrPlatz(false)}
+                            aria-pressed={!mehrPlatz}
+                            className={`flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                              !mehrPlatz
+                                ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
+                                : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20"
+                            }`}
+                          >
+                            Kompakt
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setMehrPlatz(true)}
+                            aria-pressed={mehrPlatz}
+                            className={`flex-1 py-2 px-3 rounded-lg border text-xs font-medium transition-all ${
+                              mehrPlatz
+                                ? "bg-gold-500/20 border-gold-500/50 text-gold-200"
+                                : "bg-white/5 border-white/10 text-gray-300 hover:border-white/20"
+                            }`}
+                          >
+                            Mehr Platz
+                          </button>
+                        </div>
+                        {!mehrPlatz && g >= 19 && g <= 24 && (
+                          <p className="text-[11px] text-gold-300/80 mt-1.5">
+                            Bei {g} Gästen wird das eine Zelt mit 3 Tischen voll – mit einem
+                            zweiten kleinen Zelt sitzt alles luftiger.
+                          </p>
+                        )}
+                      </div>
+                    )}
+
                     <ul className="space-y-2 mb-4">
                       {aufgeloest.map((pos) => {
                         if (!pos.product) return null;
@@ -321,7 +364,8 @@ export default function GaestezahlSet() {
 
                     <p className="text-xs text-gray-500 mb-5">
                       ab 9 Gästen ein 2. Tisch · ab 11 das große 3×6-Zelt · ab 15
-                      ein 3. Tisch
+                      ein 3. Tisch · ab 19 optional ein zweites Zelt für mehr Platz ·
+                      ab 25 ein 4. Tisch
                     </p>
 
                     <button

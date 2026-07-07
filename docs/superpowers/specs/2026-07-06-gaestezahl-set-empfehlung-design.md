@@ -195,3 +195,64 @@ Warenkorb-Inhalt nach „Set übernehmen" (Gewicht-Default = Metallplatten):
 - ✅ Aufbau im Tool **nicht** anbieten (Manuel 2026-07-06). Ton: warm + einladend.
 - Section bleibt an gleicher Stelle; Überschrift „Wie viele Gäste? – wir stellen dein Set zusammen"
   (Default, von Hermes gesetzt); Anker-`id`/Verlinkungen beim Bau prüfen. Mindest-Gästezahl = 2.
+
+## v2 — Zweitzelt / „Mehr Platz" (2026-07-07, mit Manuel abgestimmt)
+
+Optionaler Schalter **„Mehr Platz"**, der die Tische statt in ein Zelt auf **zwei Zelte** verteilt
+(luftiger). Der Standard (ein Zelt) bleibt unverändert der Default; „Mehr Platz" ist opt-in.
+
+**Bestandsgrenze folgt jetzt dem Tisch-Bestand statt einer festen Einzelzelt-Kapazität:**
+
+```
+MAX_G = min( Bestand_OK[Stuhl] , Bestand_OK[Klapptisch] × 8 )
+```
+
+Die feste Kappung bei 24 (ein Zelt) entfällt. Aktuell (3 Klapptische) bleibt die Grenze weiterhin bei
+`min(30, 24) = 24` — kauft Manuel einen **4. Klapptisch** (+1 Tischdecke), steigt der Deckel automatisch
+auf `min(30, 32) = 30`. Das ist bewusst ein Einkaufs-Hebel: mehr Tische = mehr Reichweite, ohne Code-Änderung.
+
+**Toggle „Mehr Platz":** wird dem Kunden erst **ab 3 Tischen** angeboten (`mehrPlatzMoeglich = tische >= 3`,
+also ab ca. 15 Gästen). Bei weniger Tischen ist er wirkungslos und bleibt ausgeblendet.
+
+**Zeltaufteilung bei 3 Tischen (der Standardfall des Umschaltens):** 2 Tische ins 3×6-Zelt, 1 Tisch ins
+3×3-Zelt (statt aller 3 Tische in einem 3×6). Allgemein regelt das ein **Greedy-Planer**: großes Zelt
+(3×6) nimmt bis zu 3 Tische im Standard-Modus, aber nur bis zu **2** Tische im „Mehr Platz"-Modus (daher
+verteilt sich der Rest auf ein zweites Zelt); ein letzter Rest-Tisch wandert bevorzugt in ein kleines
+3×3-Zelt statt ein weiteres großes Zelt anzubrechen. Bestand: 2× Faltzelt 3×6, 2× Faltzelt 3×3 (Default,
+falls kein Bestandswert vorliegt).
+
+**Stuhlverteilung:** die Gesamtstühle (= Gästezahl) verteilen sich über ALLE Tische (in Zelt-Reihenfolge)
+möglichst gleich, Rest auf die ersten Tische — z. B. 24 Gäste / 3 Tische → 8/8/8; das erste Zelt (2 Tische)
+bekommt dann 16, das zweite Zelt (1 Tisch) bekommt 8.
+
+**Positionen-Aggregation (pro Zelt, über alle Zelte summiert):**
+- 3×6-Zelt: 2× Seitenwand Reißverschluss, 4× Seitenwand Fenster, 6× Gewicht.
+- 3×3-Zelt: 2× Seitenwand Reißverschluss, 2× Seitenwand Fenster, 4× Gewicht.
+- Lichterkette: `Anzahl(3×6) + ceil(Anzahl(3×3) / 2)` — z. B. 1× 3×6 + 1× 3×3 → 1 + 1 = 2 Lichterketten.
+
+**Beispiel (24 Gäste, „Mehr Platz" an):** 1× Faltzelt 3×6 (2 Tische, 16 Stühle) + 1× Faltzelt 3×3 (1 Tisch,
+8 Stühle). Positionen: 3 Klapptische, 3 Tischdecken, 1× Zelt 3×6 + 1× Zelt 3×3, 4× Reißverschluss,
+6× Fenster, 10× Gewicht, 24 Stühle, 2 Lichterketten.
+
+**Grafik:** bei einem Zelt bleibt die bisherige Draufsicht (single/block/row/parallel) unverändert. Bei
+zwei Zelten wird jedes Zelt als **eigene 8-Plätze-Insel-Anordnung** dargestellt (jeder Tisch = eigene
+Insel, NICHT als Reihe oder hochkant) — luftiger und klarer lesbar als die kompakten Ein-Zelt-Modi. Die
+Zelte werden nebeneinander gezeichnet (SVG-Gruppen mit horizontalem Versatz).
+
+## v2.1 — Korrekturen nach Manuel (2026-07-07 nachmittags)
+
+Ergänzt/ersetzt einzelne Punkte des v2-Abschnitts:
+
+- **Obergrenze auf 30 Gäste (statt 24):** `maxGaeste = min(Stühle, 4 Tische × 8)` — NICHT mehr am
+  aktuellen Tisch-Bestand (3) gedeckelt. Ab 25 Gästen empfiehlt das Tool **4 Tische**. Der 4. Klapptisch
+  (+ 4. Tischdecke) ist bewusst NICHT im Dauerbestand — Manuel kauft ihn erst, wenn tatsächlich eine
+  25–30-Personen-Anfrage kommt. Grund: das Tool soll solche Anfragen überhaupt reinlassen (die
+  Verfügbarkeitsprüfung in `/api/contact` ist presence-basiert: `restzahl > 0 || on_request` — 4 angefragte
+  Tische bei 3 Bestand blockieren die Anfrage NICHT, sie erreicht Manuel). Über 30 → Fallback
+  (persönliches Angebot).
+- **Zwei-Zelt-Grafik:** Tische stehen **hochkant/parallel** (wie der Ein-Zelt-„parallel"-Modus), NICHT
+  als horizontale Inseln. Die Zelte grenzen **Fuß an Fuß** direkt aneinander (kein Abstand; kantenbasierte
+  Platzierung — linke Kante von Zelt i+1 = rechte Kante von Zelt i).
+- **4-Tisch-Aufteilung (25–30 Gäste):** Standard/Kompakt → `[3×6: 3 Tische, 3×3: 1 Tisch]`; „Mehr Platz" →
+  `[3×6: 2, 3×6: 2]`. Beide sind 2 Zelte. Toggle-Beschriftung daher neutral „Kompakt" / „Mehr Platz"
+  (nicht „1 Zelt / 2 Zelte", da bei 4 Tischen auch Kompakt schon 2 Zelte hat).

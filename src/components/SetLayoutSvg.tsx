@@ -1,15 +1,20 @@
-// Maßstäbliche schematische Draufsicht (40 px/m). Vier Aufbau-Modi:
+// Maßstäbliche schematische Draufsicht (40 px/m).
+//
+// Ein Zelt (tents.length === 1): vier Aufbau-Modi wie bisher —
 //  • single   : 1 Tisch — 3 je Langseite + 1 je Schmalseite (bis 8).
 //  • block    : 2 Tische parallel (breite Seiten aneinander) im 3×3 — bis 10.
 //  • row      : 2–3 Tische in Reihe (Stirnseiten aneinander) im 3×6 — bis 20.
 //  • parallel : 3 Tische hochkant nebeneinander im 3×6 — 8/Tisch, bis 24.
 // Sitz-Füllregel: zuerst Langseiten (3 je Tischseite, in fester Reihenfolge, Tisch
 // für Tisch, eng), dann Stehenseiten — NIE an einer Stoßfläche. Tisch 1,82 × 0,74 m.
+//
+// Zwei Zelte ("Mehr Platz", tents.length > 1): jedes Zelt bekommt seine Tische
+// hochkant/parallel (je 8 Plätze), die Zelte grenzen Fuß an Fuß direkt aneinander.
+
+import type { TentPlan } from "@/lib/eventverleih/set-empfehlung";
 
 interface SetLayoutSvgProps {
-  zelt: "3x3" | "3x6";
-  tische: number;
-  stuehle: number;
+  tents: TentPlan[];
 }
 
 interface Pt { x: number; y: number; }
@@ -99,8 +104,15 @@ function buildRow(n: number): { tables: Rect[]; slots: Pt[] } {
 
 // parallel: N Tische hochkant nebeneinander (eigene Inseln, je 8). Langseiten links/rechts
 // (je 3), Stehenseiten oben/unten (je 1). Tisch für Tisch. Bis 24 (3 Tische).
-function buildParallel(n: number): { tables: Rect[]; slots: Pt[] } {
-  const pitch = TW + 2 * (OFF + CR); // Insel-Breite inkl. Stühle links/rechts
+function buildParallel(n: number, spreadW?: number): { tables: Rect[]; slots: Pt[] } {
+  const minPitch = TW + 2 * (OFF + CR); // Insel-Breite inkl. Stühle links/rechts (Minimum)
+  // Wenn eine Zelt-Breite übergeben wird (Zwei-Zelt-Fall): die Tische über die
+  // Zeltbreite VERTEILEN statt eng zusammen (nie enger als minPitch). Ohne spreadW
+  // (Ein-Zelt-"parallel"-Modus) bleibt es beim Minimum → keine Regression.
+  const pitch =
+    spreadW && n > 1
+      ? Math.max(minPitch, (spreadW - 2 * (OFF + CR + 6)) / n)
+      : minPitch;
   const totalW = n * pitch;
   const startX = -totalW / 2;
   const yTop = -TL / 2;
@@ -125,11 +137,11 @@ function buildParallel(n: number): { tables: Rect[]; slots: Pt[] } {
   return { tables, slots: [...lang, ...steh] };
 }
 
-export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProps) {
+// Ein-Zelt-Layout: exakt das bisherige Verhalten (Regressionsschutz — pixelgleich).
+function renderTentEinzeln(zelt: "3x3" | "3x6", tische: number, stuehle: number) {
   const isLang = zelt === "3x6";
   const tentW = (isLang ? 6 : 3) * PXM;
   const tentH = 3 * PXM;
-  const tentX = -tentW / 2, tentY = -tentH / 2;
 
   const nT = Math.max(1, tische);
   const modus: "single" | "block" | "row" | "parallel" =
@@ -142,29 +154,137 @@ export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProp
           : buildRow(nT);
 
   const chairs = slots.slice(0, Math.max(0, stuehle));
+  return { tables, chairs, tentW, tentH, modus };
+}
+
+// Zwei-Zelt-Layout: jedes Zelt bekommt seine Tische HOCHKANT/parallel (wie der
+// Ein-Zelt-"parallel"-Modus) — Manuels Wunsch: im Mehr-Platz-Fall stehen die Tische
+// parallel, nicht in Reihe. Jeder Tisch trägt bis 8 (Langseiten zuerst, dann Stirnseiten).
+function renderTentParallel(zelt: "3x3" | "3x6", tische: number, stuehle: number) {
+  const isLang = zelt === "3x6";
+  const tentW = (isLang ? 6 : 3) * PXM;
+  const tentH = 3 * PXM;
+  const nT = Math.max(1, tische);
+  const { tables, slots } = buildParallel(nT, tentW); // über die Zeltbreite verteilt
+  const chairs = slots.slice(0, Math.max(0, stuehle));
+  return { tables, chairs, tentW, tentH };
+}
+
+const TENT_FILL = "rgba(212,175,102,0.05)";
+const TENT_STROKE = "#d4af66";
+const TABLE_FILL = "rgba(255,255,255,0.10)";
+const TABLE_STROKE = "rgba(255,255,255,0.45)";
+const CHAIR_FILL = "rgba(212,175,102,0.85)";
+const CHAIR_STROKE = "#8a6d2f";
+
+export default function SetLayoutSvg({ tents }: SetLayoutSvgProps) {
+  const safeTents: TentPlan[] = tents.length > 0 ? tents : [{ zelt: "3x3", tische: 1, stuehle: 0 }];
+
+  // ---- Ein Zelt: exakt wie bisher (keine pixelmäßige Änderung). ----
+  if (safeTents.length === 1) {
+    const t = safeTents[0];
+    const { tables, chairs, tentW, tentH, modus } = renderTentEinzeln(t.zelt, t.tische, t.stuehle);
+    const tentX = -tentW / 2, tentY = -tentH / 2;
+    const isLang = t.zelt === "3x6";
+
+    const M = 16;
+    const xs = [
+      tentX, tentX + tentW,
+      ...tables.flatMap((tt) => [tt.x, tt.x + tt.w]),
+      ...chairs.map((c) => c.x - CR), ...chairs.map((c) => c.x + CR),
+    ];
+    const ys = [
+      tentY, tentY + tentH,
+      ...tables.flatMap((tt) => [tt.y, tt.y + tt.h]),
+      ...chairs.map((c) => c.y - CR), ...chairs.map((c) => c.y + CR),
+    ];
+    const minX = Math.min(...xs) - M;
+    const minY = Math.min(...ys) - M;
+    const vbW = Math.max(...xs) - minX + M;
+    const vbH = Math.max(...ys) - minY + M;
+
+    const modusWort =
+      modus === "block" ? " (parallel)"
+        : modus === "parallel" ? " (hochkant)"
+          : modus === "row" ? " (in Reihe)"
+            : "";
+    const ariaLabel = `Maßstäbliche Skizze: ${isLang ? "3×6" : "3×3"}-Zelt mit ${t.tische} ${t.tische === 1 ? "Tisch" : "Tischen"}${modusWort} und ${t.stuehle} Stühlen`;
+
+    return (
+      <svg
+        viewBox={`${minX} ${minY} ${vbW} ${vbH}`}
+        role="img"
+        aria-label={ariaLabel}
+        preserveAspectRatio="xMidYMid meet"
+        style={{ width: "100%", height: "auto", display: "block" }}
+      >
+        <rect
+          x={tentX} y={tentY} width={tentW} height={tentH} rx={10} ry={10}
+          fill={TENT_FILL} stroke={TENT_STROKE} strokeWidth={2} strokeDasharray="6 5"
+        />
+        {[
+          [tentX, tentY], [tentX + tentW, tentY], [tentX, tentY + tentH], [tentX + tentW, tentY + tentH],
+        ].map(([cx, cy], i) => (
+          <circle key={`c-${i}`} cx={cx} cy={cy} r={4} fill={TENT_STROKE} opacity={0.7} />
+        ))}
+        {tables.map((tt, i) => (
+          <rect
+            key={`t-${i}`} x={tt.x} y={tt.y} width={tt.w} height={tt.h} rx={2} ry={2}
+            fill={TABLE_FILL} stroke={TABLE_STROKE} strokeWidth={1.2}
+          />
+        ))}
+        {chairs.map((p, i) => (
+          <circle key={`s-${i}`} cx={p.x} cy={p.y} r={CR} fill={CHAIR_FILL} stroke={CHAIR_STROKE} strokeWidth={1} />
+        ))}
+      </svg>
+    );
+  }
+
+  // ---- Mehrere Zelte ("Mehr Platz"): Insel-Anordnung, Zelte nebeneinander. ----
+  interface TentLayout {
+    tables: Rect[];
+    chairs: Pt[];
+    tentW: number;
+    tentH: number;
+    tentX: number;
+    tentY: number;
+    dx: number;
+  }
+
+  // Fuß an Fuß: die Zelte grenzen direkt aneinander (kein Abstand). Kantenbasiert
+  // platziert — die linke Kante von Zelt i+1 liegt auf der rechten Kante von Zelt i.
+  const GAP = 0;
+  let rightEdge = 0;
+  const layouts: TentLayout[] = safeTents.map((t) => {
+    const { tables, chairs, tentW, tentH } = renderTentParallel(t.zelt, t.tische, t.stuehle);
+    const tentX = -tentW / 2, tentY = -tentH / 2;
+    const leftEdge = rightEdge + GAP;
+    const dx = leftEdge + tentW / 2; // Zelt-Rahmen ist um den lokalen Ursprung zentriert
+    rightEdge = leftEdge + tentW;
+    return { tables, chairs, tentW, tentH, tentX, tentY, dx };
+  });
 
   const M = 16;
-  const xs = [
-    tentX, tentX + tentW,
-    ...tables.flatMap((t) => [t.x, t.x + t.w]),
-    ...chairs.map((c) => c.x - CR), ...chairs.map((c) => c.x + CR),
-  ];
-  const ys = [
-    tentY, tentY + tentH,
-    ...tables.flatMap((t) => [t.y, t.y + t.h]),
-    ...chairs.map((c) => c.y - CR), ...chairs.map((c) => c.y + CR),
-  ];
+  const xs: number[] = [];
+  const ys: number[] = [];
+  layouts.forEach((l) => {
+    xs.push(l.dx + l.tentX, l.dx + l.tentX + l.tentW);
+    ys.push(l.tentY, l.tentY + l.tentH);
+    l.tables.forEach((tt) => xs.push(l.dx + tt.x, l.dx + tt.x + tt.w));
+    l.chairs.forEach((c) => {
+      xs.push(l.dx + c.x - CR, l.dx + c.x + CR);
+      ys.push(c.y - CR, c.y + CR);
+    });
+  });
   const minX = Math.min(...xs) - M;
   const minY = Math.min(...ys) - M;
   const vbW = Math.max(...xs) - minX + M;
   const vbH = Math.max(...ys) - minY + M;
 
-  const modusWort =
-    modus === "block" ? " (parallel)"
-      : modus === "parallel" ? " (hochkant)"
-        : modus === "row" ? " (in Reihe)"
-          : "";
-  const ariaLabel = `Maßstäbliche Skizze: ${isLang ? "3×6" : "3×3"}-Zelt mit ${tische} ${tische === 1 ? "Tisch" : "Tischen"}${modusWort} und ${stuehle} Stühlen`;
+  const totalTische = safeTents.reduce((s, t) => s + t.tische, 0);
+  const totalStuehle = safeTents.reduce((s, t) => s + t.stuehle, 0);
+  const zeltWort = safeTents.map((t) => (t.zelt === "3x6" ? "3×6" : "3×3")).join(" + ");
+  const ariaLabel = `Maßstäbliche Skizze: ${safeTents.length} Zelte (${zeltWort}) mit insgesamt ${totalTische} ${totalTische === 1 ? "Tisch" : "Tischen"} und ${totalStuehle} Stühlen`;
 
   return (
     <svg
@@ -174,23 +294,27 @@ export default function SetLayoutSvg({ zelt, tische, stuehle }: SetLayoutSvgProp
       preserveAspectRatio="xMidYMid meet"
       style={{ width: "100%", height: "auto", display: "block" }}
     >
-      <rect
-        x={tentX} y={tentY} width={tentW} height={tentH} rx={10} ry={10}
-        fill="rgba(212,175,102,0.05)" stroke="#d4af66" strokeWidth={2} strokeDasharray="6 5"
-      />
-      {[
-        [tentX, tentY], [tentX + tentW, tentY], [tentX, tentY + tentH], [tentX + tentW, tentY + tentH],
-      ].map(([cx, cy], i) => (
-        <circle key={`c-${i}`} cx={cx} cy={cy} r={4} fill="#d4af66" opacity={0.7} />
-      ))}
-      {tables.map((t, i) => (
-        <rect
-          key={`t-${i}`} x={t.x} y={t.y} width={t.w} height={t.h} rx={2} ry={2}
-          fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.45)" strokeWidth={1.2}
-        />
-      ))}
-      {chairs.map((p, i) => (
-        <circle key={`s-${i}`} cx={p.x} cy={p.y} r={CR} fill="rgba(212,175,102,0.85)" stroke="#8a6d2f" strokeWidth={1} />
+      {layouts.map((l, ti) => (
+        <g key={`tent-${ti}`} transform={`translate(${l.dx},0)`}>
+          <rect
+            x={l.tentX} y={l.tentY} width={l.tentW} height={l.tentH} rx={10} ry={10}
+            fill={TENT_FILL} stroke={TENT_STROKE} strokeWidth={2} strokeDasharray="6 5"
+          />
+          {[
+            [l.tentX, l.tentY], [l.tentX + l.tentW, l.tentY], [l.tentX, l.tentY + l.tentH], [l.tentX + l.tentW, l.tentY + l.tentH],
+          ].map(([cx, cy], i) => (
+            <circle key={`c-${ti}-${i}`} cx={cx} cy={cy} r={4} fill={TENT_STROKE} opacity={0.7} />
+          ))}
+          {l.tables.map((tt, i) => (
+            <rect
+              key={`t-${ti}-${i}`} x={tt.x} y={tt.y} width={tt.w} height={tt.h} rx={2} ry={2}
+              fill={TABLE_FILL} stroke={TABLE_STROKE} strokeWidth={1.2}
+            />
+          ))}
+          {l.chairs.map((p, i) => (
+            <circle key={`s-${ti}-${i}`} cx={p.x} cy={p.y} r={CR} fill={CHAIR_FILL} stroke={CHAIR_STROKE} strokeWidth={1} />
+          ))}
+        </g>
       ))}
     </svg>
   );
