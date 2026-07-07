@@ -6,6 +6,7 @@ import { useCart } from "./CartContext";
 import ProductLightbox from "./ProductLightbox";
 import type { RentalProduct, ProductCategory, ProductsData } from "@/lib/types";
 import { normalizeArtikelName as normalizeName, tokensMatch } from "@/lib/eventverleih/artikel-match";
+import { compareProducts } from "@/lib/product-sort";
 
 type AvailabilityState = "available" | "unavailable" | "unknown" | "knapp";
 
@@ -326,11 +327,7 @@ export default function Sortiment() {
             .map((category: ProductCategory) => {
               const products = data.products
                 .filter((p) => p.visible !== false && p.category === category.slug)
-                .sort((a, b) => {
-                  const pinDiff = (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0);
-                  if (pinDiff !== 0) return pinDiff;
-                  return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
-                });
+                .sort(compareProducts);
               if (products.length === 0) return null;
               return (
                 <div key={category.slug} id={category.slug} className="mb-16 last:mb-0">

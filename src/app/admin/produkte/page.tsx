@@ -2,8 +2,25 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  KeyboardSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  rectSortingStrategy,
+  arrayMove,
+} from '@dnd-kit/sortable';
 import type { GalleryProduct, ProductCategory } from '@/lib/types';
+import { compareProducts } from '@/lib/product-sort';
 import ProductDialog from '@/components/admin/ProductDialog';
+import SortableProductCard from '@/components/admin/SortableProductCard';
 
 export default function ProduktePage() {
   const [products, setProducts] = useState<GalleryProduct[]>([]);
@@ -107,13 +124,12 @@ export default function ProduktePage() {
     }
   }
 
-  // Reihenfolge innerhalb einer Kategorie: Nachbarn per sortOrder ermitteln und tauschen.
-  // Arbeitet immer auf ALLEN Produkten der Kategorie (nicht der gefilterten Ansicht),
-  // damit Such-/Sichtbarkeits-Filter die Nachbarschaft nicht verfaelschen.
+  // Reihenfolge innerhalb einer Kategorie: alle Produkte der Kategorie in
+  // Website-Reihenfolge (dieselbe Sortierung wie die Storefront). Arbeitet immer
+  // auf ALLEN Produkten der Kategorie (nicht der gefilterten Ansicht), damit
+  // Such-/Sichtbarkeits-Filter die Nachbarschaft nicht verfaelschen.
   function categorySiblings(categorySlug: string): GalleryProduct[] {
-    return products
-      .filter((p) => p.category === categorySlug)
-      .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    return products.filter((p) => p.category === categorySlug).sort(compareProducts);
   }
 
   async function patchSortOrder(id: string, sortOrder: number) {
@@ -123,32 +139,46 @@ export default function ProduktePage() {
     if (!res.ok) throw new Error('Save failed');
   }
 
-  async function moveProduct(product: GalleryProduct, direction: 'up' | 'down') {
-    const siblings = categorySiblings(product.category);
-    const idx = siblings.findIndex((p) => p.id === product.id);
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (idx === -1 || swapIdx < 0 || swapIdx >= siblings.length) return;
-    const other = siblings[swapIdx];
-    const aOrder = product.sortOrder ?? 0;
-    const bOrder = other.sortOrder ?? 0;
+  // Drag & Drop innerhalb EINER Kategorie: nach dem Drop wird die betroffene
+  // Kategorie sauber neu durchnummeriert (10, 20, 30, ...) und nur die tatsaechlich
+  // geaenderten Zeilen werden per PATCH nach Baserow geschrieben.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
 
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const activeProduct = products.find((p) => p.id === active.id);
+    const overProduct = products.find((p) => p.id === over.id);
+    if (!activeProduct || !overProduct) return;
+    // Nur innerhalb derselben Kategorie umsortieren.
+    if (activeProduct.category !== overProduct.category) return;
+
+    const siblings = categorySiblings(activeProduct.category);
+    const oldIndex = siblings.findIndex((p) => p.id === active.id);
+    const newIndex = siblings.findIndex((p) => p.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(siblings, oldIndex, newIndex);
+
+    // Neue sortOrder-Werte 10,20,30,... — nur geaenderte Zeilen sammeln.
+    const updates: { id: string; sortOrder: number }[] = [];
+    reordered.forEach((p, i) => {
+      const nextOrder = (i + 1) * 10;
+      if ((p.sortOrder ?? 0) !== nextOrder) updates.push({ id: p.id, sortOrder: nextOrder });
+    });
+    if (updates.length === 0) return;
+
+    const snapshot = products;
+    const orderMap = new Map(updates.map((u) => [u.id, u.sortOrder]));
     setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id === product.id) return { ...p, sortOrder: bOrder };
-        if (p.id === other.id) return { ...p, sortOrder: aOrder };
-        return p;
-      })
+      prev.map((p) => (orderMap.has(p.id) ? { ...p, sortOrder: orderMap.get(p.id)! } : p))
     );
     try {
-      await Promise.all([patchSortOrder(product.id, bOrder), patchSortOrder(other.id, aOrder)]);
+      await Promise.all(updates.map((u) => patchSortOrder(u.id, u.sortOrder)));
     } catch {
-      setProducts((prev) =>
-        prev.map((p) => {
-          if (p.id === product.id) return { ...p, sortOrder: aOrder };
-          if (p.id === other.id) return { ...p, sortOrder: bOrder };
-          return p;
-        })
-      );
+      setProducts(snapshot); // Rollback bei Fehler
     }
   }
 
@@ -269,6 +299,32 @@ export default function ProduktePage() {
     return true;
   });
 
+  // Grouped-Ansicht: Produkte IMMER nach Kategorie in Website-Reihenfolge gruppiert,
+  // je Kategorie in derselben Reihenfolge wie die Storefront.
+  const orderedCategories = [...categories].sort((a, b) => a.order - b.order);
+
+  // Such-/Sichtbarkeitsfilter fuer die Anzeige INNERHALB einer Gruppe. Der
+  // Kategorie-Filter grenzt nur ganze Gruppen ein (unten), aendert nichts an
+  // Gruppierung/Reihenfolge.
+  function passesGroupFilters(p: GalleryProduct): boolean {
+    if (filterVisibility === 'visible' && !p.visible) return false;
+    if (filterVisibility === 'hidden' && p.visible) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.tags.some((t) => t.toLowerCase().includes(q)) ||
+        getCategoryName(p.category).toLowerCase().includes(q)
+      );
+    }
+    return true;
+  }
+
+  // Drag & Drop nur ohne aktive Such-/Sichtbarkeitsfilter und ausserhalb des
+  // Bulk-Modus — sonst wuerde eine Teilliste falsch neu durchnummeriert.
+  const narrowingActive = search.trim() !== '' || filterVisibility !== 'all';
+  const dragEnabled = !bulkMode && !narrowingActive;
+
   if (loading) {
     return <p className="text-warm-muted">Laden...</p>;
   }
@@ -370,7 +426,12 @@ export default function ProduktePage() {
         })}
       </div>
 
-      {/* Product grid */}
+      {/* Produkt-Liste — immer nach Kategorie in Website-Reihenfolge gruppiert */}
+      {narrowingActive && (
+        <p className="text-xs text-warm-muted mb-4">
+          Umsortieren per Drag &amp; Drop ist nur ohne aktiven Such-/Sichtbarkeitsfilter möglich.
+        </p>
+      )}
       {filtered.length === 0 ? (
         <div className="text-center py-16">
           <svg className="w-12 h-12 text-warm-border mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -381,246 +442,47 @@ export default function ProduktePage() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-          {filtered.map((product) => {
-          const siblings = categorySiblings(product.category);
-          const siblingIdx = siblings.findIndex((p) => p.id === product.id);
-          const canMoveUp = siblingIdx > 0;
-          const canMoveDown = siblingIdx !== -1 && siblingIdx < siblings.length - 1;
-          return (
-            <div
-              key={product.id}
-              className={`group bg-warm-surface rounded-xl border border-warm-border overflow-hidden hover:shadow-md transition-all relative ${
-                !product.visible ? 'opacity-50' : ''
-              } ${bulkMode && selectedIds.has(product.id) ? 'ring-2 ring-accent' : ''}`}
-              onClick={bulkMode ? () => toggleSelect(product.id) : undefined}
-            >
-              {/* Bulk checkbox */}
-              {bulkMode && (
-                <div className="absolute top-2 left-2 z-20">
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(product.id)}
-                    onChange={() => toggleSelect(product.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="w-5 h-5 rounded border-warm-border text-accent focus:ring-accent/40 cursor-pointer"
-                  />
-                </div>
-              )}
-
-              {/* Pinned badge */}
-              {product.pinned && !bulkMode && (
-                <div className="absolute top-2 left-2 z-10 bg-accent text-white rounded-full p-1" title="Angepinnt">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M10 2a1 1 0 011 1v1.323l3.954 1.582 1.599-.8a1 1 0 01.894 1.79l-1.233.616L17.5 12.5a1 1 0 01-.894.553H12v5a1 1 0 11-2 0v-5H3.394a1 1 0 01-.894-.553L3.786 7.51l-1.233-.616a1 1 0 01.894-1.79l1.599.8L9 4.323V3a1 1 0 011-1z" />
-                  </svg>
-                </div>
-              )}
-
-              {/* Hidden badge */}
-              {!product.visible && (
-                <div className="absolute top-2 right-2 z-10 bg-warm-muted/80 text-white rounded-full p-1" title="Versteckt">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                  </svg>
-                </div>
-              )}
-
-              {/* Condition badges — beide koennen gleichzeitig sichtbar sein */}
-              {(product.quantityBroken ?? 0) > 0 && (
-                <div
-                  className="absolute bottom-2 right-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/90 text-white"
-                  title={`${product.quantityBroken} defekt`}
-                >
-                  {product.quantityBroken} Defekt
-                </div>
-              )}
-              {(product.quantityRepair ?? 0) > 0 && (
-                <div
-                  className={`absolute z-10 px-2 py-0.5 rounded-full text-[10px] font-medium bg-yellow-500/90 text-white ${
-                    (product.quantityBroken ?? 0) > 0 ? 'bottom-9 right-2' : 'bottom-2 right-2'
-                  }`}
-                  title={`${product.quantityRepair} reparaturbeduerftig`}
-                >
-                  {product.quantityRepair} Repair
-                </div>
-              )}
-
-              {/* Image */}
-              <div className="relative aspect-square">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  className="object-cover"
-                />
-                {/* Multi-image badge */}
-                {product.images && product.images.length > 1 && (
-                  <div className="absolute bottom-2 left-2 z-10 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded-full font-medium backdrop-blur-sm">
-                    {product.images.length} Bilder
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <div className="space-y-10">
+            {orderedCategories
+              .filter((cat) => !filterCategory || cat.slug === filterCategory)
+              .map((cat) => {
+                const groupItems = categorySiblings(cat.slug).filter(passesGroupFilters);
+                if (groupItems.length === 0) return null;
+                return (
+                  <div key={cat.slug}>
+                    <div className="flex items-center gap-3 mb-4">
+                      <h2 className="font-display text-lg font-semibold text-warm-text">
+                        {cat.icon} {cat.name}
+                      </h2>
+                      <span className="text-xs text-warm-muted">{groupItems.length}</span>
+                      <div className="flex-1 h-px bg-warm-border" />
+                    </div>
+                    <SortableContext items={groupItems.map((p) => p.id)} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {groupItems.map((product) => (
+                          <SortableProductCard
+                            key={product.id}
+                            product={product}
+                            bulkMode={bulkMode}
+                            selected={selectedIds.has(product.id)}
+                            dragEnabled={dragEnabled}
+                            onToggleSelect={toggleSelect}
+                            onEdit={openEdit}
+                            onDelete={setDeleteConfirm}
+                            onToggleVisible={toggleVisible}
+                            onTogglePinned={togglePinned}
+                            categoryIcon={getCategoryIcon(product.category)}
+                            categoryName={getCategoryName(product.category)}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
                   </div>
-                )}
-                {/* Desktop: hover overlay */}
-                {!bulkMode && (
-                  <div className="hidden sm:flex absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-                    <button
-                      onClick={() => openEdit(product)}
-                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors"
-                      title="Bearbeiten"
-                    >
-                      <svg className="w-4 h-4 text-warm-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(product)}
-                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-red-50 transition-colors"
-                      title="Löschen"
-                    >
-                      <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => toggleVisible(product.id, product.visible)}
-                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors"
-                      title={product.visible ? 'Ausblenden' : 'Einblenden'}
-                    >
-                      <svg className="w-4 h-4 text-warm-text" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {product.visible ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                        )}
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => togglePinned(product.id, product.pinned)}
-                      className={`p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors ${product.pinned ? 'text-accent' : 'text-warm-text'}`}
-                      title={product.pinned ? 'Lösen' : 'Anpinnen'}
-                    >
-                      <svg className="w-4 h-4" fill={product.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => moveProduct(product, 'up')}
-                      disabled={!canMoveUp}
-                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors text-warm-text disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Nach oben (Reihenfolge in Kategorie)"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => moveProduct(product, 'down')}
-                      disabled={!canMoveDown}
-                      className="p-2 bg-warm-surface/90 rounded-lg hover:bg-warm-surface transition-colors text-warm-text disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Nach unten (Reihenfolge in Kategorie)"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Info */}
-              <div className="p-3">
-                <p className="text-sm font-medium text-warm-text truncate">{product.name}</p>
-                <p className="text-xs text-warm-muted mt-0.5">
-                  Bestand: {(product.quantityOk ?? 0) + (product.quantityRepair ?? 0) + (product.quantityBroken ?? 0)} · vermietbar {product.quantityOk ?? 0}
-                </p>
-                <p className="text-xs text-warm-muted mt-0.5">
-                  {getCategoryIcon(product.category)} {getCategoryName(product.category)}
-                </p>
-                {product.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {product.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="inline-block text-[10px] px-1.5 py-0.5 bg-accent-50 text-accent-dark rounded"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                    {product.tags.length > 3 && (
-                      <span className="text-[10px] text-warm-muted">+{product.tags.length - 3}</span>
-                    )}
-                  </div>
-                )}
-                {/* Mobile: always-visible action buttons */}
-                {!bulkMode && (
-                  <div className="flex items-center gap-1.5 mt-2 sm:hidden">
-                    <button
-                      onClick={() => openEdit(product)}
-                      className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-accent-50 text-accent-dark text-xs font-medium hover:bg-accent-light transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                      </svg>
-                      Bearbeiten
-                    </button>
-                    <button
-                      onClick={() => toggleVisible(product.id, product.visible)}
-                      className="p-1.5 rounded-lg bg-accent-50 text-accent-dark hover:bg-accent-light transition-colors"
-                      title={product.visible ? 'Ausblenden' : 'Einblenden'}
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        {product.visible ? (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        ) : (
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21" />
-                        )}
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => togglePinned(product.id, product.pinned)}
-                      className={`p-1.5 rounded-lg transition-colors ${product.pinned ? 'bg-accent text-white' : 'bg-accent-50 text-accent-dark hover:bg-accent-light'}`}
-                      title={product.pinned ? 'Lösen' : 'Anpinnen'}
-                    >
-                      <svg className="w-3.5 h-3.5" fill={product.pinned ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => moveProduct(product, 'up')}
-                      disabled={!canMoveUp}
-                      className="p-1.5 rounded-lg bg-accent-50 text-accent-dark hover:bg-accent-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Nach oben"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => moveProduct(product, 'down')}
-                      disabled={!canMoveDown}
-                      className="p-1.5 rounded-lg bg-accent-50 text-accent-dark hover:bg-accent-light transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                      title="Nach unten"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={() => setDeleteConfirm(product)}
-                      className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-          })}
-        </div>
+                );
+              })}
+          </div>
+        </DndContext>
       )}
 
       {/* Bulk action bar */}
