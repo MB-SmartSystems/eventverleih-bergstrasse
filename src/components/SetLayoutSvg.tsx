@@ -3,8 +3,8 @@
 // Ein Zelt (tents.length === 1): vier Aufbau-Modi wie bisher —
 //  • single   : 1 Tisch — 3 je Langseite + 1 je Schmalseite (bis 8).
 //  • block    : 2 Tische parallel (breite Seiten aneinander) im 3×3 — bis 10.
-//  • row      : 2–3 Tische in Reihe (Stirnseiten aneinander) im 3×6 — bis 20.
-//  • parallel : 3 Tische hochkant nebeneinander im 3×6 — 8/Tisch, bis 24.
+//  • row      : 2–3 Tische in Reihe (Stirnseiten aneinander) im 3×6 — bis 18.
+//  • parallel : 3 Tische hochkant nebeneinander im 3×6 — 8/Tisch, ab 19 bis 24.
 // Sitz-Füllregel: zuerst Langseiten (3 je Tischseite, in fester Reihenfolge, Tisch
 // für Tisch, eng), dann Stehenseiten — NIE an einer Stoßfläche. Tisch 1,82 × 0,74 m.
 //
@@ -145,7 +145,7 @@ function renderTentEinzeln(zelt: "3x3" | "3x6", tische: number, stuehle: number)
 
   const nT = Math.max(1, tische);
   const modus: "single" | "block" | "row" | "parallel" =
-    nT <= 1 ? "single" : zelt === "3x3" ? "block" : stuehle >= 21 ? "parallel" : "row";
+    nT <= 1 ? "single" : zelt === "3x3" ? "block" : stuehle >= 19 ? "parallel" : "row";
 
   const { tables, slots } =
     modus === "single" ? buildSingle(stuehle)
