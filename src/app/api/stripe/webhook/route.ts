@@ -14,7 +14,7 @@
  */
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, getWebhookSecret } from "@/lib/stripe/client";
-import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
@@ -207,7 +207,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "signature_failed", detail: msg }, { status: 400 });
   }
 
+  // W2 — Idempotenz auf Stripe-event.id-Ebene: Stripe liefert Events at-least-once.
+  // Bereits ERFOLGREICH verarbeitete Events werden anhand einer Audit-Marker-Row
+  // übersprungen, bevor irgendein Handler läuft (deckt auch charge.refunded/W5 mit ab).
+  const dedupKey = `stripe_evt:${event.id}`;
   try {
+    const seen = await listRows<{ Name: string }>(TABLES.Audit_Log, { search: dedupKey, size: 20 });
+    if (seen.results.some((r) => (r.Name || "") === dedupKey)) {
+      return NextResponse.json({ ok: true, note: "event_bereits_verarbeitet", event_id: event.id });
+    }
+  } catch (e) {
+    // Dedup-Check fail-soft: lieber weiterverarbeiten (die per-Flow-Guards greifen) als blockieren.
+    console.error("[stripe-webhook] event-dedup-check fehlgeschlagen:", e);
+  }
+
+  let webhookResponse: NextResponse;
+  try {
+    webhookResponse = await (async (): Promise<NextResponse> => {
     switch (event.type) {
       case "payment_intent.succeeded": {
         const pi = event.data.object as Stripe.PaymentIntent;
@@ -369,9 +385,26 @@ export async function POST(req: NextRequest) {
       default:
         return NextResponse.json({ ok: true, ignored: event.type });
     }
+    })();
   } catch (e) {
     const msg = e instanceof Error ? e.message : "internal error";
     console.error("[stripe-webhook]", event.type, msg);
+    // Fehler -> NICHT als verarbeitet markieren, damit Stripe erneut zustellt (Retry).
     return NextResponse.json({ error: "internal", detail: msg.slice(0, 200) }, { status: 500 });
   }
+
+  // Erfolg -> event.id als verarbeitet markieren (Idempotenz gegen Stripe Re-Deliveries).
+  try {
+    await createRow(TABLES.Audit_Log, {
+      Name: dedupKey,
+      Aktion: "stripe_event",
+      Zeitpunkt: new Date().toISOString(),
+      Akteur: "Stripe-Webhook",
+      Details: JSON.stringify({ event_id: event.id, type: event.type }),
+      Aktiv: true,
+    });
+  } catch (e) {
+    console.error("[stripe-webhook] event-dedup-marker schreiben fehlgeschlagen:", e);
+  }
+  return webhookResponse;
 }

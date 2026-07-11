@@ -9,7 +9,7 @@
  * und — nur wenn sendMail — den n8n-Beleg-Mail-Workflow.
  */
 import { randomUUID } from "crypto";
-import { createRow, getRow, listAllRows, TABLES } from "@/lib/baserow/client";
+import { createRow, getRow, listAllRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { triggerPdfRender } from "@/lib/eventverleih/pdf-render";
 
 type BuchungRow = {
@@ -50,15 +50,57 @@ function num(v: string | null | undefined): number {
   return parseFloat(v ?? "0") || 0;
 }
 
-function nextRechnungsnummer(year: number, existing: RechnungRow[]): string {
+type KonfigRow = { id: number; Schluessel: string; Wert_Zahl: string | null };
+
+/**
+ * Reserviert die nächste Rechnungsnummer GoBD-eindeutig über einen zentralen
+ * Zähler in System_Konfiguration (Schlüssel `rechnung.counter.<jahr>`) — statt
+ * max+1 in JS zu rechnen. Zwei gleichzeitige/kurz aufeinanderfolgende
+ * Erstellungen dürfen nie dieselbe RG-Nummer ziehen.
+ *
+ * Ablauf: Zähler lesen → auf max(Zähler, höchste bestehende Nummer) HEILEN
+ * (falls der Zähler frisch ist oder alte max+1-Rechnungen davor existieren) →
+ * +1, dabei bereits vergebene Nummern überspringen (Kollisions-Retry) → den
+ * Zähler persistieren, BEVOR die Rechnung angelegt wird, damit ein paralleler
+ * Aufruf den erhöhten Stand sieht. Baserow hat keine atomare Compare-and-Swap;
+ * Zähler + Kollisions-Retry ist der praktikable saubere Weg (für das reale
+ * Rechnungsvolumen GoBD-eindeutig; ein Rest-Fenster echter Millisekunden-
+ * Gleichzeitigkeit bleibt theoretisch, ist bei manueller/Webhook-Erstellung aber
+ * vernachlässigbar).
+ */
+async function reserviereRechnungsnummer(year: number, existing: RechnungRow[]): Promise<string> {
   const prefix = `RG-${year}-`;
-  let max = 0;
+  const key = `rechnung.counter.${year}`;
+
+  // Höchste bereits vergebene Nummer + Menge aller vergebenen (Seed/Heilung + Kollisions-Check).
+  let maxBestand = 0;
+  const vergeben = new Set<number>();
   for (const r of existing) {
     if (!r.Rechnungsnummer?.startsWith(prefix)) continue;
     const m = r.Rechnungsnummer.slice(prefix.length).match(/^(\d+)/);
-    if (m) max = Math.max(max, parseInt(m[1], 10));
+    if (m) {
+      const n = parseInt(m[1], 10);
+      vergeben.add(n);
+      if (n > maxBestand) maxBestand = n;
+    }
   }
-  return `${prefix}${String(max + 1).padStart(4, "0")}`;
+
+  const konfig = await listAllRows<KonfigRow>(TABLES.System_Konfiguration);
+  const counterRow = konfig.results.find((r) => (r.Schluessel || "").trim() === key);
+  const counterVal = counterRow?.Wert_Zahl ? parseInt(counterRow.Wert_Zahl, 10) || 0 : 0;
+
+  // Nie hinter den Bestand fallen; nächste freie Nummer suchen.
+  let next = Math.max(counterVal, maxBestand) + 1;
+  while (vergeben.has(next)) next++;
+
+  // Zähler VOR dem Anlegen der Rechnung fortschreiben (paralleler Aufruf sieht den erhöhten Stand).
+  if (counterRow) {
+    await updateRow(TABLES.System_Konfiguration, counterRow.id, { Wert_Zahl: next });
+  } else {
+    await createRow(TABLES.System_Konfiguration, { Schluessel: key, Wert_Zahl: next });
+  }
+
+  return `${prefix}${String(next).padStart(4, "0")}`;
 }
 
 /** Bestehende Rechnung für eine Buchung finden (vermeidet Doppel-Belege). */
@@ -132,7 +174,7 @@ export async function createRechnungForBuchung(
     };
   }
   const year = new Date().getFullYear();
-  const rechnungsnummer = nextRechnungsnummer(year, existing.results);
+  const rechnungsnummer = await reserviereRechnungsnummer(year, existing.results);
   const token = randomUUID();
   const heute = new Date().toISOString().slice(0, 10);
   const faelligkeit = new Date(Date.now() + 14 * 86400 * 1000).toISOString().slice(0, 10);
