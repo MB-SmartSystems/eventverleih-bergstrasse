@@ -186,7 +186,7 @@ export default function DateRangePicker({
           numberOfMonths={months}
           disabled={disabledMatcher}
           classNames={classNames}
-          showOutsideDays
+          showOutsideDays={false}
         />
       </div>
       {error && (
