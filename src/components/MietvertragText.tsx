@@ -59,9 +59,10 @@ export default function MietvertragText() {
       </p>
       <p>
         <strong>Helferpflicht bei Aufbau-Service:</strong> Wir setzen den Aufbau in der Regel mit zwei Personen um. Falls
-        unsererseits am Aufbautag nur eine Person verfügbar ist, stellt der Mieter für die Dauer des Auf- bzw. Abbaus
+        unsererseits am Aufbautag nur eine Person verfügbar ist, stellt der Mieter für die Dauer des Aufbaus
         (ca. 30–60 Min) mindestens eine Hilfsperson zur Verfügung. Wir sprechen das spätestens 2 Tage vor dem Termin mit
-        Ihnen ab — Sie werden also rechtzeitig informiert, falls eine Helfer-Bereitstellung nötig wird.
+        Ihnen ab — Sie werden also rechtzeitig informiert, falls eine Helfer-Bereitstellung nötig wird. Der Abbau ist
+        nicht Teil des Service — der Mieter baut die Artikel vor der Abholung selbst ab und stellt sie abholbereit bereit.
       </p>
 
       <h3>§ 5 Aufbau und Standsicherheit von Zelten</h3>
