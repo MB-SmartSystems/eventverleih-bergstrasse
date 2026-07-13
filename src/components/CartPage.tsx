@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Link from "next/link";
 import { useCart } from "./CartContext";
 import DateRangeSheet from "./DateRangeSheet";
 import { formatGerman, rangeDays, rundeKaution, AUFBAU_HELFER_HINWEIS } from "@/lib/eventverleih/constants";
+import { ortFuerPlz } from "@/lib/eventverleih/plz-ort";
 import type { RentalProduct, ProductsData } from "@/lib/types";
 
 function normalize(s: string): string {
@@ -77,6 +78,7 @@ export default function CartPage() {
   const [email, setEmail] = useState("");
   const [telefon, setTelefon] = useState("");
   const [plz, setPlz] = useState("");
+  const [ort, setOrt] = useState("");
   const [notiz, setNotiz] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [website, setWebsite] = useState(""); // Honeypot
@@ -96,6 +98,25 @@ export default function CartPage() {
       })
       .catch(() => setProductsLoaded(true));
   }, []);
+
+  // AP2: PLZ → Ort automatisch befüllen (editierbar). Sobald die PLZ 5-stellig ist, wird der
+  // passende Ort aus der lokalen Zuordnungstabelle gesetzt. Bleibt manuell überschreibbar; der
+  // Effect läuft nur bei PLZ-Wechsel, also überschreibt er eine spätere Hand-Eingabe NICHT.
+  // Nicht gefunden → Ort bleibt unverändert/leer, kein Fehler.
+  const autoOrtPlzRef = useRef<string>("");
+  useEffect(() => {
+    if (!/^\d{5}$/.test(plz)) return;
+    if (autoOrtPlzRef.current === plz) return; // schon für diese PLZ befüllt
+    let cancelled = false;
+    ortFuerPlz(plz).then((gefundenerOrt) => {
+      if (cancelled || !gefundenerOrt) return;
+      autoOrtPlzRef.current = plz;
+      setOrt(gefundenerOrt);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [plz]);
 
   const hasRange = Boolean(rangeVon && rangeBis);
   const dauerTage = hasRange ? rangeDays(rangeVon!, rangeBis!) + 1 : 0;
@@ -168,7 +189,7 @@ export default function CartPage() {
         strasse: lieferStrasse,
         hausnr: lieferHausnr,
         plz,
-        ort: "",
+        ort,
       }),
     })
       .then((r) => r.json())
@@ -190,7 +211,7 @@ export default function CartPage() {
     return () => {
       cancelled = true;
     };
-  }, [lieferAktiv, lieferAdresseKomplett, lieferStrasse, lieferHausnr, plz, distanceKm, setDistanceKm]);
+  }, [lieferAktiv, lieferAdresseKomplett, lieferStrasse, lieferHausnr, plz, ort, distanceKm, setDistanceKm]);
 
   const canSubmit = agreed && hasRange && items.length > 0 && !submitting;
 
@@ -234,7 +255,7 @@ export default function CartPage() {
       );
     }
     if (lieferAktiv && lieferStrasse) {
-      cartLines.push(`Event-Adresse: ${lieferStrasse} ${lieferHausnr}, ${plz}`);
+      cartLines.push(`Event-Adresse: ${lieferStrasse} ${lieferHausnr}, ${plz}${ort ? ` ${ort}` : ""}`);
     }
     const cartText = cartLines.join("\n");
     const userNotiz = notiz.trim();
@@ -255,7 +276,12 @@ export default function CartPage() {
           email: email.trim(),
           telefon: telefon.trim() || undefined,
           adresse_plz: plz,
-          adresse_strasse: lieferAktiv ? lieferStrasse.trim() : undefined,
+          // AP4: Straße MIT Hausnummer als vollständige Adresszeile durchreichen — sonst geht
+          // die Hausnr in der Kunden-Adresse (Rechnung/Angebot-Leistungsempfänger) verloren.
+          adresse_strasse: lieferAktiv
+            ? [lieferStrasse.trim(), lieferHausnr.trim()].filter(Boolean).join(" ")
+            : undefined,
+          adresse_ort: ort.trim() || undefined,
           event_datum_von: rangeVon!,
           event_datum_bis: rangeBis!,
           nachricht,
@@ -280,6 +306,7 @@ export default function CartPage() {
         setEmail("");
         setTelefon("");
         setPlz("");
+        setOrt("");
         setNotiz("");
         setAgreed(false);
         clearCart();
@@ -689,21 +716,37 @@ export default function CartPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">PLZ *</label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{4,5}"
-                  maxLength={5}
-                  required
-                  autoComplete="postal-code"
-                  placeholder="z.B. 64665"
-                  value={plz}
-                  onChange={(e) => setPlz(e.target.value)}
-                  className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
-                />
+                <div className="flex gap-3">
+                  <div>
+                    <label className="block text-sm text-gray-400 mb-1.5">PLZ *</label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]{4,5}"
+                      maxLength={5}
+                      required
+                      autoComplete="postal-code"
+                      placeholder="z.B. 64665"
+                      value={plz}
+                      onChange={(e) => setPlz(e.target.value)}
+                      className="w-32 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm text-gray-400 mb-1.5">Ort</label>
+                    <input
+                      type="text"
+                      autoComplete="address-level2"
+                      placeholder="wird aus der PLZ ergänzt"
+                      value={ort}
+                      onChange={(e) => setOrt(e.target.value)}
+                      className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-gold-500/50 focus:ring-1 focus:ring-gold-500/50 transition-all"
+                    />
+                  </div>
+                </div>
                 <p className="text-xs text-gray-500 mt-1.5">
-                  Für die Liefer-Pauschale im Angebot. Bei Selbstabholung einfach Ihre Wohn-PLZ.
+                  Für die Liefer-Pauschale im Angebot. Bei Selbstabholung einfach Ihre Wohn-PLZ. Der Ort wird
+                  automatisch ergänzt und bleibt änderbar.
                 </p>
               </div>
 

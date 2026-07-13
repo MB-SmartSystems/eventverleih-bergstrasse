@@ -245,12 +245,17 @@ export async function POST(req: NextRequest) {
     const abholpreis = payload.abholung_gewuenscht && distKm > 0 ? billKm * 2 : 0;
     const lieferGesamt = lieferpreis + abholpreis;
 
-    // Lieferadresse als Text fuer Baserow
+    // Lieferadresse als Text fuer Baserow.
+    // AP4: PLZ + Ort mitschreiben (Ort fehlte bisher → "In der Binn 8, 64683" ohne Ort).
+    // Das Formular erfasst genau EINE Adresse (Event = Kundenadresse), daher PLZ/Ort aus adresse_*.
     const lieferStrasse = (payload.liefer_strasse || "").trim();
     const lieferHausnr = (payload.liefer_hausnr || "").trim();
+    const lieferPlz = (payload.adresse_plz || "").trim();
+    const lieferOrt = (payload.adresse_ort || "").trim();
     const lieferAktiv = payload.lieferung_gewuenscht || payload.abholung_gewuenscht;
+    const lieferPlzOrt = [lieferPlz, lieferOrt].filter(Boolean).join(" ");
     const lieferadresseStr = lieferAktiv && lieferStrasse
-      ? `${lieferStrasse} ${lieferHausnr}, ${payload.adresse_plz || ""}`.trim()
+      ? `${[lieferStrasse, lieferHausnr].filter(Boolean).join(" ")}${lieferPlzOrt ? `, ${lieferPlzOrt}` : ""}`.trim()
       : null;
 
     // === Safety-Net: Verfuegbarkeits-Check fuer alle gematchten Artikel
