@@ -11,7 +11,7 @@ import { NextRequest } from "next/server";
 import { getRow, listRows, TABLES } from "@/lib/baserow/client";
 import { parseSnapshot } from "@/lib/angebot-snapshot";
 import { renderAngebotHtml, type AngebotHtmlContext } from "@/lib/angebot-html";
-import { enthaeltFaltzelt } from "@/lib/eventverleih/constants";
+import { enthaeltFaltzelt, buildLeistungstext } from "@/lib/eventverleih/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -154,7 +154,12 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ token: str
     },
     positionen,
     zusatz_positionen: zusatz,
-    aufbau_helfer_hinweis: preisAufbau > 0 && enthaeltFaltzelt(positionen.map((p) => p.bezeichnung)),
+    leistung_text: buildLeistungstext({
+      hasLieferung: preisLieferung > 0,
+      hasAbholung: preisAbholung > 0,
+      hasAufbau: preisAufbau > 0,
+      hatFaltzelt: enthaeltFaltzelt(positionen.map((p) => p.bezeichnung)),
+    }),
     gesamt_eur: gesamt,
     anzahlung_eur: snap ? snap.anzahlung_soll_eur : num(buchung.Anzahlung_Soll_Eur),
     restzahlung_eur: snap ? snap.restzahlung_soll_eur : num(buchung.Restzahlung_Soll_Eur),

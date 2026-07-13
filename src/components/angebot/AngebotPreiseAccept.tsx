@@ -15,6 +15,7 @@
  */
 import { useState } from "react";
 import AcceptForm from "@/app/angebot/[token]/AcceptForm";
+import { buildLeistungstext } from "@/lib/eventverleih/constants";
 
 interface KundeForAccept {
   Vorname: string;
@@ -131,6 +132,11 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
   const hasAbholung = effAbholung > 0;
   const hasAufbau = effAufbau > 0;
   const hasAnyLogistik = hasLieferung || hasAbholung;
+
+  // AP1: Leistungsumfang inkl. Aufbau-Helfer- (konditional) + Abbau-Hinweis (Manuel-Wortlaut).
+  // Text kommt aus der zentralen buildLeistungstext-Funktion (gleiche Quelle wie Angebot-PDF).
+  const hatFaltzelt = displayPositions.some((p) => /faltzelt/i.test(p.bezeichnung));
+  const leistungText = buildLeistungstext({ hasLieferung, hasAbholung, hasAufbau, hatFaltzelt });
 
   // Decline-Flags fuer Accept-Submit
   const declineFlags = togglesActive
@@ -260,23 +266,10 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
             </p>
           </div>
 
-          {/* Leistungsumfang */}
+          {/* Leistungsumfang — inkl. Aufbau-Helfer- (konditional) + Abbau-Hinweis */}
           <div className="p-4">
             <p className="text-white text-sm font-semibold mb-1">Leistungsumfang</p>
-            {!hasAnyLogistik ? (
-              <p className="text-sm text-gray-400">
-                Abholung am Treffpunkt <strong>Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein</strong> — Termin
-                sprechen wir telefonisch ab. Lieferung und Aufbau gegen Aufpreis möglich.
-              </p>
-            ) : (
-              <p className="text-sm text-gray-400">
-                {hasLieferung && hasAbholung
-                  ? `Wir liefern an Ihre Adresse${hasAufbau ? " und bauen vor Ort auf" : ""} und holen die Artikel nach dem Event wieder ab.`
-                  : hasLieferung
-                    ? `Wir liefern an Ihre Adresse${hasAufbau ? " und bauen vor Ort auf" : ""}. Rückgabe durch Sie am Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein.`
-                    : `Selbstanlieferung am Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein. Wir holen die Artikel nach dem Event bei Ihnen ab${hasAufbau ? " und bauen sie davor auf" : ""}.`}
-              </p>
-            )}
+            <p className="text-sm text-gray-400">{leistungText}</p>
           </div>
 
           {/* Mietbedingungen */}

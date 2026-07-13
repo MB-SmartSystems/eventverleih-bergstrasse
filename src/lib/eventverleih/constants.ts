@@ -67,3 +67,49 @@ export const AUFBAU_HELFER_HINWEIS =
 export function enthaeltFaltzelt(bezeichnungen: string[]): boolean {
   return bezeichnungen.some((b) => /faltzelt/i.test(b));
 }
+
+/**
+ * AP1 — Baut den Leistungsumfang-Text (Manuel-Wortlaut) für Angebot-Seite, Admin-Vorschau UND
+ * Angebot-PDF aus EINER Quelle, damit alle Ausgaben konsistent bleiben.
+ *
+ * Regeln (mit Manuel abgestimmt, 2026-07-13):
+ * - Abbau macht IMMER der Kunde — es gibt keinen Abbau-Service.
+ * - Helfer-Satz nur wenn ein Faltzelt MIT Aufbau gebucht ist.
+ * - Abbau-Satz nur wenn ein Liefer-/Abholservice besteht (bei reiner Selbstabholung nimmt der
+ *   Kunde alles selbst mit → kein Abbau-/Abhol-Bezug).
+ */
+export function buildLeistungstext(opts: {
+  hasLieferung: boolean;
+  hasAbholung: boolean;
+  hasAufbau: boolean;
+  hatFaltzelt: boolean;
+}): string {
+  const { hasLieferung, hasAbholung, hasAufbau, hatFaltzelt } = opts;
+  const hasAnyLogistik = hasLieferung || hasAbholung;
+
+  let grund: string;
+  if (!hasAnyLogistik) {
+    grund =
+      "Abholung am Treffpunkt Grillhütte Sandwiese (Freizeitanlage), Alsbach-Hähnlein — den Termin sprechen wir telefonisch ab. Lieferung und Aufbau gegen Aufpreis möglich.";
+  } else if (hasLieferung && hasAbholung) {
+    grund = `Wir liefern an Ihre Adresse${hasAufbau ? ", bauen die Artikel vor Ort auf" : ""} und holen sie nach dem Event wieder ab.`;
+  } else if (hasLieferung) {
+    grund = `Wir liefern an Ihre Adresse${hasAufbau ? " und bauen die Artikel vor Ort auf" : ""}. Die Rückgabe erfolgt durch Sie am Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein.`;
+  } else {
+    grund = `Selbstanlieferung am Treffpunkt Grillhütte Sandwiese, Alsbach-Hähnlein${hasAufbau ? "; wir bauen die Artikel vor Ort für Sie auf" : ""}. Wir holen sie nach dem Event bei Ihnen ab.`;
+  }
+
+  const helfer = hatFaltzelt && hasAufbau
+    ? "Bitte beachten Sie: Für den Aufbau der Zelte wird vor Ort mindestens eine helfende Person benötigt, da sich ein Faltzelt nicht sicher allein aufstellen lässt."
+    : "";
+
+  let abbau = "";
+  if (hasAbholung) {
+    abbau =
+      "Der Abbau ist nicht im Service enthalten — bitte bauen Sie die Artikel vor der Abholung ab und stellen sie abholbereit bereit.";
+  } else if (hasLieferung) {
+    abbau = "Der Abbau ist nicht im Service enthalten — bitte bauen Sie die Artikel vor der Rückgabe ab.";
+  }
+
+  return [grund, helfer, abbau].filter(Boolean).join(" ");
+}
