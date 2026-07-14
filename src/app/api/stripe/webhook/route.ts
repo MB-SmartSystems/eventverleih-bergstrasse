@@ -397,7 +397,7 @@ export async function POST(req: NextRequest) {
   try {
     await createRow(TABLES.Audit_Log, {
       Name: dedupKey,
-      Aktion: "stripe_event",
+      Aktion: "Stripe_Event",
       Zeitpunkt: new Date().toISOString(),
       Akteur: "Stripe-Webhook",
       Details: JSON.stringify({ event_id: event.id, type: event.type }),
