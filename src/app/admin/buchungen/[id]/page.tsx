@@ -23,6 +23,8 @@ import PackListe from "./PackListe";
 import RuecknahmeDialog from "./RuecknahmeDialog";
 import StornoDialog from "./StornoDialog";
 import StripeLinksPanel from "./StripeLinksPanel";
+import PayPalLinksPanel from "./PayPalLinksPanel";
+import { buildPayUrl, defaultAmountFor, type BetragsFelder } from "@/lib/paypal/pay-link";
 import KautionMailPanel from "./KautionMailPanel";
 import EntfernenPanel from "./EntfernenPanel";
 import UebergabeTypPanel from "./UebergabeTypPanel";
@@ -815,6 +817,33 @@ Vertrag
             anzahlungBezahlt={!!buchung.Anzahlung_Bezahlt_am}
             restzahlungBezahlt={!!buchung.Restzahlung_Bezahlt_am}
           />
+          {process.env.PAYPAL_CLIENT_ID && (
+          <PayPalLinksPanel
+            rows={[
+              {
+                label: "Anzahlung",
+                type: "anzahlung",
+                amountEur: parseFloat(buchung.Anzahlung_Soll_Eur ?? "0"),
+                url: buildPayUrl(buchung.id, "anzahlung"),
+                bezahlt: !!buchung.Anzahlung_Bezahlt_am,
+              },
+              {
+                label: "Restzahlung",
+                type: "restzahlung",
+                amountEur: parseFloat(buchung.Restzahlung_Soll_Eur ?? "0"),
+                url: buildPayUrl(buchung.id, "restzahlung"),
+                bezahlt: !!buchung.Restzahlung_Bezahlt_am,
+              },
+              {
+                label: "Komplettzahlung",
+                type: "komplettzahlung",
+                amountEur: defaultAmountFor(buchung as unknown as BetragsFelder, "komplettzahlung"),
+                url: buildPayUrl(buchung.id, "komplettzahlung"),
+                bezahlt: !!buchung.Anzahlung_Bezahlt_am && !!buchung.Restzahlung_Bezahlt_am,
+              },
+            ]}
+          />
+          )}
           <KautionMailPanel
             buchungId={buchung.id}
             kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}

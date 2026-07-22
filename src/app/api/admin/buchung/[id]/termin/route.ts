@@ -30,7 +30,7 @@ interface BuchungData {
 
 function isValidDateTime(v: unknown): v is string {
   if (typeof v !== "string") return false;
-  if (v === "") return true; // erlaube leeren String fuer Loeschen
+  if (v === "") return true; // erlaube leeren String für Löschen
   const d = new Date(v);
   return !isNaN(d.getTime());
 }

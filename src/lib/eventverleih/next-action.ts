@@ -124,7 +124,7 @@ export function getNextAction(b: BuchungForAction): NextAction {
         return { label: "Anzahlung nachhaken", tone: "amber" };
       }
       // Anzahlung da, aber Status nicht gewechselt → seltener Fall, Manuel manuell
-      return { label: "Status auf Reserviert pruefen", tone: "amber" };
+      return { label: "Status auf Reserviert prüfen", tone: "amber" };
     }
 
     case "Reserviert": {
@@ -138,7 +138,7 @@ export function getNextAction(b: BuchungForAction): NextAction {
       if (restOffen) {
         return { label: "Restzahlung offen — faellig bei Uebergabe", tone: "gray" };
       }
-      return { label: "Buchung laeuft — naechste Aktion bei Uebergabe", tone: "gray" };
+      return { label: "Buchung läuft — nächste Aktion bei Übergabe", tone: "gray" };
     }
 
     case "Uebergeben":

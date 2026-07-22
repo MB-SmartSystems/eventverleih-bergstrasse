@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const von = body.von || "";
   const bis = body.bis || "";
   if (!ISO_DATE.test(von) || !ISO_DATE.test(bis)) {
-    return NextResponse.json({ error: "von/bis muessen YYYY-MM-DD sein" }, { status: 400 });
+    return NextResponse.json({ error: "von/bis müssen YYYY-MM-DD sein" }, { status: 400 });
   }
   if (bis < von) {
     return NextResponse.json({ error: "bis < von" }, { status: 400 });
@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const bisDate = new Date(bis);
   const days = Math.round((bisDate.getTime() - vonDate.getTime()) / 86_400_000);
   if (days > 5) {
-    return NextResponse.json({ error: "Range groesser 5 Tage" }, { status: 400 });
+    return NextResponse.json({ error: "Range größer 5 Tage" }, { status: 400 });
   }
 
   try {

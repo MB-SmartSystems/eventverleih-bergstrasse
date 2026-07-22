@@ -71,11 +71,11 @@ export default async function NeueAnfragePage() {
       <div className="flex items-center justify-between">
         <div>
           <Link href="/admin/anfragen" className="text-sm text-warm-muted hover:text-warm-text">
-            ← Zurueck zu Anfragen
+            ← Zurück zu Anfragen
           </Link>
           <h1 className="text-2xl font-bold text-warm-text mt-1">Neue Anfrage anlegen</h1>
           <p className="text-sm text-warm-muted mt-1">
-            Manuell-Anlage fuer Telefon-/WhatsApp-Anfragen. Kunde muss vorab in /admin/kunden existieren.
+            Manuell-Anlage für Telefon-/WhatsApp-Anfragen. Kunde muss vorab in /admin/kunden existieren.
           </p>
         </div>
       </div>

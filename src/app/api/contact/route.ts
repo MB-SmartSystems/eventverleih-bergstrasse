@@ -313,7 +313,7 @@ export async function POST(req: NextRequest) {
     const notizenBlock = [
       `Anfrage-Text:\n${payload.nachricht}`,
       lieferDetails.length > 0 ? `\nZusatzleistungen:\n${lieferDetails.join("\n")}` : "",
-      unmatched.length ? `\nNicht automatisch zugeordnet (manuell pruefen):\n${unmatched.join("\n")}` : "",
+      unmatched.length ? `\nNicht automatisch zugeordnet (manuell prüfen):\n${unmatched.join("\n")}` : "",
     ].join("");
 
     const buchung = await createRow<BuchungRow>(TABLES.Buchungen, {

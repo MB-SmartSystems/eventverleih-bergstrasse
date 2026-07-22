@@ -19,7 +19,7 @@ export interface StornoCalc {
   stornogebuehr_prozent: number; // 0 / 50 / 75 / 100
   stornogebuehr_eur: number;
   bereits_bezahlt_eur: number;
-  erstattung_eur: number; // > 0 = Kunde kriegt zurueck; < 0 = Kunde muss nachzahlen
+  erstattung_eur: number; // > 0 = Kunde kriegt zurück; < 0 = Kunde muss nachzahlen
   nachzahlung_eur: number; // wenn erstattung < 0: -erstattung; sonst 0
   staffel_label: string;
 }

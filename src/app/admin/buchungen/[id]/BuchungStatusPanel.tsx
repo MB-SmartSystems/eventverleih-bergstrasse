@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<string, string> = {
   Bestaetigt: "Vom Kunden bestaetigt (Anzahlung steht aus)",
   Uebergeben: "Artikel uebergeben",
   In_Miete: "Aktuell in Miete",
-  Zurueckgegeben: "Zurueckgegeben — Pruefung laeuft",
+  Zurueckgegeben: "Zurückgegeben — Prüfung läuft",
   Abgerechnet: "Abgerechnet",
   Storniert: "Storniert",
   No_Show: "Kunde nicht erschienen",
@@ -99,7 +99,7 @@ export default function BuchungStatusPanel({
           onClick={() => setShowOverride(!showOverride)}
           className="text-xs text-warm-muted hover:text-warm-text underline"
         >
-          {showOverride ? "Override schliessen" : "Notfall-Override"}
+          {showOverride ? "Override schließen" : "Notfall-Override"}
         </button>
       </div>
       <div className={`p-3 rounded-lg border ${tone}`}>

@@ -438,7 +438,7 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                   }}
                   className="py-3 rounded-lg border-2 border-dashed border-warm-border hover:border-accent/50 bg-warm-bg text-warm-muted text-sm transition-colors"
                 >
-                  Aus Produkte-Ordner waehlen
+                  Aus Produkte-Ordner wählen
                 </button>
               </div>
             </div>
@@ -449,7 +449,7 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                 <div className="absolute inset-0 bg-black/60" />
                 <div className="relative bg-warm-surface rounded-2xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto border border-warm-border" onClick={(e) => e.stopPropagation()}>
                   <div className="p-5 border-b border-warm-border flex items-center justify-between">
-                    <h3 className="font-display text-lg font-semibold text-warm-text">Aus Produkte-Ordner waehlen</h3>
+                    <h3 className="font-display text-lg font-semibold text-warm-text">Aus Produkte-Ordner wählen</h3>
                     <button type="button" onClick={() => setPickerOpen(false)} className="text-warm-muted hover:text-warm-text">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -701,7 +701,7 @@ export default function ProductDialog({ open, onClose, onSaved, product, categor
                   onChange={(e) => setInternalNotes(e.target.value)}
                   rows={2}
                   className="w-full px-3 py-2 rounded-lg border border-warm-border bg-warm-surface text-warm-text focus:outline-none focus:ring-2 focus:ring-accent/40 focus:border-accent transition-colors text-sm"
-                  placeholder="z.B. 2 Stueck seit Maerz im Winterquartier"
+                  placeholder="z.B. 2 Stück seit März im Winterquartier"
                 />
               </div>
             </div>

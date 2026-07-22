@@ -47,7 +47,7 @@ export default function PromoBanner() {
       <button
         onClick={handleDismiss}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-white/70 hover:text-white transition-colors"
-        aria-label="Banner schliessen"
+        aria-label="Banner schließen"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

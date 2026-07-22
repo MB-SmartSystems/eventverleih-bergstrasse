@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "prebuild": "node scripts/check-umlaute.mjs",
+    "check:umlaute": "node scripts/check-umlaute.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

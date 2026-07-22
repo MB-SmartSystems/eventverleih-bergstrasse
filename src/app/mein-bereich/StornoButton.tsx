@@ -97,7 +97,7 @@ export default function StornoButton({ buchungId, eventDatumVon, mietsumme, beza
                   </div>
                   {calc.erstattung > 0 && (
                     <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                      <div className="text-xs text-green-300 uppercase tracking-wider">Sie erhalten zurueck</div>
+                      <div className="text-xs text-green-300 uppercase tracking-wider">Sie erhalten zurück</div>
                       <div className="text-2xl font-bold text-green-200">{fmtEur(calc.erstattung)}</div>
                       <div className="text-xs text-gray-400 mt-1">Erstattung erfolgt in 5 Werktagen</div>
                     </div>
@@ -109,7 +109,7 @@ export default function StornoButton({ buchungId, eventDatumVon, mietsumme, beza
                   )}
                   {calc.nachzahlung > 0 && (
                     <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                      <div className="text-xs text-red-300 uppercase tracking-wider">Sie muessen nachzahlen</div>
+                      <div className="text-xs text-red-300 uppercase tracking-wider">Sie müssen nachzahlen</div>
                       <div className="text-2xl font-bold text-red-200">{fmtEur(calc.nachzahlung)}</div>
                       <div className="text-xs text-gray-400 mt-1">Sie erhalten eine Stornorechnung per Mail</div>
                     </div>

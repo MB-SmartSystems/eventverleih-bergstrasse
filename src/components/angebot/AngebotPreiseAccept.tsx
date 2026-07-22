@@ -361,6 +361,25 @@ export default function AngebotPreiseAccept(props: AngebotPreiseAcceptProps) {
               </p>
             </div>
           )}
+
+          {!anzahlungBezahltAm && (
+            <div className="p-6 rounded-xl bg-white/5 border border-white/10 space-y-2">
+              <p className="text-white font-semibold">Lieber per PayPal?</p>
+              <p className="text-sm text-gray-300">
+                Sie können die Anzahlung ({fmtEurStr(anzahlungSoll)}) oder die gesamte Miete auch per
+                PayPal an <strong className="text-white">info@eventverleih-bergstrasse.de</strong> senden.
+              </p>
+              <p className="text-sm text-gray-300">
+                <strong className="text-gold-300">Wichtig:</strong> Die Kaution
+                {num(kautionSoll) > 0 ? ` (${fmtEurStr(kautionSoll)})` : ""} bitte nicht über PayPal zahlen,
+                da dabei Gebühren anfallen. Diese hinterlegen Sie bitte bar bei der Übergabe oder per
+                Überweisung an IBAN{" "}
+                {/* Kanonische IBAN = Baserow System_Konfiguration, Key "IBAN". Bei Kontowechsel dort + hier anpassen. */}
+                <span className="font-mono">DE84 5001 0517 5420 4742 10</span> (Manuel Büttner),
+                Verwendungszweck: Ihre Angebotsnummer.
+              </p>
+            </div>
+          )}
         </div>
       ) : !hasPrices ? (
         <div className="mt-10 p-6 rounded-xl bg-blue-500/10 border border-blue-500/30">

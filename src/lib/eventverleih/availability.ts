@@ -166,7 +166,7 @@ export async function getAvailability(
 ): Promise<Map<number, AvailabilityResult>> {
   if (artikelIds.length === 0) return new Map();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(von) || !/^\d{4}-\d{2}-\d{2}$/.test(bis)) {
-    throw new Error("getAvailability: von/bis muessen YYYY-MM-DD sein");
+    throw new Error("getAvailability: von/bis müssen YYYY-MM-DD sein");
   }
   if (bis < von) {
     throw new Error("getAvailability: bis < von");

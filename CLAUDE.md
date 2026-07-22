@@ -1,0 +1,28 @@
+# Eventverleih Bergstraße — Projekt-Instruktionen
+
+Nebengewerbe von Manuel. Website `eventverleih-bergstrasse.de`. Repo hier: `~/code/eventverleih-bergstrasse`,
+**Vercel-Auto-Deploy bei Push auf `main`**. Marke duzt NICHT pauschal — B2C-Vermietung, freundlich-sachlich.
+
+## Deploy / Push-Konvention
+- Verifizierte Changes selbst auf `main` pushen (Build vorher verifizieren; reine Docs/Safe-Changes direkt).
+  gitleaks-pre-push-Hook läuft automatisch. Frühere „Push macht Manuel selbst"-Notiz ist überholt.
+- **Kundensichtbare Änderungen vor Live mit Manuel absprechen** (Copy/Design/Preise).
+
+## ⚠️ Baserow — richtige DB (häufige Verwechslung, Manuel mehrfach frustriert)
+Eventverleih lebt in **DB 267**: Buchungen **951** · Kunden **949** · Angebote **952** · Rechnungen **950** ·
+Einnahmen **961** · MailQueue **969** · Artikel **957**. Kunden/Anfragen IMMER über **Kunden 949**/**Buchungen 951**
+suchen (Status „Anfrage" ist ein Feld, es gibt KEINE eigene Anfragen-Tabelle). Es gibt eine FREMDE DB **276**
+mit gleichnamigen Tabellen (Namensschilder/Spardosen) — NICHT Eventverleih. **Tabellen nie über den Namen matchen.**
+
+## Zahlungs-Policy (Manuel nachdrücklich — Fakten vor Kundentexten im Code/AGB verifizieren)
+- Standard = **Stripe: 30 % Anzahlung, 70 % Rest spätestens bei Übergabe, Kaution als Hold.**
+- **Restzahlung ist „weich": KEINE Mahn-Eskalation** (nur T-3-Service-Info). Mahn-Mechanik NIE erneut vorschlagen.
+  Echtes Risiko = No-Show (Anzahlung deckt), nicht Zahlungsausfall (Übergabe = Zug um Zug).
+- Barzahlung nur Ausnahme nach Absprache — nie als gleichwertige Option in Kundentexten. Steht so in AGB §3.
+
+## Weiteres
+- **Das Dashboard sendet KEINE Kundenmail automatisch** — Kundenkontakt immer nur als Draft, Freigabe je Stück.
+- Kundentexte: keine Füllsätze, Claims belegbar, keine erfundenen Zahlen.
+- Gästezahl-Set-Tool ist live (Gästezahl → Set in den Warenkorb); Regeln stehen im Code (`AnlassSets`/Set-Logik).
+- Tiefes Projektwissen: Memory-Archiv `project_eventverleih_bergstrasse.md` + Obsidian-Vault (bei Bedarf abrufen).
+- **Stolpersteine/Erkenntnisse zu diesem Repo: `docs/learnings.md`** — vor der Arbeit lesen, Neues sofort dort eintragen (Regel `learnings-lokal`).

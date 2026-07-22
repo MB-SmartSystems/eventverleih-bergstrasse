@@ -90,7 +90,7 @@ export default function ImageUpload({ currentImage, onFileSelected }: ImageUploa
           {/* Desktop: hover overlay */}
           <div className="hidden sm:flex absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors items-center justify-center opacity-0 hover:opacity-100">
             <span className="bg-warm-surface/90 text-warm-text text-xs px-3 py-1.5 rounded-full">
-              Bild aendern
+              Bild ändern
             </span>
           </div>
           {/* Mobile: always-visible change indicator */}

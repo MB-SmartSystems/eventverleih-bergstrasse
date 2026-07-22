@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const von = body.event_datum_von || "";
   const bis = body.event_datum_bis || "";
   if (!ISO_DATE.test(von) || !ISO_DATE.test(bis)) {
-    return NextResponse.json({ error: "event_datum_von/bis muessen YYYY-MM-DD sein" }, { status: 400 });
+    return NextResponse.json({ error: "event_datum_von/bis müssen YYYY-MM-DD sein" }, { status: 400 });
   }
   const today = new Date().toISOString().slice(0, 10);
   if (von < today) return NextResponse.json({ error: "event_datum_von in der Vergangenheit" }, { status: 400 });

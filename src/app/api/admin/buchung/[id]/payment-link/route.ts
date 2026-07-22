@@ -78,7 +78,7 @@ export async function POST(
     const amountEur = body.amount_eur ?? defaultAmount;
     if (!amountEur || amountEur <= 0) {
       return NextResponse.json(
-        { error: `Betrag fuer ${type} fehlt — bitte amount_eur im Body uebergeben oder Soll-Felder pflegen` },
+        { error: `Betrag für ${type} fehlt — bitte amount_eur im Body übergeben oder Soll-Felder pflegen` },
         { status: 422 },
       );
     }
