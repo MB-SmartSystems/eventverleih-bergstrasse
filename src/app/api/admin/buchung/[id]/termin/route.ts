@@ -57,7 +57,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     } else if (isValidDateTime(body.uebergabe_termin)) {
       patch.Uebergabe_Termin = new Date(body.uebergabe_termin).toISOString();
     } else {
-      return NextResponse.json({ error: "uebergabe_termin invalid" }, { status: 400 });
+      return NextResponse.json({ error: "übergabe_termin invalid" }, { status: 400 });
     }
   }
   if (body.rueckgabe_termin !== undefined) {
@@ -66,7 +66,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     } else if (isValidDateTime(body.rueckgabe_termin)) {
       patch.Rueckgabe_Termin = new Date(body.rueckgabe_termin).toISOString();
     } else {
-      return NextResponse.json({ error: "rueckgabe_termin invalid" }, { status: 400 });
+      return NextResponse.json({ error: "rückgabe_termin invalid" }, { status: 400 });
     }
   }
 

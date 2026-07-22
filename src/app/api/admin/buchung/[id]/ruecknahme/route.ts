@@ -64,7 +64,7 @@ export async function POST(
     // Audit-Log
     try {
       await createRow(TABLES.Audit_Log, {
-        Name: `Ruecknahme Buchung #${buchungId}`,
+        Name: `Rücknahme Buchung #${buchungId}`,
         Aktion: "Ruecknahme",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: String(buchungId),
@@ -78,7 +78,7 @@ export async function POST(
         Aktiv: true,
       });
     } catch (e) {
-      console.error("[ruecknahme audit-log]", e);
+      console.error("[rücknahme audit-log]", e);
     }
 
     invalidateAvailabilityCache();

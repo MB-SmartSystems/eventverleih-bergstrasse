@@ -31,7 +31,7 @@ const STATUS_LABEL: Record<string, string> = {
   Angebot_versendet: "Angebot an Kunde versendet",
   Reserviert: "Reserviert (Anzahlung eingegangen)",
   Bestaetigt: "Vom Kunden bestaetigt (Anzahlung steht aus)",
-  Uebergeben: "Artikel uebergeben",
+  Uebergeben: "Artikel übergeben",
   In_Miete: "Aktuell in Miete",
   Zurueckgegeben: "Zurückgegeben — Prüfung läuft",
   Abgerechnet: "Abgerechnet",
@@ -108,7 +108,7 @@ export default function BuchungStatusPanel({
       </div>
       <p className="text-xs text-warm-muted mt-3">
         Status wird normalerweise <strong>automatisch</strong> gesetzt — durch Auto-Trigger (Stripe-Webhook,
-        Angebot freigeben) oder die Action-Buttons unten (Uebergabe bestaetigen, Rueckgabe bestaetigen,
+        Angebot freigeben) oder die Action-Buttons unten (Übergabe bestätigen, Rückgabe bestätigen,
         Stornieren).
       </p>
       {showOverride && (

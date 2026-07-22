@@ -92,7 +92,7 @@ export async function computeDistanceKm(addr: AddressInput): Promise<DistanceRes
     return { km: 0, gefunden: false, details: "Distance-API nicht konfiguriert (ORS_API_KEY fehlt)" };
   }
   if (!addr.plz || !/^\d{4,5}$/.test(addr.plz)) {
-    return { km: 0, gefunden: false, details: "Gueltige PLZ erforderlich" };
+    return { km: 0, gefunden: false, details: "Gültige PLZ erforderlich" };
   }
 
   const queryParts = [addr.strasse, addr.hausnr, addr.plz, addr.ort]

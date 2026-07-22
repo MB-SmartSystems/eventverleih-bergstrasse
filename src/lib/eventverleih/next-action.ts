@@ -131,24 +131,24 @@ export function getNextAction(b: BuchungForAction): NextAction {
       const restOffen = !hasRestzahlung && parseNum(b.Restzahlung_Soll_Eur) > 0;
       if (eventInDays !== null && eventInDays <= 1) {
         if (restOffen) {
-          return { label: "Uebergabe vorbereiten — Restzahlung offen", tone: "amber" };
+          return { label: "Übergabe vorbereiten — Restzahlung offen", tone: "amber" };
         }
-        return { label: "Uebergabe vorbereiten / Vertrag drucken", tone: "blue" };
+        return { label: "Übergabe vorbereiten / Vertrag drucken", tone: "blue" };
       }
       if (restOffen) {
-        return { label: "Restzahlung offen — faellig bei Uebergabe", tone: "gray" };
+        return { label: "Restzahlung offen — fällig bei Übergabe", tone: "gray" };
       }
       return { label: "Buchung läuft — nächste Aktion bei Übergabe", tone: "gray" };
     }
 
     case "Uebergeben":
-      return { label: "Auf Rueckgabe warten", tone: "gray" };
+      return { label: "Auf Rückgabe warten", tone: "gray" };
 
     case "In_Miete": {
       if (eventEndInDays !== null && eventEndInDays < 0) {
-        return { label: `Rueckgabe ueberfaellig (${Math.abs(eventEndInDays)}d)`, tone: "red" };
+        return { label: `Rückgabe ueberfaellig (${Math.abs(eventEndInDays)}d)`, tone: "red" };
       }
-      return { label: "Rueckgabe steht an", tone: "blue" };
+      return { label: "Rückgabe steht an", tone: "blue" };
     }
 
     case "Zurueckgegeben": {

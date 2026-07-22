@@ -74,7 +74,7 @@ export async function POST(
     // Audit-Log-Eintrag
     try {
       await createRow(TABLES.Audit_Log, {
-        Name: `Uebergabe Buchung #${buchungId}`,
+        Name: `Übergabe Buchung #${buchungId}`,
         Aktion: "Uebergabe",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: String(buchungId),
@@ -89,7 +89,7 @@ export async function POST(
         Aktiv: true,
       });
     } catch (e) {
-      console.error("[uebergabe audit-log]", e);
+      console.error("[übergabe audit-log]", e);
     }
 
     // "Übergabe erfolgt"-Mail an den Kunden (Auto_Reply, idempotent), inkl. Artikelliste
@@ -166,7 +166,7 @@ export async function POST(
         }
       }
     } catch (e) {
-      console.error("[uebergabe mail]", e);
+      console.error("[übergabe mail]", e);
     }
 
     invalidateAvailabilityCache();

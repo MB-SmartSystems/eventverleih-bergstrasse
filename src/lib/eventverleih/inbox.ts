@@ -298,7 +298,7 @@ export async function loadInboxData(): Promise<InboxData> {
       id: b.id,
       buchungId: b.id,
       title: kundeName(b),
-      subtitle: `Rueckgabe ueberzogen seit ${a}d`,
+      subtitle: `Rückgabe überzogen seit ${a}d`,
       age_days: a,
       link: `/admin/buchungen/${b.id}`,
     });
@@ -318,7 +318,7 @@ export async function loadInboxData(): Promise<InboxData> {
         id: b.id,
         buchungId: b.id,
         title: kundeName(b),
-        subtitle: `Kaution-Prueffrist abgelaufen — Hold aufloesen (verfaellt sonst)`,
+        subtitle: `Kaution-Prüffrist abgelaufen — Hold aufloesen (verfaellt sonst)`,
         amount_eur: b.Kaution_Soll_Eur || undefined,
         link: `/admin/buchungen/${b.id}`,
       });
@@ -423,7 +423,7 @@ export async function loadInboxData(): Promise<InboxData> {
         id: b.id,
         buchungId: b.id,
         title: kundeName(b),
-        subtitle: `Kaution-Rueckzahlung ausstehend`,
+        subtitle: `Kaution-Rückzahlung ausstehend`,
         amount_eur: b.Kaution_Soll_Eur,
         link: `/admin/buchungen/${b.id}`,
       });
@@ -448,8 +448,8 @@ export async function loadInboxData(): Promise<InboxData> {
       buchungId: b.id,
       title: kundeName(b),
       subtitle: hrsAgo === 0
-        ? "Soeben bestaetigt — Anzahlung steht aus"
-        : `Vor ${hrsAgo}h bestaetigt — Anzahlung steht aus`,
+        ? "Soeben bestätigt — Anzahlung steht aus"
+        : `Vor ${hrsAgo}h bestätigt — Anzahlung steht aus`,
       amount_eur: b.Anzahlung_Soll_Eur || undefined,
       link: `/admin/buchungen/${b.id}`,
     });

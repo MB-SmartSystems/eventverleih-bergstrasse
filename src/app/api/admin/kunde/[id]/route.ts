@@ -30,7 +30,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     if (linkedBuchungen.length > 0) {
       return NextResponse.json({
         error: "kunde_has_buchungen",
-        detail: `Kunde hat noch ${linkedBuchungen.length} verlinkte Buchung(en). Bitte erst Buchungen verarbeiten oder loeschen.`,
+        detail: `Kunde hat noch ${linkedBuchungen.length} verlinkte Buchung(en). Bitte erst Buchungen verarbeiten oder löschen.`,
         buchung_count: linkedBuchungen.length,
         buchung_ids: linkedBuchungen.map((b) => b.id).slice(0, 10),
       }, { status: 409 });
@@ -42,7 +42,7 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ id: stri
     // Audit-Log VOR Delete (sonst ist Kunde weg)
     try {
       await createRow(TABLES.Audit_Log, {
-        Name: `DSGVO-Loeschung Kunde #${kundeId}`,
+        Name: `DSGVO-Löschung Kunde #${kundeId}`,
         Aktion: "DSGVO_Loeschung_ausgefuehrt",
         Zeitpunkt: new Date().toISOString(),
         Buchung_ID_Ref: "",

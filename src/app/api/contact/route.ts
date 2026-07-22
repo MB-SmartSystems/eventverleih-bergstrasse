@@ -279,7 +279,7 @@ export async function POST(req: NextRequest) {
           return NextResponse.json(
             {
               error: "artikel_nicht_verfuegbar",
-              detail: `Im gewuenschten Zeitraum nicht verfuegbar: ${namen}. Bitte aus dem Warenkorb entfernen oder Datum aendern.`,
+              detail: `Im gewuenschten Zeitraum nicht verfuegbar: ${namen}. Bitte aus dem Warenkorb entfernen oder Datum ändern.`,
               unavailable: ausgebucht.map((m) => ({ artikel_id: m.artikelId, name: m.bezeichnung })),
             },
             { status: 409 },
@@ -377,7 +377,7 @@ export async function POST(req: NextRequest) {
         Kaution_Pro_Stueck_Snapshot_Eur: m.kaution_pro_stueck.toFixed(2),
         Auf_Anfrage_Bei_Buchung: m.auf_anfrage,
         Notizen: m.auf_anfrage
-          ? "Auto-erstellt aus Anfrage-Formular Cart. ITEM AUF BESTELLUNG — bitte Beschaffung pruefen."
+          ? "Auto-erstellt aus Anfrage-Formular Cart. ITEM AUF BESTELLUNG — bitte Beschaffung prüfen."
           : "Auto-erstellt aus Anfrage-Formular Cart",
       }).then((p) => {
         created.push({ table: TABLES.Buchungs_Position, id: p.id });

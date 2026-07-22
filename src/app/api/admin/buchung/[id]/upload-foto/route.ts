@@ -30,7 +30,7 @@ export async function POST(
 
   const type = req.nextUrl.searchParams.get("type");
   if (type !== "uebergabe" && type !== "ruecknahme") {
-    return NextResponse.json({ error: "type must be uebergabe|ruecknahme" }, { status: 400 });
+    return NextResponse.json({ error: "type must be übergabe|ruecknahme" }, { status: 400 });
   }
 
   try {

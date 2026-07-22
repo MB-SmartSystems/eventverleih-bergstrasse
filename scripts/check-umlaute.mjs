@@ -16,34 +16,23 @@
  * Ohne Argumente werden die üblichen Content-Verzeichnisse gescannt.
  */
 import { readFileSync, readdirSync, statSync, existsSync } from 'node:fs'
-import { join, extname } from 'node:path'
+import { join, extname, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-// Wörter, die im Deutschen einen Umlaut tragen MÜSSEN. Bewusst eine Positivliste statt
-// einer ae/oe/ue-Heuristik — sonst schlägt das Gate bei "Neuerung", "Dauer", "Steuer",
-// englischen Begriffen und Eigennamen an.
-const VERDAECHTIG = [
-  'fuer', 'ueber', 'ueberhaupt', 'koennen', 'koennte', 'muessen',
-  'waehrend', 'naechste[nrs]?', 'gefaehrlich\\w*', 'zurueck\\w*',
-  'haeufig\\w*', 'moeglich\\w*', 'aendern', 'aenderung\\w*', 'erklaeren',
-  'waehlen', 'dafuer', 'hierfuer', 'wofuer', 'natuerlich', 'urspruenglich', 'zusaetzlich',
-  'geschaeft\\w*', 'qualitaet', 'realitaet', 'verfuegbar', 'beruecksichtig\\w*',
-  'praezise', 'loesung\\w*', 'unterstuetz\\w*', 'einfuehrung', 'ueblich\\w*', 'spaeter',
-  'taeglich', 'jaehrlich', 'erhoeh\\w*', 'pruefen', 'pruefung\\w*', 'auswaehl\\w*',
-  'beitraege', 'auftraege', 'vertraege', 'anhaeng\\w*',
-  'prioritaet', 'kapazitaet', 'aktivitaet', 'funktionalitaet', 'stueck\\w*', 'kuenftig',
-  'moechte[nst]?', 'wuensch\\w*', 'benoetig\\w*', 'ermoeglich\\w*',
-  'guenstig\\w*', 'ueblicherweise', 'schuetz\\w*', 'gehoer\\w*', 'stoer\\w*',
+// Wortliste liegt in scripts/umlaut-woerter.txt — eine Datei, alphabetisch, ein Wort
+// pro Zeile, damit sie ohne Eingriff ins Skript erweiterbar bleibt. Bewusst eine
+// Positivliste statt einer ae/oe/ue-Heuristik: sonst schlägt das Gate bei "Dauer",
+// "Steuer", "user", "queue" und Eigennamen an.
+const LISTE = join(dirname(fileURLToPath(import.meta.url)), 'umlaut-woerter.txt')
+const ROH = readFileSync(LISTE, 'utf8')
+  .split('\n')
+  .map((z) => z.trim())
+  .filter((z) => z && !z.startsWith('#'))
+const muster = (w) => (w.endsWith('*') ? w.slice(0, -1) + '\\w*' : w)
+// Ohne "=": case-insensitiv. Mit "=": nur kleingeschrieben (Eigennamen-Schutz).
+const VERDAECHTIG = ROH.filter((w) => !w.startsWith('=')).map(muster)
+const NUR_KLEIN = ROH.filter((w) => w.startsWith('=')).map((w) => muster(w.slice(1)))
 
-  // ss statt ß — von Manuel ausdrücklich als eigener Fehlerfall benannt (2026-07-22).
-  // Vorsicht: nur Wörter, die IMMER ein ß tragen. "dass", "muss", "Fluss", "Kuss",
-  // "Schluss", "wissen", "Kongress" sind korrektes ss und dürfen hier NICHT stehen.
-  'gross(?:e[nmrs]?|artig\\w*)?', 'groesse\\w*', 'groesser', 'groesste[nrs]?',
-  'heisst', 'heissen', 'weiss(?!ag)', 'weisse[nrs]?', 'strasse\\w*', 'fussball\\w*',
-  'massnahme\\w*', 'massstab\\w*', 'gemaess', 'schliesslich', 'ausschliesslich',
-  'regelmaessig\\w*', 'zuverlaessig\\w*', 'grundsaetzlich', 'spass', 'fuss\\w*',
-  'geniess\\w*', 'schliess\\w*', 'beschliess\\w*', 'entschliess\\w*', 'stossen',
-  'anstoss\\w*', 'verstoss\\w*', 'groesstenteils', 'aeusserst', 'aeusser\\w*',
-]
 
 // Verzeichnisse mit kundensichtbarem Text. Nicht vorhandene werden übersprungen.
 const STANDARD_ORTE = ['content', 'data', 'app', 'components', 'posts', 'src']
@@ -62,6 +51,9 @@ const AUSNAHME = new RegExp([
 const KOMMENTAR = /^\s*(\/\/|\*|\/\*|\{\/\*|#)/
 
 const regex = new RegExp(`\\b(${VERDAECHTIG.join('|')})\\b`, 'gi')
+const regexKlein = NUR_KLEIN.length
+  ? new RegExp(`\\b(${NUR_KLEIN.join('|')})\\b`, 'g')
+  : null
 
 function dateien(ort) {
   const ergebnis = []
@@ -95,10 +87,26 @@ for (const ort of orte) {
       // Zeitraum" schon. Kriterium: links oder rechts steht ein weiteres Wort mit
       // Leerzeichen dazwischen, und direkt am Wort haengt kein Code-Zeichen (. : ( ).
       const treffer = []
-      for (const m of zeile.matchAll(regex)) {
+      const alleTreffer = [...zeile.matchAll(regex)]
+      if (regexKlein) alleTreffer.push(...zeile.matchAll(regexKlein))
+      for (const m of alleTreffer) {
         const davor = zeile.slice(Math.max(0, m.index - 2), m.index)
         const danach = zeile.slice(m.index + m[0].length, m.index + m[0].length + 2)
-        const istBezeichner = /[._]$/.test(davor) || /^\s*[:(._=]/.test(danach)
+        // Ein Punkt zaehlt nur als Property-Zugriff, wenn ein Bezeichner folgt (obj.feld).
+        // Ein Satzpunkt ("...ueberdeckt. ") ist KEIN Bezeichner — dieser Fall wurde bis
+        // 2026-07-22 still verschluckt, das Gate meldete gruen trotz Fehler im Text.
+        // JSX-Komponenten (<RuecknahmeDialog), Imports und Typnamen sind Code —
+        // sie umzubenennen bricht die App. Nur Fliesstext soll gemeldet werden.
+        // CamelCase (RuecknahmeDialogProps) ist immer ein Bezeichner — ein deutsches
+        // Wort hat keinen Grossbuchstaben in der Mitte. Diese Regel faengt Typnamen,
+        // Komponenten und Variablen zuverlaessiger als jede Kontextheuristik.
+        const camelCase = /^.[a-zäöüß]*[A-ZÄÖÜ]/.test(m[0])
+        const istBezeichner =
+          camelCase ||
+          /[._<]$/.test(davor) ||
+          /^\s*[:(=_]/.test(danach) ||
+          /^\.[a-zA-Z_]/.test(danach) ||
+          /<\/?$/.test(davor)
         const imSatz = /[a-zA-ZäöüÄÖÜß],?\s$/.test(davor) || /^\s[a-zA-ZäöüÄÖÜß]/.test(danach)
         if (!istBezeichner && imSatz) treffer.push(m[0])
       }

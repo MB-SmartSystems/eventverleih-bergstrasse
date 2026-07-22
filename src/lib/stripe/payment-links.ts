@@ -72,9 +72,9 @@ export async function createPaymentLink(
       hosted_confirmation: {
         custom_message:
           params.paymentType === "anzahlung"
-            ? "Vielen Dank! Ihre Anzahlung ist eingegangen — die Reservierung ist jetzt verbindlich. Sie erhalten in Kuerze eine Bestaetigung per Mail."
+            ? "Vielen Dank! Ihre Anzahlung ist eingegangen — die Reservierung ist jetzt verbindlich. Sie erhalten in Kürze eine Bestätigung per Mail."
             : params.paymentType === "komplettzahlung"
-              ? "Vielen Dank! Die Buchung ist komplett bezahlt — die Reservierung ist verbindlich. Sie erhalten in Kuerze eine Bestaetigung per Mail."
+              ? "Vielen Dank! Die Buchung ist komplett bezahlt — die Reservierung ist verbindlich. Sie erhalten in Kürze eine Bestätigung per Mail."
               : "Vielen Dank! Restzahlung eingegangen — wir freuen uns auf Ihr Event.",
       },
     },
@@ -149,7 +149,7 @@ export async function createKautionCheckoutSession(params: {
           unit_amount: amountCents,
           product_data: {
             name: `Kaution Buchung #${params.buchungId}`,
-            description: "Kaution wird als Pre-Authorization auf der Karte vorgemerkt — kein Abbuchen vor Rueckgabe. Bei Rueckgabe ohne Schaden wird der Hold aufgeloest, es fliesst kein Geld.",
+            description: "Kaution wird als Pre-Authorization auf der Karte vorgemerkt — kein Abbuchen vor Rückgabe. Bei Rückgabe ohne Schaden wird der Hold aufgeloest, es fliesst kein Geld.",
           },
         },
       },
@@ -206,7 +206,7 @@ export async function cancelKaution(paymentIntentId: string) {
   if (pi.status === "succeeded") {
     throw new Error(
       `Kaution-PaymentIntent ${paymentIntentId} ist bereits eingezogen (status=succeeded) — ` +
-        `kann nicht gecancelt werden, ggf. Refund noetig.`,
+        `kann nicht gecancelt werden, ggf. Refund nötig.`,
     );
   }
   try {

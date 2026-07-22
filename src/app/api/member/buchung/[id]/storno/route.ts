@@ -81,7 +81,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           stornogebuehr_eur: 0,
           erstattung_eur: bezahlt,
           nachzahlung_eur: 0,
-          staffel_label: "Unverbindliche Anfrage — kostenfreier Rueckzug",
+          staffel_label: "Unverbindliche Anfrage — kostenfreier Rückzug",
           tage_bis_event: buchung.Event_datum_von
             ? Math.floor((new Date(buchung.Event_datum_von).getTime() - Date.now()) / 86_400_000)
             : 0,
@@ -173,8 +173,8 @@ Manuel Büttner — Eventverleih Bergstraße`;
             nachzahlung_eur: calc.nachzahlung_eur.toFixed(2),
             tage_bis_event: calc.tage_bis_event,
             hinweis: calc.erstattung_eur > 0
-              ? "Manueller Stripe-Refund noetig — sicherheitshalber nicht automatisch ausgeloest"
-              : "Keine Erstattung faellig",
+              ? "Manueller Stripe-Refund nötig — sicherheitshalber nicht automatisch ausgeloest"
+              : "Keine Erstattung fällig",
           }),
           signal: AbortSignal.timeout(5000),
         });

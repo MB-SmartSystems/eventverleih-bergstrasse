@@ -53,7 +53,7 @@ export async function POST(
         );
       }
       const msgMap: Record<string, string> = {
-        no_amount: "Kaution_Soll_Eur fehlt oder ist 0 — bitte amount_eur uebergeben oder Buchung pflegen",
+        no_amount: "Kaution_Soll_Eur fehlt oder ist 0 — bitte amount_eur übergeben oder Buchung pflegen",
         no_kunde: "Kunde nicht verknuepft",
         no_email: "Kunde hat keine E-Mail-Adresse",
       };

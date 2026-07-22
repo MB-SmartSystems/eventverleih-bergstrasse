@@ -24,7 +24,7 @@ export async function DELETE(_request: NextRequest, { params }: { params: { slug
   const data = await loadProductsData();
   const productCount = data.products.filter(p => p.category === params.slug).length;
   if (productCount > 0) {
-    return NextResponse.json({ error: `Kategorie enthaelt noch ${productCount} Produkte` }, { status: 409 });
+    return NextResponse.json({ error: `Kategorie enthält noch ${productCount} Produkte` }, { status: 409 });
   }
 
   data.categories = data.categories.filter(c => c.slug !== params.slug);

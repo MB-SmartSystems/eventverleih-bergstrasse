@@ -139,7 +139,7 @@ async function verbucheReservierung(
       await queueAnzahlungErhaltenMail(buchungId);
     }
   } catch (e) {
-    console.error("[paypal-verbuchen] Bestaetigungsmail fehlgeschlagen:", e);
+    console.error("[paypal-verbuchen] Bestätigungsmail fehlgeschlagen:", e);
   }
 
   // Mengen-genauer Engpass-Check → nur flaggen, nichts Destruktives.
@@ -157,7 +157,7 @@ async function verbucheReservierung(
         zahlweg: "paypal",
         artikel: mine.map((g) => `${g.artikel_name} (${g.nachgefragt}/${g.bestand})`),
         beteiligte_buchungen: beteiligte,
-        hinweis: "Manuel-Entscheidung noetig - kein Auto-Storno/Refund",
+        hinweis: "Manuel-Entscheidung nötig - kein Auto-Storno/Refund",
       });
     }
   } catch (e) {
@@ -210,7 +210,7 @@ async function verbucheRestzahlung(
       });
     }
   } catch (e) {
-    console.error("[paypal-verbuchen] Restzahlung-Bestaetigung fehlgeschlagen:", e);
+    console.error("[paypal-verbuchen] Restzahlung-Bestätigung fehlgeschlagen:", e);
   }
   return { ok: true };
 }

@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     const buf = Buffer.from(await req.arrayBuffer());
     // Sanity: eine echte PDF ist > ein paar KB und beginnt mit %PDF-
     if (buf.byteLength < 200 || buf.subarray(0, 5).toString("latin1") !== "%PDF-") {
-      return NextResponse.json({ error: "kein gueltiger PDF-Body" }, { status: 422 });
+      return NextResponse.json({ error: "kein gültiger PDF-Body" }, { status: 422 });
     }
     const filename = `${table}-${id}.pdf`;
     const { url, name } = await uploadUserFileMeta(buf, filename, "application/pdf");

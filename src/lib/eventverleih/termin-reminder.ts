@@ -212,7 +212,7 @@ export async function runTerminReminder(): Promise<{
       result.mails++;
     } catch (e) {
       result.fehler++;
-      console.error("[termin-reminder] rueckgabe mail-insert fehlgeschlagen:", e);
+      console.error("[termin-reminder] rückgabe mail-insert fehlgeschlagen:", e);
     }
   }
 

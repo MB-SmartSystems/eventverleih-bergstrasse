@@ -160,7 +160,7 @@ async function processReservierungsZahlung(
       await queueAnzahlungErhaltenMail(buchungId);
     }
   } catch (e) {
-    console.error("[stripe-webhook] Zahlungs-Bestaetigung fehlgeschlagen:", e);
+    console.error("[stripe-webhook] Zahlungs-Bestätigung fehlgeschlagen:", e);
   }
 
   // Mengen-genauer Engpass-Check -> nur flaggen, nichts Destruktives.
@@ -177,7 +177,7 @@ async function processReservierungsZahlung(
       await logAudit(buchungId, "Konflikt_erkannt", {
         artikel: mine.map((g) => `${g.artikel_name} (${g.nachgefragt}/${g.bestand})`),
         beteiligte_buchungen: beteiligte,
-        hinweis: "Manuel-Entscheidung noetig - kein Auto-Storno/Refund",
+        hinweis: "Manuel-Entscheidung nötig - kein Auto-Storno/Refund",
       });
     }
   } catch (e) {
@@ -278,7 +278,7 @@ export async function POST(req: NextRequest) {
               });
             }
           } catch (e) {
-            console.error("[stripe-webhook] Restzahlung-Bestaetigung fehlgeschlagen:", e);
+            console.error("[stripe-webhook] Restzahlung-Bestätigung fehlgeschlagen:", e);
           }
         } else if (paymentType === "komplettzahlung") {
           return await processReservierungsZahlung(pi, buchungId, "komplettzahlung");
