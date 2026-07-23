@@ -10,6 +10,7 @@
  */
 import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
 import { uebergabeOrt } from "@/lib/eventverleih/config";
+import { buildTerminErinnerung, buildRueckgabeErinnerung } from "@/lib/eventverleih/mail-templates/build/termin-erinnerung";
 
 const TZ = "Europe/Berlin";
 
@@ -107,38 +108,16 @@ export async function runTerminReminder(): Promise<{
     const terminText = berlinDateTime(b.Uebergabe_Termin);
     const ort = uebergabeOrt(b, "uebergabe");
 
-    // Restzahlung-Hinweis nur, wenn offen — fällig erst bei Übergabe, vorab = Komfort-Option
-    const restSoll = parseDec(b.Restzahlung_Soll_Eur);
-    const restOffen = restSoll > 0 && !b.Restzahlung_Bezahlt_am;
-    let restBlock = "";
-    if (restOffen) {
-      const restBetrag = restSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const restLink = (b.Stripe_Restzahlung_Link || "").trim();
-      restBlock =
-        `\n\nDie Restzahlung (${restBetrag} EUR) ist spätestens zur Übergabe fällig — ` +
-        `am einfachsten vorab bequem online.` +
-        (restLink ? `\nIhr Zahlungslink:\n${restLink}` : "");
-    }
-
-    // Kaution-Hinweis: Barzahlung bei Übergabe (kein Stripe mehr)
-    const kautionSoll = parseDec(b.Kaution_Soll_Eur);
-    const kautionOffen = kautionSoll > 0 && !b.Kaution_Hinterlegt_am;
-    let kautionBlock = "";
-    if (kautionOffen) {
-      const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      kautionBlock =
-        `\n\nBitte denken Sie an die Kaution (${betrag} EUR) — diese wird bar bei der Übergabe erhoben ` +
-        `und nach der Rückgabe ohne Schäden vollständig zurückgegeben.`;
-    }
-
-    const subject = "Erinnerung an Ihren Übergabe-Termin morgen";
-    const body =
-      `Hallo ${kundeName},\n\n` +
-      `eine kurze Erinnerung an unseren Übergabe-Termin:\n` +
-      `${terminText}\n${ort}.` +
-      `${restBlock}${kautionBlock}\n\n` +
-      `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
-      `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+    const mail = buildTerminErinnerung({
+      kundeName,
+      terminText,
+      ort,
+      restSoll: b.Restzahlung_Soll_Eur,
+      restBezahltAm: b.Restzahlung_Bezahlt_am,
+      restLink: b.Stripe_Restzahlung_Link,
+      kautionSoll: b.Kaution_Soll_Eur,
+      kautionHinterlegtAm: b.Kaution_Hinterlegt_am,
+    });
 
     try {
       await createRow(TABLES.MailQueue, {
@@ -146,8 +125,8 @@ export async function runTerminReminder(): Promise<{
         Buchung_Link: [b.id],
         Kunde_Link: [kundeId],
         Template_Key: "termin_erinnerung",
-        Subject: subject,
-        Body: body,
+        Subject: mail.subject,
+        Body: mail.body,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: idemKey,
       });
@@ -189,14 +168,7 @@ export async function runTerminReminder(): Promise<{
     const terminText = berlinDateTime(b.Rueckgabe_Termin);
     const ort = uebergabeOrt(b, "rueckgabe");
 
-    const body =
-      `Hallo ${kundeName},\n\n` +
-      `eine kurze Erinnerung an unseren Rückgabe-Termin:\n` +
-      `${terminText}\n${ort}.\n\n` +
-      `Bitte bringen Sie die Artikel vollständig und sauber zurück. ` +
-      `Die Kaution erstatte ich nach kurzer Prüfung.\n\n` +
-      `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
-      `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+    const mail2 = buildRueckgabeErinnerung({ kundeName, terminText, ort });
 
     try {
       await createRow(TABLES.MailQueue, {
@@ -204,8 +176,8 @@ export async function runTerminReminder(): Promise<{
         Buchung_Link: [b.id],
         Kunde_Link: [kundeId],
         Template_Key: "rueckgabe_erinnerung",
-        Subject: "Erinnerung an Ihren Rückgabe-Termin morgen",
-        Body: body,
+        Subject: mail2.subject,
+        Body: mail2.body,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: idemKey,
       });

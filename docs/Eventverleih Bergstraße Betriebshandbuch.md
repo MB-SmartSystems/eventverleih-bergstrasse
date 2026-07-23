@@ -136,6 +136,43 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 (Die technischen Details dazu — Routen, Webhook-Ereignisse, Feldnamen — stehen in Teil B, nicht hier.)
 
+### Zahlung und Beleg — warum es hier keine Rechnung im üblichen Sinn gibt
+
+(Manuel, 2026-07-23, verbindlich. Ersetzt die frühere Regel „Rechnung nach der Rückgabe, entkoppelt
+von der Kautionsrückzahlung, nicht darauf warten" — die stand bis heute unter den dauerhaften
+Geschäftsregeln und sagte das Gegenteil.)
+
+**Kunden zahlen ausnahmslos vor dem Event.** Die Anzahlung sichert den Termin, die Restzahlung ist
+spätestens zur Übergabe fällig. Es gibt also nie einen Zeitpunkt, an dem wir einer Kundin hinterherlaufen
+müssten.
+
+Daraus folgt die eigentliche Aussage: **Eine Rechnung als Zahlungsaufforderung existiert in diesem
+Geschäft nicht.** Es wird nichts eingefordert, was nicht längst bezahlt ist. Was der Kunde stattdessen
+bekommt, sind zwei verschiedene Dinge:
+
+1. **Zahlungsbestätigungen**, jeweils direkt nach dem Geldeingang. Sie sagen „ist angekommen", sie
+   fordern nichts.
+2. **Den Beleg**, und zwar **erst nachdem die Kaution zurückgezahlt wurde.** Vorher ist der Vorgang
+   wirtschaftlich nicht abgeschlossen: Solange ein Hold läuft oder eine Erstattung aussteht, steht der
+   endgültige Betrag nicht fest. Ein Beleg, der danach noch korrigiert werden muss, ist kein Beleg.
+
+**Was das für die Oberfläche heißt.** Im Admin-Bereich heißt das Dokument deshalb **Beleg**, nicht
+Rechnung: Navigationseintrag, Überschriften, Knopf, Checklisten-Punkt und Statusmeldungen.
+
+**Was bewusst weiter „Rechnung" heißt** — und nicht umbenannt werden darf:
+
+- die Baserow-Tabelle **Rechnungen (950)** und alle ihre Feldnamen (`Rechnungsnummer`,
+  `Rechnungsdatum`, `Beleg_Mail_am`, …),
+- der **Nummernkreis mit `RG`-Präfix**. `RG-2026-0003` liegt bereits so beim Kunden im Postfach; ein
+  Nummernkreis, der rückwirkend anders heißt, ist ein Buchhaltungsproblem, kein Designthema.
+
+Die Buchhaltung hängt an diesen Namen. Geändert wird ausschließlich, was ein Mensch liest.
+
+**Offener Widerspruch, der noch aufzulösen ist:** Die Belegliste kennt einen Filter „Mahnung" samt
+Feld `Mahnstufe`. Eine Mahnstufe kann es nach dieser Regel nicht geben, weil vor dem Event gezahlt wird
+und es keine Zahlungsaufforderung gibt. Das Feld stammt aus der Zeit davor. Bewusst noch nicht
+angefasst, weil daran Daten hängen.
+
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
 
 - **Stripe ist der Standard-Zahlweg, Bargeld ist die Ausnahme** (Manuel, 2026-07-23 — verbindlich).
@@ -155,7 +192,7 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 - **Kaution = durchlaufender Posten / Sicherheit, KEINE Einnahme.** Nie auf die Mietrechnung, nie abgezogen. Schäden separat über die Kaution, nicht über die Mietsumme.
 - **Refund-Methode folgt der Zahlungsmethode.** Stripe-bezahlt → Stripe-Refund (Button löst Auto-Mail aus). Bar/Überweisung → manuelle (Termin-)Überweisung, **nie** Stripe-Refund.
 - **Zahlungsgebühren nie an den Kunden weitergeben** (§270a BGB). Entfällt eine bezahlte Leistung → volle Differenz erstatten, ohne Gebühren-Abzug.
-- **Rechnung nach der Rückgabe** (Leistung erbracht), **entkoppelt** von der Kautionsrückzahlung — nicht darauf warten.
+- **Beleg erst nach der Kautionsrückzahlung**, nicht schon nach der Rückgabe. Begründung und Abgrenzung: Abschnitt „Zahlung und Beleg" weiter oben.
 - **Offene Kautionsrückzahlung = Buchung gilt NICHT als abgeschlossen** (bleibt offene Aktion bis erstattet).
 - **Positionen ändern nach Rechnungsstellung: gesperrt** (seit 2026-07-23). Sobald für eine Buchung eine
   Rechnung existiert, verschwinden im Buchungsdetail die Entfernen-Kreuze, und ein direkter API-Aufruf

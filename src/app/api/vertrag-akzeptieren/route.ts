@@ -10,6 +10,7 @@
  *   4. Erstellt MailQueue-Eintrag fuer Vertrag-Bestaetigungs-Mail (Approval=Pending)
  *   5. Redirect zur Angebots-Seite (Status zeigt jetzt "akzeptiert")
  */
+import { buildVertragBestaetigung } from "@/lib/eventverleih/mail-templates/build/anfrage-und-member";
 import { NextRequest, NextResponse } from "next/server";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { createPaymentLink } from "@/lib/stripe/payment-links";
@@ -17,7 +18,7 @@ import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { recalcBuchung } from "@/lib/buchung-recalc";
 import { buildSnapshot, parseSnapshot } from "@/lib/angebot-snapshot";
 import { kundeNameById } from "@/lib/eventverleih/kunde-name";
-import { UEBERGABE_HINWEIS, AUFBAU_HELFER_HINWEIS, enthaeltFaltzelt } from "@/lib/eventverleih/constants";
+import { AUFBAU_HELFER_HINWEIS, enthaeltFaltzelt } from "@/lib/eventverleih/constants";
 
 async function logAudit(buchungId: number, aktion: string, details: Record<string, unknown>) {
   try {
@@ -277,7 +278,6 @@ async function handle(
     // Idempotency-Key stabil → kein Duplicate.
     {
       // MailQueue: Vertrag-Bestaetigungs-Mail (mit Manuel-Approval)
-      const subject = "Termin vorgemerkt - bitte Anzahlung leisten | Eventverleih Bergstraße";
       const vertragsUrl = `${origin}/vertrag/${token}`;
 
       // Kundenname fuer persoenliche Anrede + Stripe-Link-Beschreibung (Helper mit Retry —
@@ -352,17 +352,6 @@ async function handle(
         }
       }
 
-      const komplettZeile = komplettLink
-        ? `
-
-Oder direkt komplett zahlen (dann ist alles erledigt):
-   ${komplettLink}`
-        : "";
-      const stripeBlock = stripeLink
-        ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
-   ${stripeLink}${komplettZeile}`
-        : `Ihren persönlichen Zahlungslink sende ich Ihnen umgehend zu — melden Sie sich gern kurz, falls er nicht ankommt.`;
-
       // Auto-Login-Link fuer Mein-Bereich
       let meinBereichUrl = "";
       try {
@@ -377,36 +366,15 @@ Oder direkt komplett zahlen (dann ist alles erledigt):
         enthaeltFaltzelt((parseSnapshot(angebot.Snapshot_JSON)?.positionen ?? []).map((p) => p.bezeichnung));
       const aufbauAbsatz = zeigeAufbauHelfer ? `\n\n${AUFBAU_HELFER_HINWEIS}` : "";
 
-      const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
-      const body = `${anrede}
-
-vielen Dank für Ihre Bestätigung. Ihr Termin ist zunächst vorgemerkt.
-
-WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestätigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
-${stripeBlock}
-Verwendungszweck: ${angebot.Angebotsnummer}
-
-Restzahlung und Kaution folgen vor bzw. bei der Übergabe — bequem online per Zahlungslink.
-
-Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit. ${UEBERGABE_HINWEIS}${aufbauAbsatz}
-
-Ihren vollständigen Mietvertrag mit allen Bedingungen finden Sie hier:
-${vertragsUrl}${meinBereichUrl ? `
-
-Mein Bereich (Buchungs-Status + Zahlungen + Rechnungen):
-${meinBereichUrl}` : ""}
-
-Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
-
-Mit freundlichen Grüßen
-Manuel Büttner
-
-Eventverleih Bergstraße
-Schlesierstraße 19a, 64665 Alsbach-Hähnlein
-Tel/WhatsApp: +49 156 79521124
-E-Mail: info@eventverleih-bergstrasse.de
-
-Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
+      const mail = buildVertragBestaetigung({
+        kundeName,
+        stripeLink,
+        komplettLink,
+        angebotsnummer: angebot.Angebotsnummer,
+        vertragsUrl,
+        meinBereichUrl,
+        aufbauAbsatz,
+      });
 
       // Idempotency_Key STABIL (Buchung + Template) — bei Double-Submit kein 2. Eintrag,
       // weil Baserow keinen Unique-Constraint hat aber wir Pre-Check machen
@@ -422,8 +390,8 @@ Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
           "Buchung_Link": [buchungId],
           "Kunde_Link": [kundeId],
           Template_Key: "vertrag_bestaetigung",
-          Subject: subject,
-          Body: body,
+          Subject: mail.subject,
+          Body: mail.body,
           // Auto_Reply: Mail geht direkt ueber n8n-Poll raus, kein Manuel-Approval mehr
           // Manuels Freigabe geschah schon beim "Angebot freigeben" — die Bestaetigung ist
           // die logische Folge des Kunden-Klicks

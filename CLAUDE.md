@@ -26,3 +26,6 @@ mit gleichnamigen Tabellen (Namensschilder/Spardosen) — NICHT Eventverleih. **
 - Gästezahl-Set-Tool ist live (Gästezahl → Set in den Warenkorb); Regeln stehen im Code (`AnlassSets`/Set-Logik).
 - Tiefes Projektwissen: Memory-Archiv `project_eventverleih_bergstrasse.md` + Obsidian-Vault (bei Bedarf abrufen).
 - **Stolpersteine/Erkenntnisse zu diesem Repo: `docs/learnings.md`** — vor der Arbeit lesen, Neues sofort dort eintragen (Regel `learnings-lokal`).
+- **Mailvorlagen: `docs/mail-templates.md`** — wo die Texte leben, warum Bau-Funktionen rein sein müssen,
+  wie `npm test` und `node scripts/mail-literals-diff.mjs main <alt> <neu>` beim Verschieben von
+  Kundentexten die Zeichengleichheit beweisen. Vor jeder Arbeit an einem Mailtext lesen.

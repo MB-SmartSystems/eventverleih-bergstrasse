@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { uebergabeOrt } from "@/lib/eventverleih/config";
+import { buildTermin1h, offeneBetraegeBlock } from "@/lib/eventverleih/mail-templates/build/termin-erinnerung";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -43,47 +44,6 @@ function minutesUntil(iso: string | null): number | null {
   const t = new Date(iso).getTime();
   if (isNaN(t)) return null;
   return Math.round((t - Date.now()) / 60_000);
-}
-
-function parseDec(v: string | number | null | undefined): number {
-  if (v === null || v === undefined) return 0;
-  if (typeof v === "number") return v;
-  const n = parseFloat(String(v));
-  return isNaN(n) ? 0 : n;
-}
-
-function eur(n: number): string {
-  return n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-/**
- * Hinweis auf noch offene Beträge — NUR für die Übergabe und NUR, wenn in Baserow kein
- * Zahlungseingang vermerkt ist (Restzahlung_Bezahlt_am / Kaution_Hinterlegt_am leer).
- * Ist alles bezahlt, bleibt die Erinnerung unverändert die reine Terminmail.
- *
- * Stripe ist der Standard-Zahlweg (Geschäftsregel, siehe Projekt-CLAUDE.md „Zahlungs-Policy"
- * + Betriebshandbuch + AGB §3). Bargeld wird hier bewusst NICHT angeboten — es bleibt im
- * Ausnahmefall möglich, aber der Kunde wird nicht von sich aus darauf hingewiesen.
- */
-function offeneBetraegeBlock(b: BuchungRow): string {
-  const restSoll = parseDec(b.Restzahlung_Soll_Eur);
-  const kautSoll = parseDec(b.Kaution_Soll_Eur);
-  const restOffen = restSoll > 0 && !b.Restzahlung_Bezahlt_am;
-  const kautOffen = kautSoll > 0 && !b.Kaution_Hinterlegt_am;
-  if (!restOffen && !kautOffen) return "";
-
-  const posten: string[] = [];
-  if (restOffen) posten.push(`Restzahlung ${eur(restSoll)} EUR`);
-  if (kautOffen) posten.push(`Kaution ${eur(kautSoll)} EUR`);
-
-  const links = [
-    restOffen && b.Stripe_Restzahlung_Link ? b.Stripe_Restzahlung_Link : null,
-    kautOffen && b.Stripe_Kaution_Link ? b.Stripe_Kaution_Link : null,
-  ].filter(Boolean);
-
-  const linkZeile = links.length ? `\nHier direkt erledigen:\n${links.join("\n")}\n` : "";
-
-  return `\nKurzer Hinweis: Offen ist noch ${posten.join(" und ")}. Am schnellsten erledigen Sie das vorab online.\n${linkZeile}`;
 }
 
 function berlinTime(iso: string): string {
@@ -160,17 +120,26 @@ export async function GET(req: NextRequest) {
         if (c.which === "uebergabe") {
           try {
             const fresh = await getRow<BuchungRow>(TABLES.Buchungen, b.id);
-            zahlungsHinweis = offeneBetraegeBlock(fresh);
+            zahlungsHinweis = offeneBetraegeBlock({
+              restSoll: fresh.Restzahlung_Soll_Eur,
+              restBezahltAm: fresh.Restzahlung_Bezahlt_am,
+              restLink: fresh.Stripe_Restzahlung_Link,
+              kautionSoll: fresh.Kaution_Soll_Eur,
+              kautionHinterlegtAm: fresh.Kaution_Hinterlegt_am,
+              kautionLink: fresh.Stripe_Kaution_Link,
+            });
           } catch (e) {
             console.error("[termin-1h-reminder] pre-check getRow fehlgeschlagen:", e);
           }
         }
 
-        const body =
-          `Hallo ${name},\n\n` +
-          `kurze Erinnerung: Unser ${c.label}-Termin ist gleich — um ${berlinTime(c.iso)}.\n${ort}.\n` +
-          zahlungsHinweis +
-          `\nBis gleich!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+        const mail = buildTermin1h({
+          kundeName: name,
+          label: c.label,
+          zeit: berlinTime(c.iso),
+          ort,
+          zahlungsHinweis,
+        });
 
         try {
           await createRow(TABLES.MailQueue, {
@@ -178,8 +147,8 @@ export async function GET(req: NextRequest) {
             Buchung_Link: [b.id],
             Kunde_Link: [kundeId],
             Template_Key: `termin_1h_${c.which}`,
-            Subject: `Gleich: Ihr ${c.label}-Termin um ${berlinTime(c.iso)}`,
-            Body: body,
+            Subject: mail.subject,
+            Body: mail.body,
             Approval_Status: "Auto_Reply",
             Idempotency_Key: idemKey,
           });

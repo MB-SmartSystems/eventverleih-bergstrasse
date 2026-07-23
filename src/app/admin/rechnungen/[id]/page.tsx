@@ -70,7 +70,7 @@ export default async function RechnungDetailPage({ params }: { params: Promise<{
     <div className="space-y-6">
       <div>
         <Link href="/admin/rechnungen" className="text-sm text-warm-muted hover:text-accent">
-          ← Alle Rechnungen
+          ← Alle Belege
         </Link>
         <h1 className="text-2xl font-bold text-warm-text mt-2">
           <span className="font-mono">{r.Rechnungsnummer}</span>

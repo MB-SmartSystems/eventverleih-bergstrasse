@@ -13,9 +13,8 @@ import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, TABLES } from "@/lib/baserow/client";
 import { parseSnapshot } from "@/lib/angebot-snapshot";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
-import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { buildAngebotErneutGesendet } from "@/lib/eventverleih/mail-templates/build/angebot-versand";
 
-const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) {
@@ -104,37 +103,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
-    const anmerkungBlock = body.anmerkung?.trim()
-      ? `\n*Persönliche Anmerkung von Manuel:*\n${body.anmerkung.trim()}\n`
-      : "";
-    const memberBlock = meinBereichUrl
-      ? `\n\nMein Bereich (alle Buchungen + Zahlungen + Rechnungen einsehen):\n${meinBereichUrl}`
-      : "";
-
-    const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
-${anmerkungBlock}
-gerne senden wir Ihnen Ihr Angebot erneut zu:
-
-*Preisübersicht:*
-Mietsumme: ${preise.preisArtikel} EUR
-Anzahlung bei Bestätigung (30 %): ${preise.anzahlung} EUR
-Restzahlung bei Übergabe (70 %): ${preise.restzahlung} EUR
-Kaution (nach Rückgabe vollständig erstattet): ${preise.kaution} EUR
-
-Sie können das Angebot online ansehen und mit einem Klick bestätigen:
-${publicUrl}
-
-${UEBERGABE_HINWEIS}
-
-Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`;
+    const mail = buildAngebotErneutGesendet({
+      kunde: { Vorname: kunde.Vorname, Nachname: kunde.Nachname },
+      preise,
+      publicUrl,
+      anmerkung: body.anmerkung,
+      meinBereichUrl,
+    });
 
     await createRow(TABLES.MailQueue, {
       Erstellt_am: new Date().toISOString(),
       Buchung_Link: [buchungId],
       Kunde_Link: [kundeId],
       Template_Key: "angebot_erneut_gesendet",
-      Subject: "Ihr Angebot von Eventverleih Bergstraße (erneut zugesendet)",
-      Body: mailBody,
+      Subject: mail.subject,
+      Body: mail.body,
       Approval_Status: "Approved",
       // Zeitstempel im Key: jeder bewusste Klick = eigene Mail (Dedup nur gegen Doppel-Submit via UI)
       Idempotency_Key: `A${angebotId}-erneut-${Date.now()}`,

@@ -17,10 +17,10 @@
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { listOpenStockConflicts } from "@/lib/eventverleih/conflicts";
 import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
-import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
 import { queueAnzahlungErhaltenMail } from "@/lib/eventverleih/zahlungsbestaetigung";
 import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
-import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { buildKomplettzahlungErhalten, buildRestzahlungErhalten } from "@/lib/eventverleih/mail-templates/build/zahlung-erhalten";
 
 export type PayPalPaymentType = "anzahlung" | "restzahlung" | "komplettzahlung";
 
@@ -125,13 +125,14 @@ async function verbucheReservierung(
     const kid = b.Kunde_Link?.[0]?.id;
     const kname = await kundeNameAusLink(b.Kunde_Link);
     if (kid && paymentType === "komplettzahlung") {
+      const mailKomplett = buildKomplettzahlungErhalten({ kname });
       await createRow(TABLES.MailQueue, {
         Erstellt_am: new Date().toISOString(),
         Buchung_Link: [buchungId],
         Kunde_Link: [kid],
         Template_Key: "komplettzahlung_erhalten",
-        Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-        Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+        Subject: mailKomplett.subject,
+        Body: mailKomplett.body,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: `B${buchungId}-komplettzahlung_erhalten`,
       });
@@ -198,13 +199,14 @@ async function verbucheRestzahlung(
     const kid = b.Kunde_Link?.[0]?.id;
     const kname = await kundeNameAusLink(b.Kunde_Link);
     if (kid) {
+      const mailRest = buildRestzahlungErhalten({ kname });
       await createRow(TABLES.MailQueue, {
         Erstellt_am: new Date().toISOString(),
         Buchung_Link: [buchungId],
         Kunde_Link: [kid],
         Template_Key: "restzahlung_erhalten",
-        Subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-        Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+        Subject: mailRest.subject,
+        Body: mailRest.body,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: `B${buchungId}-restzahlung_erhalten`,
       });

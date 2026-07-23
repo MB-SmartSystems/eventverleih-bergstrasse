@@ -8,11 +8,12 @@
  * Kunde + Telegram an Manuel (KEIN Auto-Stripe-Refund — Manuel triggert manuell wegen
  * Live-Charge-Sicherheit).
  */
+import { buildStornoBestaetigung } from "@/lib/eventverleih/mail-templates/build/anfrage-und-member";
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { berechneStorno } from "@/lib/eventverleih/storno";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
-import { bezahltEur, eurMail } from "@/lib/eventverleih/zahlung";
+import { bezahltEur } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 
@@ -114,28 +115,18 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     });
 
     // Mail an Kunde
-    const erstattungText = calc.erstattung_eur > 0
-      ? `Sie erhalten ${eurMail(calc.erstattung_eur)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).`
-      : calc.nachzahlung_eur > 0
-        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
-        : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
-
-    const mailBody = `Hallo ${kunde.Vorname || ""} ${kunde.Nachname || ""},
-
-Ihre Stornierung der Buchung #${buchungId} ist eingegangen.
-
-Stornogebühr (laut AGB): ${calc.stornogebuehr_prozent} % der Mietsumme
-  ${calc.staffel_label}
-  Mietsumme: ${eurMail(mietsumme)} EUR
-  Stornogebühr: ${eurMail(calc.stornogebuehr_eur)} EUR
-  Bereits bezahlt: ${eurMail(bezahlt)} EUR
-
-${erstattungText}
-
-Bei Rückfragen melden Sie sich gerne per WhatsApp/Tel +49 156 79521124.
-
-Mit freundlichen Grüßen
-Manuel Büttner — Eventverleih Bergstraße`;
+    const mail = buildStornoBestaetigung({
+      vorname: kunde.Vorname || "",
+      nachname: kunde.Nachname || "",
+      buchungId,
+      stornogebuehrProzent: calc.stornogebuehr_prozent,
+      staffelLabel: calc.staffel_label,
+      mietsumme,
+      stornogebuehrEur: calc.stornogebuehr_eur,
+      bezahlt,
+      erstattungEur: calc.erstattung_eur,
+      nachzahlungEur: calc.nachzahlung_eur,
+    });
 
     try {
       await createRow(TABLES.MailQueue, {
@@ -143,8 +134,8 @@ Manuel Büttner — Eventverleih Bergstraße`;
         Buchung_Link: [buchungId],
         Kunde_Link: [kunde.id],
         Template_Key: "storno_bestaetigung",
-        Subject: `Stornierung Ihrer Buchung #${buchungId} — Eventverleih Bergstraße`,
-        Body: mailBody,
+        Subject: mail.subject,
+        Body: mail.body,
         Approval_Status: "Auto_Reply",
         Idempotency_Key: `B${buchungId}-storno-mail`,
       });

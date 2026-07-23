@@ -10,6 +10,7 @@
  * platziert (Kaution_Hinterlegt_am leer) → bestehenden Link wiederverwenden.
  * Wenn Hold schon platziert → { ok:false, reason:"already_placed" }.
  */
+import { buildKautionHoldLink } from "@/lib/eventverleih/mail-templates/build/kaution";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { createKautionCheckoutSession } from "@/lib/stripe/payment-links";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
@@ -81,42 +82,13 @@ export async function queueKautionHoldMail(opts: {
     console.error("[kaution-mail] memberAutoLoginUrl fehlgeschlagen:", e);
   }
 
-  const greeting = `Hallo ${kunde.Vorname} ${kunde.Nachname}`.trim();
-  const amountFmt = amount.toLocaleString("de-DE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  const mail = buildKautionHoldLink({
+    vorname: kunde.Vorname,
+    nachname: kunde.Nachname,
+    amount,
+    kautionUrl,
+    meinBereichUrl,
   });
-  const memberBlock = meinBereichUrl
-    ? `\n\nMein Bereich (Buchungs-Status + Zahlungen + Rechnungen):\n${meinBereichUrl}`
-    : "";
-
-  const subject = "Kaution hinterlegen | Eventverleih Bergstraße";
-  const mailBody = `${greeting},
-
-vor der Übergabe brauchen wir Ihre Kaution als Sicherheit. **Wir buchen die Kaution NICHT ab** — Stripe blockiert den Betrag nur auf Ihrer Karte (sogenannte Pre-Authorization). Bei Rückgabe ohne Schäden wird der Hold automatisch aufgelöst, es fließt kein Geld.
-
-Kautions-Betrag: ${amountFmt} EUR
-
-Bitte hier hinterlegen:
-${kautionUrl}
-
-Wichtiges in Kürze:
-  * Karte wird geprüft + Betrag vorgemerkt (kein Abbuchen)
-  * Hold ist standardmäßig 7 Tage aktiv. Bei Visa/Mastercard verlängert Stripe ggf. auf bis zu 30 Tage automatisch.
-  * Bei Rückgabe ohne Schäden: Auflösung des Holds in der Regel innerhalb 1-3 Werktagen.
-  * Falls beim Hinterlegen etwas klemmt, melden Sie sich kurz — dann finden wir gemeinsam eine Lösung.${memberBlock}
-
-Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
-
-Mit freundlichen Grüßen
-Manuel Büttner
-
-Eventverleih Bergstraße
-Schlesierstraße 19a, 64665 Alsbach-Hähnlein
-Tel/WhatsApp: +49 156 79521124
-E-Mail: info@eventverleih-bergstrasse.de
-
-Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
   // Idempotenz-Key: Default date-suffixed (Reminder mehrfach erlaubt), Cron uebergibt stabilen Key.
   const today = new Date().toISOString().slice(0, 10);
@@ -126,8 +98,8 @@ Nicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
     Buchung_Link: [buchungId],
     Kunde_Link: [kundeId],
     Template_Key: "kaution_hold_link",
-    Subject: subject,
-    Body: mailBody,
+    Subject: mail.subject,
+    Body: mail.body,
     Approval_Status: "Auto_Reply",
     Idempotency_Key: idemKey,
   });
