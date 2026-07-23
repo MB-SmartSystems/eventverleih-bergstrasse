@@ -73,7 +73,7 @@ describe('buildAnzahlungErinnerung', () => {
     expect(out.body).toContain('https://buy.stripe.test/anzahlung');
   });
 
-  it('varies only the opening sentence between the four stages', () => {
+  it('varies only the opening sentence between the two stages', () => {
     const post3 = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_post3' }).body;
     const pre7 = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_pre7' }).body;
     expect(post3).not.toEqual(pre7);
@@ -82,9 +82,9 @@ describe('buildAnzahlungErinnerung', () => {
     expect(pre7).toContain(kern);
   });
 
-  it('keeps one subject across all stages', () => {
-    const a = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_pre3' }).subject;
-    const b = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_pre14' }).subject;
+  it('keeps one subject across both stages', () => {
+    const a = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_post3' }).subject;
+    const b = buildAnzahlungErinnerung({ ...basis, tpl: 'anzahlung_pre7' }).subject;
     expect(a).toEqual(b);
   });
 });

@@ -39,13 +39,13 @@ interface AngebotRow {
 
 /**
  * Trigger-Stufen — Priorisierung absteigend (näher am Event = wichtiger).
- * Bei Mehrfach-Match an einem Tag (z.B. Buchung 7 Tage vor Event mit Akzept vor 3 Tagen
- * matched sowohl pre7 als auch post3) gewinnt der FRUEHESTE Eintrag dieser Liste.
+ * Bewusst nur zwei Stufen (Entscheidung 2026-07-23, A4): ein Nudge kurz nach der
+ * Bestätigung (post3) und eine Woche vor dem Event (pre7). Die früheren Stufen pre14
+ * und pre3 sind entfallen, damit die Erinnerung ein freundlicher Nudge bleibt und keine
+ * Mahnkaskade wird. Bei Mehrfach-Match an einem Tag gewinnt der FRUEHESTE Eintrag.
  */
 const STUFEN = [
-  { tpl: "anzahlung_pre3", art: "pre_event" as const, tage: 3 },
   { tpl: "anzahlung_pre7", art: "pre_event" as const, tage: 7 },
-  { tpl: "anzahlung_pre14", art: "pre_event" as const, tage: 14 },
   { tpl: "anzahlung_post3", art: "post_bestaetigt" as const, tage: 3 },
 ];
 
