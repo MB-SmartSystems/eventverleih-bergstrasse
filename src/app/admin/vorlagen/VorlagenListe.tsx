@@ -92,7 +92,12 @@ function Vorlage({ v }: { v: VorlagenAnsicht }) {
       </header>
 
       {v.beispiele.length > 1 && (
-        <div className="flex flex-wrap gap-2 px-5 pt-4">
+        <div className="px-5 pt-4">
+          <p className="text-xs text-warm-muted mb-2">
+            Vorschau-Varianten (nur intern, keine Auswahl). Zeigt, wie der Text in den
+            verschiedenen Fällen aussieht.
+          </p>
+          <div className="flex flex-wrap gap-2">
           {v.beispiele.map((ex, i) => (
             <button
               key={ex.label}
@@ -107,6 +112,7 @@ function Vorlage({ v }: { v: VorlagenAnsicht }) {
               {ex.label}
             </button>
           ))}
+          </div>
         </div>
       )}
 

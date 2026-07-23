@@ -19,18 +19,27 @@ describe('pruefeText', () => {
     expect(befunde.map((b) => b.regel)).not.toContain('bargeld');
   });
 
-  it('flags em dashes but leaves the signature separator alone', () => {
+  it('flags body em dashes, exempts the signature line, and ignores the subject (B5)', () => {
+    // Signature line is house style, matched by the brand name → never flagged.
     const nurSignatur = pruefeText({
       subject: 'Info',
       body: 'Alles klar.\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße',
     });
     expect(nurSignatur.map((b) => b.regel)).not.toContain('em-dash');
 
+    // Em dash in the body fliesstext (own line, no brand name) → flagged.
     const imFliesstext = pruefeText({
+      subject: 'Info',
+      body: 'Danke — bis bald.\n\nEventverleih Bergstraße',
+    });
+    expect(imFliesstext.map((b) => b.regel)).toContain('em-dash');
+
+    // Em dash only in the subject → NOT flagged; the subject is no longer checked.
+    const nurBetreff = pruefeText({
       subject: 'Zahlung erhalten — Ihre Buchung ist vollständig bezahlt',
       body: 'Danke. Eventverleih Bergstraße',
     });
-    expect(imFliesstext.map((b) => b.regel)).toContain('em-dash');
+    expect(nurBetreff.map((b) => b.regel)).not.toContain('em-dash');
   });
 
   it('flags a missing sender identification', () => {
@@ -79,10 +88,6 @@ describe('pruefeAlle über die echte Registry', () => {
       new Set(alle.filter((v) => v.befunde.some((b) => b.regel === 'bargeld')).map((v) => v.tpl)),
     ).sort();
     expect(mitBargeld).toEqual(['kaution_bar_hinweis', 'restzahlung_pre3', 'termin_erinnerung']);
-  });
-
-  it('finds the em dash in the payment confirmation subject', () => {
-    expect(befundeFuer('komplettzahlung_erhalten').map((b) => b.regel)).toContain('em-dash');
   });
 
   it('leaves no template with unresolved leftovers', () => {

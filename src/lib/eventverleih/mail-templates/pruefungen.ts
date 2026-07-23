@@ -21,8 +21,21 @@ export interface Befund {
   stelle: string;
 }
 
-/** Brand separator used in every signature — a deliberate, consistent house style. */
-const SIGNATUR_TRENNER = "Manuel Büttner — Eventverleih Bergstraße";
+/**
+ * Brand name that identifies the signature line. The signature uses an em dash as a
+ * deliberate house style; instead of matching the exact separator string (which broke
+ * whenever the surrounding text differed slightly), we treat the whole line that carries
+ * the brand name as house style and exempt it from the em-dash check.
+ */
+const SIGNATUR_MARKE = "Eventverleih Bergstraße";
+
+/** The full line that contains `index`, from the previous newline to the next. */
+function zeileUm(text: string, index: number): string {
+  const start = text.lastIndexOf("\n", index) + 1;
+  let end = text.indexOf("\n", index);
+  if (end === -1) end = text.length;
+  return text.slice(start, end);
+}
 
 function ausschnitt(text: string, index: number, laenge = 90): string {
   const von = Math.max(0, index - 35);
@@ -57,22 +70,28 @@ function pruefeBargeld(mail: MailText): Befund[] {
   return befunde;
 }
 
-/** Em dashes are the strongest AI marker in German copy. */
+/**
+ * Em dashes are the strongest AI marker in German copy.
+ *
+ * Only the BODY is checked (decision B5, 2026-07-23): the subject often carries a
+ * legitimate em dash and is short enough to eyeball. The signature line is house style,
+ * so any em dash on the line that carries the brand name is exempt — matched by the brand
+ * name, not by an exact separator string, so slight wording changes no longer flip the check.
+ */
 function pruefeEmDash(mail: MailText): Befund[] {
   const befunde: Befund[] = [];
-  for (const feld of ["subject", "body"] as const) {
-    // The signature separator is house style and would drown out the real hits.
-    const text = mail[feld].split(SIGNATUR_TRENNER).join("");
-    let index = text.indexOf("—");
-    while (index !== -1) {
+  const text = mail.body;
+  let index = text.indexOf("—");
+  while (index !== -1) {
+    if (!zeileUm(text, index).includes(SIGNATUR_MARKE)) {
       befunde.push({
         regel: "em-dash",
         schwere: "hinweis",
         text: "Geviertstrich im Fließtext. Stärkster KI-Marker; durch Komma, Punkt oder Umformulierung ersetzen.",
         stelle: ausschnitt(text, index),
       });
-      index = text.indexOf("—", index + 1);
     }
+    index = text.indexOf("—", index + 1);
   }
   return befunde;
 }
