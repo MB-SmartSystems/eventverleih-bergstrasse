@@ -152,44 +152,21 @@ export function verteileBetrag(betragEur: number, stand: PostenStand): Aufteilun
 export interface ErstattungFelder {
   Kaution_Soll_Eur?: string | number | null;
   Ueberzahlung_Eur?: string | number | null;
-  /** Nur fuer Altdatensaetze, siehe `ueberzahlungEur`. */
-  Zahlungen_JSON?: string | null;
 }
 
 /**
  * Zuviel gezahlter Betrag einer Buchung.
  *
- * Quelle ist das Skalar-Feld `Ueberzahlung_Eur`. Ist es NICHT GESETZT (null/undefined,
- * nicht 0), wird ersatzweise die Historie in `Zahlungen_JSON` nach Eintraegen mit
- * `typ: "ueberzahlung"` durchsucht.
+ * Einzige Quelle ist das Skalar-Feld `Ueberzahlung_Eur` — dieselbe Regel wie im
+ * Dateikopf fuer Anzahlung und Restzahlung. `Zahlungen_JSON` bleibt Historie.
  *
- * Warum das die Regel im Dateikopf nicht bricht: Dort geht es um Anzahlung und
- * Restzahlung, die auch der Stripe-Webhook setzt — dort ist die Historie bei
- * Stripe-Zahlern leer und eine Summe daraus faelschlich 0. Eine Ueberzahlung kann
- * Stripe gar nicht erzeugen; sie entsteht ausschliesslich bei manueller Erfassung,
- * die immer BEIDES schreibt. Der Rueckfall greift nur dort, wo das Feld noch gar
- * nicht existierte, und kann einen gesetzten Wert nie ueberstimmen.
- *
- * Der Rueckfall darf entfallen, sobald die Altdatensaetze das Feld tragen.
+ * Bis zum 23.07.2026 gab es hier einen Rueckfall auf die Historie, weil das Feld
+ * neu war und Buchung 32 ihre 17,50 EUR nur dort stehen hatte. Der Bestand wurde
+ * geprueft (genau eine betroffene Buchung) und nachgetragen, danach ist der
+ * Rueckfall entfallen: zwei Quellen fuer denselben Betrag sind eine Quelle zu viel.
  */
 export function ueberzahlungEur(b: ErstattungFelder): number {
-  const skalar = b.Ueberzahlung_Eur;
-  if (skalar !== null && skalar !== undefined && String(skalar).trim() !== "") {
-    return Math.round(num(skalar) * 100) / 100;
-  }
-  if (!b.Zahlungen_JSON) return 0;
-  try {
-    const parsed = JSON.parse(b.Zahlungen_JSON);
-    if (!Array.isArray(parsed)) return 0;
-    let summe = 0;
-    for (let i = 0; i < parsed.length; i++) {
-      const e = parsed[i];
-      if (e && e.typ === "ueberzahlung") summe += cent(num(e.betrag));
-    }
-    return eur(summe);
-  } catch {
-    return 0;
-  }
+  return Math.round(num(b.Ueberzahlung_Eur) * 100) / 100;
 }
 
 export interface Erstattung {

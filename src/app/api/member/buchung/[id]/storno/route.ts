@@ -29,6 +29,7 @@ interface BuchungData {
   Anzahlung_Bezahlt_Eur: string | number | null;
   Restzahlung_Bezahlt_Eur: string | number | null;
   Zahlungen_JSON: string | null;
+  Ueberzahlung_Eur: string | number | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
 

@@ -112,23 +112,18 @@ describe('ueberzahlungEur', () => {
     expect(ueberzahlungEur({ Ueberzahlung_Eur: 17.5 })).toBe(17.5);
   });
 
-  it('takes a set zero at face value and does not fall back', () => {
-    // Sonst wuerde ein bewusst genullter Wert von der Historie ueberstimmt.
-    const b = { Ueberzahlung_Eur: 0, Zahlungen_JSON: '[{"typ":"ueberzahlung","betrag":17.5}]' };
-    expect(ueberzahlungEur(b)).toBe(0);
-  });
-
-  it('falls back to the history only while the field is unset', () => {
-    const b = { Zahlungen_JSON: '[{"typ":"restzahlung","betrag":52.5},{"typ":"ueberzahlung","betrag":17.5}]' };
-    expect(ueberzahlungEur(b)).toBe(17.5);
-    expect(ueberzahlungEur({ Ueberzahlung_Eur: null, ...b })).toBe(17.5);
-  });
-
-  it('survives broken or absent history', () => {
+  it('is zero when the field is unset', () => {
     expect(ueberzahlungEur({})).toBe(0);
-    expect(ueberzahlungEur({ Zahlungen_JSON: 'kein json' })).toBe(0);
-    expect(ueberzahlungEur({ Zahlungen_JSON: '{"typ":"ueberzahlung"}' })).toBe(0);
-    expect(ueberzahlungEur({ Zahlungen_JSON: '[]' })).toBe(0);
+    expect(ueberzahlungEur({ Ueberzahlung_Eur: null })).toBe(0);
+    expect(ueberzahlungEur({ Ueberzahlung_Eur: 0 })).toBe(0);
+  });
+
+  it('ignores the payment history entirely', () => {
+    // Der Rueckfall auf Zahlungen_JSON ist am 23.07.2026 entfallen, nachdem der
+    // Bestand nachgetragen war. Das Feld ist die einzige Quelle.
+    const b = { Ueberzahlung_Eur: null } as Record<string, unknown>;
+    b.Zahlungen_JSON = '[{"typ":"ueberzahlung","betrag":17.5}]';
+    expect(ueberzahlungEur(b)).toBe(0);
   });
 });
 
@@ -141,17 +136,9 @@ describe('erstattungEur', () => {
     });
   });
 
-  it('reaches 47,50 for booking 32 from its real stored data', () => {
-    // Genau der Datensatz, wie er heute in Baserow steht: das neue Feld ist dort noch
-    // leer, die 17,50 stehen nur in der Historie. Der Beleg fuer Montag.
-    const b32 = {
-      Kaution_Soll_Eur: '30.00',
-      Zahlungen_JSON: JSON.stringify([
-        { datum: '2026-07-23', typ: 'restzahlung', betrag: 52.5, methode: 'Bar' },
-        { datum: '2026-07-23', typ: 'kaution', betrag: 30, methode: 'Bar' },
-        { datum: '2026-07-23', typ: 'ueberzahlung', betrag: 17.5, methode: 'Bar' },
-      ]),
-    };
+  it('reaches 47,50 for booking 32 as it is stored after the backfill', () => {
+    // Genau der Datensatz, wie er seit dem 23.07.2026 in Baserow steht.
+    const b32 = { Kaution_Soll_Eur: '30.00', Ueberzahlung_Eur: '17.50' };
     expect(erstattungEur(b32).gesamtEur).toBe(47.5);
   });
 
