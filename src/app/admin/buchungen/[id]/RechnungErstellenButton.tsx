@@ -73,16 +73,22 @@ export default function RechnungErstellenButton({
   hasPrice,
   alreadyHasRechnung,
   belegMailAm = null,
+  gate = { ok: true, grund: null },
 }: {
   buchungId: number;
   hasPrice: boolean;
   alreadyHasRechnung: boolean;
   /** Versand-Marker der vorhandenen Rechnung. Leer heißt unbekannt, nicht "nicht verschickt". */
   belegMailAm?: string | null;
+  /** Lifecycle-Gate: erst am Ablauf-Ende erstellbar. `ok:false` sperrt die ERSTE Erstellung mit Begründung. */
+  gate?: { ok: boolean; grund: string | null };
 }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const belegVersendet = alreadyHasRechnung && !!belegMailAm;
+  // Das Gate sperrt nur die ERST-Erstellung. Existiert der Beleg schon, bleibt der Nachhol-Pfad
+  // (Belegmail nachholen) offen — sonst könnte eine fehlende Mail nie repariert werden.
+  const belegGesperrt = !alreadyHasRechnung && !gate.ok;
   const [created, setCreated] = useState<{
     rechnungsnummer: string;
     url: string;
@@ -160,23 +166,27 @@ export default function RechnungErstellenButton({
       )}
       <button
         onClick={exec}
-        disabled={submitting || belegVersendet}
+        disabled={submitting || belegVersendet || belegGesperrt}
         className="w-full py-3 px-4 rounded-lg bg-accent text-white text-sm font-medium hover:bg-accent-dark disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
       >
         {submitting
           ? "Wird erstellt …"
           : belegVersendet
             ? "Beleg bereits versendet"
-            : alreadyHasRechnung
-              ? "Belegmail nachholen"
-              : "Beleg erstellen + Mail senden"}
+            : belegGesperrt
+              ? "Beleg noch nicht verfügbar"
+              : alreadyHasRechnung
+                ? "Belegmail nachholen"
+                : "Beleg erstellen + Mail senden"}
       </button>
       <p className="text-xs text-warm-muted mt-2">
         {belegVersendet
           ? `Die Belegmail ging am ${fmtZeit(belegMailAm)} an den Kunden. Ein erneuter Versand würde ihn doppelt erreichen und ist deshalb gesperrt.`
-          : alreadyHasRechnung
-            ? "Der Beleg existiert bereits, es entsteht kein zweiter. Für ihn ist kein Mailversand vermerkt, der Knopf holt ihn nach."
-            : "Kompletter Beleg mit PDF-Anhang an die Kunden-Mail. Web-Ansicht zusätzlich verlinkt."}
+          : belegGesperrt
+            ? gate.grund
+            : alreadyHasRechnung
+              ? "Der Beleg existiert bereits, es entsteht kein zweiter. Für ihn ist kein Mailversand vermerkt, der Knopf holt ihn nach."
+              : "Kompletter Beleg mit PDF-Anhang an die Kunden-Mail. Web-Ansicht zusätzlich verlinkt."}
       </p>
     </section>
   );

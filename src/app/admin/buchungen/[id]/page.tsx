@@ -213,6 +213,19 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const bezahlt = bezahltEur(buchung);
   const offen = Math.max(0, gesamt - bezahlt);
   const kautionSoll = numv(buchung.Kaution_Soll_Eur);
+  // Beleg-Gate (C1): der Beleg gehört ans Ende des Ablaufs — erst nach erfasster Rückgabe,
+  // vollständig bezahlter Miete UND abgerechneter Kaution (Schadensprüfung inklusive).
+  const belegRueckgegeben = status === "Zurueckgegeben" || status === "Abgerechnet";
+  const belegMieteBezahlt = bezahlt >= gesamt - kautionSoll - 0.01;
+  const belegKautionAbgerechnet = kautionSoll <= 0 || !!buchung.Kaution_Rueckzahlung_am;
+  const belegGateOk = belegRueckgegeben && belegMieteBezahlt && belegKautionAbgerechnet;
+  const belegGateGrund = belegGateOk
+    ? null
+    : !belegRueckgegeben
+      ? "Beleg erst nach erfasster Rückgabe."
+      : !belegMieteBezahlt
+        ? "Beleg erst, wenn die Miete vollständig bezahlt ist."
+        : "Beleg erst nach der Kaution-Abrechnung (Schadensprüfung).";
 
   // Kassier-Banner: was bei einer bald anstehenden Übergabe noch einzusammeln ist.
   const uebergabeDatum = buchung.Uebergabe_Termin || buchung.Event_datum_von;
@@ -453,6 +466,7 @@ Vertrag
         hasPrice={parseFloat(buchung.Preis_Artikel ?? "0") > 0}
         alreadyHasRechnung={rechnungen.length > 0}
         belegMailAm={rechnungen[0]?.Beleg_Mail_am ?? null}
+        gate={{ ok: belegGateOk, grund: belegGateGrund }}
       />
 
       {/* 3. Bestellung */}
