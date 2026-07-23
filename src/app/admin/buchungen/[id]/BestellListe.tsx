@@ -52,8 +52,8 @@ function Kreuz({
 /**
  * Bestellung: Artikel-Positionen und zusätzlich gebuchte Leistungen, jeweils mit
  * Entfernen-Kreuz direkt in der Zeile. Ersetzt die frühere Kombination aus
- * server-gerenderter Tabelle plus EntfernenPanel darunter, das jeden Artikel ein
- * zweites Mal aufgelistet hat.
+ * server-gerenderter Tabelle plus einem separaten Entfernen-Block darunter, der
+ * jeden Artikel ein zweites Mal aufgelistet hat.
  *
  * Die Entfernen-Logik ist unverändert übernommen: Sicherheitsabfrage, API-Aufruf,
  * serverseitiger recalc, Reload. Die geteilte Busy-Sperre ist zwingend und der Grund,

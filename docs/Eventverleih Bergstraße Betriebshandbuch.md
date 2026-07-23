@@ -157,6 +157,19 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 - **Zahlungsgebühren nie an den Kunden weitergeben** (§270a BGB). Entfällt eine bezahlte Leistung → volle Differenz erstatten, ohne Gebühren-Abzug.
 - **Rechnung nach der Rückgabe** (Leistung erbracht), **entkoppelt** von der Kautionsrückzahlung — nicht darauf warten.
 - **Offene Kautionsrückzahlung = Buchung gilt NICHT als abgeschlossen** (bleibt offene Aktion bis erstattet).
+- **Positionen ändern nach Rechnungsstellung: gesperrt** (seit 2026-07-23). Sobald für eine Buchung eine
+  Rechnung existiert, verschwinden im Buchungsdetail die Entfernen-Kreuze, und ein direkter API-Aufruf
+  wird mit 409 abgelehnt. Grund: Der Rechnungs-Snapshot ist GoBD-eingefroren und ändert sich nicht mit,
+  die Buchung schon — ohne Sperre liefe die Buchungssumme still von der ausgestellten Rechnung weg.
+  Eine Korrektur nach Rechnungsstellung läuft über eine Storno- oder Korrekturrechnung (existiert noch
+  nicht), nicht über stilles Löschen. Entfernte Positionen und Leistungen landen jetzt außerdem im
+  Audit-Log (Zustand vor dem Löschen). Volle Entscheidung: Vault
+  `Decisions/2026-07-23-positionen-nach-rechnungsstellung-gesperrt.md`.
+- **Buchung wird beim Rechnung-Erstellen automatisch abgerechnet**, wenn sie auf „Zurueckgegeben" steht,
+  die Rechnung bereits bezahlt entsteht **und** keine Kautionsrückzahlung mehr offen ist. Vorher hing
+  dieser Übergang allein am Button „Als bezahlt markieren", der bei einer schon bezahlt entstehenden
+  Rechnung nie erscheint — deshalb blieben Buchungen trotz bezahlter Rechnung auf „Zurueckgegeben"
+  stehen (16, 22, 27 am 2026-07-23 von Hand korrigiert).
 - **Angebot läuft still ab** (keine „Angebot abgelaufen"-Mail). Gültigkeit ~14 Tage. Nachhaken erst nach ~10 Tagen, „erneut senden" nur Ausnahme.
 - **Mail-Ton:** Erfolgsfall (volle Erstattung) warm + persönlich inkl. Bewertungsbitte; Schadensfälle (Teil/Einzug) sachlich-neutral. Stil-Grundregeln (`schreibstil-manu`) immer durchsetzen.
 - **Keine Auto-Kundenmail aus Einzelaktionen** (seit 2026-06-24): Kundenmail bewusst über „Rechnung erstellen + Mail senden", nicht als Nebeneffekt eines Buttons.

@@ -40,10 +40,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const buchungId = body.buchungId;
 
   try {
-    // Die massgebliche Buchung ist die an der Position verlinkte, NICHT die aus dem Body: sonst
-    // liesse sich der Rechnungs-Guard umgehen, indem ein direkter Aufruf eine ungesperrte
-    // buchungId mitschickt und damit eine Position einer abgerechneten Buchung loescht (und
-    // obendrein die falsche Buchung neu berechnet). Der Body-Wert wird nur noch gegengeprueft.
+    // Die maßgebliche Buchung ist die an der Position verlinkte, NICHT die aus dem Body: sonst
+    // ließe sich der Rechnungs-Guard umgehen, indem ein direkter Aufruf eine ungesperrte
+    // buchungId mitschickt und damit eine Position einer abgerechneten Buchung löscht (und
+    // obendrein die falsche Buchung neu berechnet). Der Body-Wert wird nur noch gegengeprüft.
     const vorher = await getRow<PositionRow>(TABLES.Buchungs_Position, positionId);
     const echteBuchungId = vorher.Buchung_Link?.[0]?.id;
     if (!echteBuchungId) {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
     if (echteBuchungId !== buchungId) {
       return NextResponse.json(
-        { error: "buchungId passt nicht zur Position", detail: `Position ${positionId} gehoert zu Buchung ${echteBuchungId}.` },
+        { error: "buchungId passt nicht zur Position", detail: `Position ${positionId} gehört zu Buchung ${echteBuchungId}.` },
         { status: 400 },
       );
     }
