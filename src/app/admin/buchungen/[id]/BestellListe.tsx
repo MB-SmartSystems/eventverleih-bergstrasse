@@ -190,8 +190,8 @@ export default function BestellListe({
 
       {gesperrt && (
         <p className="mt-4 pt-3 border-t border-warm-border text-xs text-warm-muted">
-          Rechnung {rechnungsnummer} ist erstellt. Positionen und Leistungen lassen sich nicht mehr
-          entfernen. Für eine Korrektur braucht es eine Storno- oder Korrekturrechnung.
+          Beleg {rechnungsnummer} ist erstellt. Positionen und Leistungen lassen sich nicht mehr
+          entfernen. Für eine Korrektur braucht es einen Storno- oder Korrekturbeleg.
         </p>
       )}
     </section>
