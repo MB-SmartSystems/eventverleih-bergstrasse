@@ -118,6 +118,29 @@ falsch. Und: Ein Schutzmechanismus ist erst dann einer, wenn sein Fehlschlag sic
 
 ---
 
+## 2026-07-23 — Ein Wort in der Umlaut-Positivliste reicht nicht, wenn es am Satzende steht
+
+**Kontext:** „Stornogebuehr" ging in drei Staffel-Bezeichnungen an Kunden raus. Naheliegend war,
+`stornogebuehr*` in `scripts/umlaut-woerter.txt` zu ergänzen — in einer Probe blieb die Zeile trotzdem
+grün.
+
+**Folge:** Die Satz-Heuristik in `check-umlaute.mjs` wertete ein Wort nur dann als Fließtext, wenn
+links ein Buchstabe oder rechts ein weiteres Wort stand. Bei `"… — 100 % Stornogebuehr"` steht das Wort
+am **Ende eines String-Literals**: links ein Leerzeichen, rechts das schließende Anführungszeichen.
+Beides traf nicht zu, das Gate meldete grün.
+
+**Lehre:** Ein schließendes Anführungszeichen zählt jetzt als Satzende. Die Erweiterung fand im selben
+Lauf eine zweite, seit Monaten unbemerkte kundensichtbare Stelle („keine Gebuehr" im Kundenbereich) —
+ein Hinweis darauf, dass diese Form häufiger vorkommt als gedacht. Wer ein Wort in die Liste einträgt,
+prüft mit einer Probe-Datei nach, ob die Fundstelle wirklich rot wird; die Liste allein ist kein Beleg.
+
+**Nebenbefund zum Literal-Gate:** `npm run check:mail-literals` vergleicht gegen `main`. Auf einem
+Zweig mit bereits abgestimmten Textänderungen ist es deshalb dauerhaft rot. Um zu sehen, was die
+*aktuelle* Änderung bewegt hat, gegen den Zweig-Stand prüfen:
+`node scripts/mail-literals-diff.mjs HEAD`.
+
+---
+
 ## Offen / noch nicht erprobt
 
 - **Der Versand-Marker ist ungetestet im Echtbetrieb.** Der Pfad wurde geprüft, aber bewusst nie
