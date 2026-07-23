@@ -26,16 +26,27 @@ export interface TemplateExample<Ctx> {
   ctx: Ctx;
 }
 
+/**
+ * How a mail leaves the house. Three states, not two — the difference matters:
+ * `automatisch` means no human is involved at any point.
+ */
+export type Freigabe =
+  /** Approval_Status=Auto_Reply — the poll sends it, nobody looked at it. */
+  | "automatisch"
+  /** Approval_Status=Approved — an admin action triggered it, the text was not reviewed separately. */
+  | "durch-admin-aktion"
+  /** Approval_Status=Pending — waits in the dashboard until released. */
+  | "wartet-auf-freigabe";
+
 export interface TemplateEntry<Ctx = never> {
   /** Template_Key as written into the Baserow MailQueue (table 969). */
-  key: string;
+  tpl: string;
   /** German title shown in the admin view. */
   title: string;
-  /** When it fires, German, e.g. "Cron, Vortag der Uebergabe". */
+  /** When it fires, German, e.g. "Cron taeglich 08:00 UTC, T-5 vor dem Event". */
   trigger: string;
-  /** true = Auto_Reply, goes out on its own. false = needs approval first. */
-  autoSend: boolean;
-  /** Where the MailQueue row is created, e.g. "src/lib/eventverleih/termin-reminder.ts:144". */
+  freigabe: Freigabe;
+  /** Where the MailQueue row is created, e.g. "src/lib/eventverleih/termin-reminder.ts:127". */
   source: string;
   build: TemplateBuilder<Ctx>;
   examples: TemplateExample<Ctx>[];
@@ -47,7 +58,7 @@ export interface TemplateEntry<Ctx = never> {
  * saying so is worse than none.
  */
 export interface UncoveredTemplate {
-  key: string;
+  tpl: string;
   title: string;
   /** Why it is missing, in German. */
   reason: string;
