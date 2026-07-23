@@ -20,6 +20,15 @@ function num(v: string | number | null | undefined): number {
   return isNaN(n) ? 0 : n;
 }
 
+/** Euro auf Cent runden. Alle Zwischenrechnungen laufen in Cent, nie in Gleitkomma-Euro. */
+function cent(eur: number): number {
+  return Math.round(eur * 100);
+}
+
+function eur(c: number): number {
+  return Math.round(c) / 100;
+}
+
 /** Tatsaechlich bezahlte Mietsumme (Anzahlung + Restzahlung), auf Cent gerundet. */
 export function bezahltEur(b: BezahltFelder): number {
   return Math.round((num(b.Anzahlung_Bezahlt_Eur) + num(b.Restzahlung_Bezahlt_Eur)) * 100) / 100;
@@ -29,3 +38,231 @@ export function bezahltEur(b: BezahltFelder): number {
 export function eurMail(n: number): string {
   return n.toFixed(2).replace(".", ",");
 }
+
+/* ------------------------------------------------------------------------- *
+ * Verteilung eines erhaltenen Gesamtbetrags
+ * ------------------------------------------------------------------------- */
+
+/** Die drei Posten, die Geld aufnehmen koennen — in genau dieser Reihenfolge. */
+export type PostenTyp = "anzahlung" | "restzahlung" | "kaution";
+
+/** Feste Fuell-Reihenfolge. Aendern heisst: Geld landet woanders. */
+export const REIHENFOLGE: readonly PostenTyp[] = ["anzahlung", "restzahlung", "kaution"] as const;
+
+/**
+ * Soll- und Ist-Stand der drei Posten.
+ *
+ * `kautionBezahltEur` gibt es in Baserow nicht als eigenes Feld — dort steht nur
+ * `Kaution_Hinterlegt_am`. Der Aufrufer setzt deshalb `kautionSollEur`, sobald das
+ * Datum gesetzt ist. Diese Funktion rechnet bewusst nur mit Zahlen und liest nichts.
+ */
+export interface PostenStand {
+  anzahlungSollEur: number;
+  anzahlungBezahltEur: number;
+  restzahlungSollEur: number;
+  restzahlungBezahltEur: number;
+  kautionSollEur: number;
+  kautionBezahltEur: number;
+}
+
+export interface Zuweisung {
+  typ: PostenTyp;
+  /** Was von der Eingabe auf diesen Posten faellt. Immer > 0. */
+  betragEur: number;
+  offenVorherEur: number;
+  offenNachherEur: number;
+}
+
+export interface Aufteilung {
+  eingabeEur: number;
+  /** Nur Posten, auf die wirklich etwas entfaellt, in fester Reihenfolge. */
+  zuweisungen: Zuweisung[];
+  /** Was nach dem Fuellen aller Posten uebrig bleibt. Gehoert dem Kunden. */
+  ueberzahlungEur: number;
+  offenDanach: { anzahlungEur: number; restzahlungEur: number; kautionEur: number; gesamtEur: number };
+  /** true, wenn nach dieser Zahlung nichts mehr offen ist. */
+  vollstaendig: boolean;
+}
+
+/**
+ * Verteilt einen erhaltenen Gesamtbetrag auf Anzahlung, Restzahlung, Kaution und
+ * legt den Rest als Ueberzahlung ab.
+ *
+ * Reine Funktion: liest nichts, schreibt nichts, kein Datum, kein Zufall. Bereits
+ * bezahlte Posten werden uebersprungen; reicht das Geld nicht, wird der Reihe nach
+ * aufgefuellt und `offenDanach` sagt, was stehen bleibt.
+ *
+ * Rechnet durchgehend in Cent. In Euro waeren 100 - 22.50 - 52.50 - 30 nicht 0,
+ * sondern 2.8e-14 — und genau daraus entstuende eine Ueberzahlung von 0,00 €, die
+ * das Panel als vorhanden anzeigt.
+ *
+ * @throws RangeError bei 0, negativen und nicht-endlichen Betraegen. Ein Eingang
+ *   ueber 0 € ist kein Vorgang, den dieses System abbilden soll — der Aufrufer
+ *   soll das als Eingabefehler melden, nicht als leere Aufteilung durchwinken.
+ */
+export function verteileBetrag(betragEur: number, stand: PostenStand): Aufteilung {
+  if (!Number.isFinite(betragEur) || betragEur <= 0) {
+    throw new RangeError(`Betrag muss größer als 0 sein, war: ${betragEur}`);
+  }
+
+  const offenCent: Record<PostenTyp, number> = {
+    anzahlung: Math.max(0, cent(stand.anzahlungSollEur) - cent(stand.anzahlungBezahltEur)),
+    restzahlung: Math.max(0, cent(stand.restzahlungSollEur) - cent(stand.restzahlungBezahltEur)),
+    kaution: Math.max(0, cent(stand.kautionSollEur) - cent(stand.kautionBezahltEur)),
+  };
+
+  let restCent = cent(betragEur);
+  const zuweisungen: Zuweisung[] = [];
+
+  for (let i = 0; i < REIHENFOLGE.length; i++) {
+    const typ = REIHENFOLGE[i];
+    const offen = offenCent[typ];
+    if (offen <= 0 || restCent <= 0) continue;
+    const anteil = Math.min(offen, restCent);
+    restCent -= anteil;
+    offenCent[typ] = offen - anteil;
+    zuweisungen.push({
+      typ,
+      betragEur: eur(anteil),
+      offenVorherEur: eur(offen),
+      offenNachherEur: eur(offen - anteil),
+    });
+  }
+
+  const offenGesamt = offenCent.anzahlung + offenCent.restzahlung + offenCent.kaution;
+
+  return {
+    eingabeEur: eur(cent(betragEur)),
+    zuweisungen,
+    ueberzahlungEur: eur(restCent),
+    offenDanach: {
+      anzahlungEur: eur(offenCent.anzahlung),
+      restzahlungEur: eur(offenCent.restzahlung),
+      kautionEur: eur(offenCent.kaution),
+      gesamtEur: eur(offenGesamt),
+    },
+    vollstaendig: offenGesamt === 0,
+  };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Erstattung nach der Rueckgabe
+ * ------------------------------------------------------------------------- */
+
+export interface ErstattungFelder {
+  Kaution_Soll_Eur?: string | number | null;
+  Ueberzahlung_Eur?: string | number | null;
+  /** Nur fuer Altdatensaetze, siehe `ueberzahlungEur`. */
+  Zahlungen_JSON?: string | null;
+}
+
+/**
+ * Zuviel gezahlter Betrag einer Buchung.
+ *
+ * Quelle ist das Skalar-Feld `Ueberzahlung_Eur`. Ist es NICHT GESETZT (null/undefined,
+ * nicht 0), wird ersatzweise die Historie in `Zahlungen_JSON` nach Eintraegen mit
+ * `typ: "ueberzahlung"` durchsucht.
+ *
+ * Warum das die Regel im Dateikopf nicht bricht: Dort geht es um Anzahlung und
+ * Restzahlung, die auch der Stripe-Webhook setzt — dort ist die Historie bei
+ * Stripe-Zahlern leer und eine Summe daraus faelschlich 0. Eine Ueberzahlung kann
+ * Stripe gar nicht erzeugen; sie entsteht ausschliesslich bei manueller Erfassung,
+ * die immer BEIDES schreibt. Der Rueckfall greift nur dort, wo das Feld noch gar
+ * nicht existierte, und kann einen gesetzten Wert nie ueberstimmen.
+ *
+ * Der Rueckfall darf entfallen, sobald die Altdatensaetze das Feld tragen.
+ */
+export function ueberzahlungEur(b: ErstattungFelder): number {
+  const skalar = b.Ueberzahlung_Eur;
+  if (skalar !== null && skalar !== undefined && String(skalar).trim() !== "") {
+    return Math.round(num(skalar) * 100) / 100;
+  }
+  if (!b.Zahlungen_JSON) return 0;
+  try {
+    const parsed = JSON.parse(b.Zahlungen_JSON);
+    if (!Array.isArray(parsed)) return 0;
+    let summe = 0;
+    for (let i = 0; i < parsed.length; i++) {
+      const e = parsed[i];
+      if (e && e.typ === "ueberzahlung") summe += cent(num(e.betrag));
+    }
+    return eur(summe);
+  } catch {
+    return 0;
+  }
+}
+
+export interface Erstattung {
+  kautionEur: number;
+  ueberzahlungEur: number;
+  /** Was tatsaechlich an den Kunden zurueckgeht. */
+  gesamtEur: number;
+}
+
+/**
+ * Was nach der Rueckgabe an den Kunden zurueckgeht: Kaution plus Ueberzahlung.
+ *
+ * `schadenEur` mindert ausschliesslich die Kaution. Eine Ueberzahlung ist Geld des
+ * Kunden, das nie eine Sicherheit war — sie geht auch bei vollem Kautions-Einzug
+ * vollstaendig zurueck.
+ */
+export function erstattungEur(b: ErstattungFelder, schadenEur = 0): Erstattung {
+  const kautionOffen = Math.max(0, cent(num(b.Kaution_Soll_Eur)) - cent(Math.max(0, schadenEur)));
+  const ueber = cent(ueberzahlungEur(b));
+  return {
+    kautionEur: eur(kautionOffen),
+    ueberzahlungEur: eur(ueber),
+    gesamtEur: eur(kautionOffen + ueber),
+  };
+}
+
+/* ------------------------------------------------------------------------- *
+ * Bei der Uebergabe kassierter Betrag (Eingabe pruefen)
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Optionale Aufteilung eines bei der Uebergabe kassierten Betrags.
+ *
+ * Der Aufrufer erfasst das Geld weiterhin ueber /zahlung — dort entstehen Einnahme,
+ * Status und Historie. Hier wird nur BERICHTET, was gerade kassiert wurde, damit die
+ * Uebergabe-Mail es aufzaehlen kann. Deshalb prueft der Server die Summe gegen die
+ * Teilbetraege: eine Mail darf keine Zahlen nennen, die nicht aufgehen.
+ */
+export interface KassiertBody {
+  gesamt_eur?: unknown;
+  restzahlung_eur?: unknown;
+  kaution_eur?: unknown;
+  ueberzahlung_eur?: unknown;
+}
+
+export function parseKassiert(
+  roh: KassiertBody | undefined | null,
+): { ok: true; wert: null | { gesamtEur: number; restzahlungEur: number; kautionEur: number; ueberzahlungEur: number } } | { ok: false; fehler: string } {
+  if (roh === undefined || roh === null) return { ok: true, wert: null };
+  if (typeof roh !== "object") return { ok: false, fehler: "kassiert muss ein Objekt sein" };
+  const z = (v: unknown): number => {
+    if (v === undefined || v === null || v === "") return 0;
+    const n = typeof v === "number" ? v : parseFloat(String(v));
+    return Number.isFinite(n) ? n : NaN;
+  };
+  const gesamt = z(roh.gesamt_eur);
+  const teile = [z(roh.restzahlung_eur), z(roh.kaution_eur), z(roh.ueberzahlung_eur)];
+  if ([gesamt, ...teile].some((n) => Number.isNaN(n) || n < 0)) {
+    return { ok: false, fehler: "kassiert enthält keine gültigen Beträge >= 0" };
+  }
+  const summeCent = teile.reduce((s, n) => s + Math.round(n * 100), 0);
+  // Nur ein rundum leeres Objekt heisst "nichts kassiert". Fehlt die Gesamtsumme,
+  // waehrend Teilbetraege da sind, ist das ein Fehler und kein Nullfall — sonst
+  // verschluckt die Mail still das Geld, das gerade eingenommen wurde.
+  if (gesamt === 0 && summeCent === 0) return { ok: true, wert: null };
+  if (summeCent !== Math.round(gesamt * 100)) {
+    return { ok: false, fehler: "kassiert: Teilbeträge ergeben nicht die Gesamtsumme" };
+  }
+  return {
+    ok: true,
+    wert: { gesamtEur: gesamt, restzahlungEur: teile[0], kautionEur: teile[1], ueberzahlungEur: teile[2] },
+  };
+}
+
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
