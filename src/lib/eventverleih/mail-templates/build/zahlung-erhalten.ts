@@ -21,7 +21,7 @@ export function buildKomplettzahlungErhalten(ctx: ZahlungErhaltenCtx): MailText 
   const { kname } = ctx;
   return {
     subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-    body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+    body: `${anredeZeile(kname)}\n\nvielen Dank, Ihre Zahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
   };
 }
 
@@ -30,7 +30,7 @@ export function buildRestzahlungErhalten(ctx: ZahlungErhaltenCtx): MailText {
   const { kname } = ctx;
   return {
     subject: "Zahlung erhalten — Ihre Buchung ist vollständig bezahlt",
-    body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+    body: `${anredeZeile(kname)}\n\nvielen Dank, Ihre Restzahlung ist bei uns eingegangen. Ihre Buchung ist damit vollständig bezahlt.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
   };
 }
 
@@ -39,6 +39,6 @@ export function buildAnzahlungErhalten(ctx: ZahlungErhaltenCtx): MailText {
   const { kname } = ctx;
   return {
     subject: "Anzahlung erhalten — Ihr Termin ist reserviert",
-    body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Anzahlung ist bei uns eingegangen. Ihr Termin ist damit verbindlich für Sie reserviert. Die Restzahlung wird zur Übergabe fällig; wir erinnern Sie rechtzeitig.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+    body: `${anredeZeile(kname)}\n\nvielen Dank, Ihre Anzahlung ist bei uns eingegangen. Ihr Termin ist damit verbindlich für Sie reserviert. Die Restzahlung wird zur Übergabe fällig; wir erinnern Sie rechtzeitig.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
   };
 }

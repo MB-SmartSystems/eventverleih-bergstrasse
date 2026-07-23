@@ -186,7 +186,7 @@ export function buildStornoBestaetigung(ctx: StornoBestaetigungCtx): MailText {
     : auszahlung > 0
       ? weg === "bank"
         ? `Sie erhalten ${eurMail(auszahlung)} EUR zurück.${ueberSatz} ${WEG_SATZ.bank}`
-        : `Sie erhalten ${eurMail(auszahlung)} EUR zurück — ${WEG_SATZ[weg]}${ueberSatz}`
+        : `Sie erhalten ${eurMail(auszahlung)} EUR zurück, ${WEG_SATZ[weg]}${ueberSatz}`
       : calc.nachzahlung_eur > 0
         ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
         : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;

@@ -8,11 +8,12 @@ import { SIGNATURE } from "./bausteine";
  */
 
 // Vorformulierte, höfliche KUNDEN-Texte je Ablehnungsgrund (NICHT die interne Notiz).
+// Kein „Leider" am Satzanfang: das steht bereits im Basissatz der Absage-Mail (kein doppeltes „leider", B1).
 export const ABLEHNEN_TEXTE: Record<string, string> = {
-  ausgebucht: "Leider sind die von Ihnen gewünschten Artikel für diesen Termin bereits vergeben.",
-  liefergebiet: "Leider liegt Ihr Veranstaltungsort außerhalb unseres Liefergebiets.",
-  nicht_verfuegbar: "Leider können wir die gewünschten Artikel aktuell nicht anbieten.",
-  kurzfristig: "Leider ist der Termin für eine zuverlässige Bereitstellung zu kurzfristig.",
+  ausgebucht: "Die von Ihnen gewünschten Artikel sind für diesen Termin bereits vergeben.",
+  liefergebiet: "Ihr Veranstaltungsort liegt außerhalb unseres Liefergebiets.",
+  nicht_verfuegbar: "Die gewünschten Artikel können wir aktuell nicht anbieten.",
+  kurzfristig: "Der Termin ist für eine zuverlässige Bereitstellung zu kurzfristig.",
 };
 
 /** KUNDEN-Text für die Absage. 'intern' (z.B. „möchte nicht vermieten") = neutral-höflich, KEIN Grund genannt. */
@@ -64,14 +65,12 @@ Lassen Sie sich mit der Entscheidung gern Zeit. Bei Fragen am schnellsten per Wh
 
 export function buildRueckrufMail(opts: { vorname: string; nachname: string }): MailText {
   return {
-    subject: "Ihre Anfrage bei Eventverleih Bergstraße - kurze Rückfrage",
+    subject: "Ihre Anfrage bei Eventverleih Bergstraße, kurze Rückfrage",
     body: `Hallo ${opts.vorname} ${opts.nachname},
 
-vielen Dank für Ihre Anfrage. Damit ich Ihnen ein passendes Angebot machen kann, möchte ich gerne kurz mit Ihnen sprechen - meist sind 3-5 Minuten ausreichend, um alle Details zu klären.
+vielen Dank für Ihre Anfrage. Damit ich Ihnen ein passendes Angebot machen kann, habe ich noch ein paar kurze Rückfragen, die sich am schnellsten telefonisch klären lassen (meist 3 bis 5 Minuten).
 
-Können wir kurz telefonieren? Sie erreichen mich werktags am besten unter +49 156 79521124 (auch WhatsApp).
-
-Alternativ rufe ich Sie zurück - lassen Sie mich einfach wissen, wann es Ihnen passt.${SIGNATURE}`,
+Ich melde mich in den nächsten Tagen telefonisch bei Ihnen. Falls Ihnen eine bestimmte Zeit besser passt oder Sie mich vorab erreichen möchten, schreiben Sie mir gern oder rufen Sie an: +49 156 79521124 (auch WhatsApp).${SIGNATURE}`,
   };
 }
 

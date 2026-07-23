@@ -48,8 +48,19 @@ describe('buildTerminErinnerung', () => {
     expect(body).not.toContain('Ihr Zahlungslink');
   });
 
-  it('still contains the cash wording — knowingly unfixed, Task 9 must flag it', () => {
-    expect(buildTerminErinnerung(basis).body).toContain('bar bei der Übergabe erhoben');
+  it('offers the deposit online first, cash as the last option with the hints', () => {
+    // Entscheidung 2026-07-23: Stripe-Hold zuerst, bar mit den zwei Pflicht-Hinweisen.
+    const body = buildTerminErinnerung(basis).body;
+    const onlineIdx = body.indexOf('online');
+    const barIdx = body.indexOf('bar zur Übergabe');
+    expect(onlineIdx).toBeGreaterThanOrEqual(0);
+    expect(barIdx).toBeGreaterThan(onlineIdx);
+    expect(body).toContain('kein Wechselgeld');
+  });
+
+  it('says "ich liefere" only when Manuel delivers', () => {
+    expect(buildTerminErinnerung(basis).body).toContain('unseren Übergabe-Termin');
+    expect(buildTerminErinnerung({ ...basis, manuelLiefert: true }).body).toContain('ich liefere Ihnen die Artikel');
   });
 
   it('treats string amounts from Baserow like numbers', () => {
@@ -69,6 +80,18 @@ describe('buildRueckgabeErinnerung', () => {
     expect(out.subject).toContain('Rückgabe-Termin');
     expect(out.body).toContain('vollständig und sauber');
     expect(out.body).toContain('Kaution erstatte ich');
+  });
+
+  it('says "ich hole ... ab" and never "bringen Sie zurück" when Manuel picks up', () => {
+    const out = buildRueckgabeErinnerung({
+      kundeName: basis.kundeName,
+      terminText: basis.terminText,
+      ort: basis.ort,
+      manuelHoltAb: true,
+    });
+    expect(out.body).toContain('ich hole die Artikel');
+    expect(out.body).not.toContain('bringen Sie die Artikel');
+    expect(out.body).toContain('vollständig und sauber');
   });
 });
 

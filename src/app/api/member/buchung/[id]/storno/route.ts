@@ -91,7 +91,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           stornogebuehr_eur: 0,
           erstattung_eur: bezahlt,
           nachzahlung_eur: 0,
-          staffel_label: "Unverbindliche Anfrage — kostenfreier Rückzug",
+          staffel_label: "Unverbindliche Anfrage, kostenfreier Rückzug",
           tage_bis_event: buchung.Event_datum_von
             ? Math.floor((new Date(buchung.Event_datum_von).getTime() - Date.now()) / 86_400_000)
             : 0,

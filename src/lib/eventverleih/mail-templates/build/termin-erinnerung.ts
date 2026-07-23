@@ -1,4 +1,5 @@
 import type { MailText } from "../types";
+import { BAR_ZAHLUNG_HINWEIS } from "@/lib/eventverleih/constants";
 
 /**
  * Appointment reminders.
@@ -31,11 +32,13 @@ export interface TerminErinnerungCtx {
   restLink: string | null;
   kautionSoll: string | number | null;
   kautionHinterlegtAm: string | null;
+  /** True, wenn Manuel liefert (statt Selbstabholung am Treffpunkt). Logistik-abhaengiges Wording. */
+  manuelLiefert?: boolean;
 }
 
 /** Reminder the day before the handover. */
 export function buildTerminErinnerung(ctx: TerminErinnerungCtx): MailText {
-  const { kundeName, terminText, ort } = ctx;
+  const { kundeName, terminText, ort, manuelLiefert } = ctx;
 
   const restSoll = parseDec(ctx.restSoll);
   const restOffen = restSoll > 0 && !ctx.restBezahltAm;
@@ -44,8 +47,8 @@ export function buildTerminErinnerung(ctx: TerminErinnerungCtx): MailText {
     const restBetrag = restSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const restLink = (ctx.restLink || "").trim();
     restBlock =
-      `\n\nDie Restzahlung (${restBetrag} EUR) ist spätestens zur Übergabe fällig — ` +
-      `am einfachsten vorab bequem online.` +
+      `\n\nDie Restzahlung (${restBetrag} EUR) begleichen Sie am einfachsten schon vorab bequem online, ` +
+      `spätestens bei der Übergabe.` +
       (restLink ? `\nIhr Zahlungslink:\n${restLink}` : "");
   }
 
@@ -55,16 +58,20 @@ export function buildTerminErinnerung(ctx: TerminErinnerungCtx): MailText {
   if (kautionOffen) {
     const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     kautionBlock =
-      `\n\nBitte denken Sie an die Kaution (${betrag} EUR) — diese wird bar bei der Übergabe erhoben ` +
-      `und nach der Rückgabe ohne Schäden vollständig zurückgegeben.`;
+      `\n\nBitte denken Sie an die Kaution (${betrag} EUR). Am einfachsten hinterlegen Sie sie vorab online über den Kautions-Link, alternativ ist sie bar zur Übergabe möglich. ` +
+      `${BAR_ZAHLUNG_HINWEIS} Die Kaution erhalten Sie nach der Rückgabe ohne Schäden vollständig zurück.`;
   }
+
+  // Logistik: liefert Manuel oder holt der Kunde selbst am Treffpunkt ab?
+  const terminZeile = manuelLiefert
+    ? `ich liefere Ihnen die Artikel wie besprochen:\n${terminText}\n${ort}.`
+    : `eine kurze Erinnerung an unseren Übergabe-Termin:\n${terminText}\n${ort}.`;
 
   return {
     subject: "Erinnerung an Ihren Übergabe-Termin morgen",
     body:
       `Hallo ${kundeName},\n\n` +
-      `eine kurze Erinnerung an unseren Übergabe-Termin:\n` +
-      `${terminText}\n${ort}.` +
+      `${terminZeile}` +
       `${restBlock}${kautionBlock}\n\n` +
       `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
       `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
@@ -75,18 +82,26 @@ export interface RueckgabeErinnerungCtx {
   kundeName: string;
   terminText: string;
   ort: string;
+  /** True, wenn Manuel die Artikel beim Kunden abholt (statt Selbstrückgabe am Treffpunkt). */
+  manuelHoltAb?: boolean;
 }
 
 /** Reminder the day before the return. */
 export function buildRueckgabeErinnerung(ctx: RueckgabeErinnerungCtx): MailText {
-  const { kundeName, terminText, ort } = ctx;
+  const { kundeName, terminText, ort, manuelHoltAb } = ctx;
+
+  // Logistik: holt Manuel beim Kunden ab, oder bringt der Kunde die Artikel selbst zurück?
+  const kernZeile = manuelHoltAb
+    ? `ich hole die Artikel wie besprochen bei Ihnen ab:\n${terminText}\n${ort}.\n\n` +
+      `Bitte stellen Sie sie bis dahin vollständig und sauber bereit. `
+    : `eine kurze Erinnerung an unseren Rückgabe-Termin:\n${terminText}\n${ort}.\n\n` +
+      `Bitte bringen Sie die Artikel vollständig und sauber zurück. `;
+
   return {
     subject: "Erinnerung an Ihren Rückgabe-Termin morgen",
     body:
       `Hallo ${kundeName},\n\n` +
-      `eine kurze Erinnerung an unseren Rückgabe-Termin:\n` +
-      `${terminText}\n${ort}.\n\n` +
-      `Bitte bringen Sie die Artikel vollständig und sauber zurück. ` +
+      `${kernZeile}` +
       `Die Kaution erstatte ich nach kurzer Prüfung.\n\n` +
       `Falls etwas dazwischenkommt, geben Sie mir bitte kurz Bescheid.\n\n` +
       `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
@@ -145,7 +160,7 @@ export function buildTermin1h(ctx: Termin1hCtx): MailText {
     subject: `Gleich: Ihr ${label}-Termin um ${zeit}`,
     body:
       `Hallo ${kundeName},\n\n` +
-      `kurze Erinnerung: Unser ${label}-Termin ist gleich — um ${zeit}.\n${ort}.\n` +
+      `kurze Erinnerung: Unser ${label}-Termin ist gleich um ${zeit}.\n${ort}.\n` +
       zahlungsHinweis +
       `\nBis gleich!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
   };

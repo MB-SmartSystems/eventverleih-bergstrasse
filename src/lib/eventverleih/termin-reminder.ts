@@ -9,7 +9,7 @@
  * Zeitangabe IMMER in Europe/Berlin formatieren (Server läuft UTC).
  */
 import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
-import { uebergabeOrt } from "@/lib/eventverleih/config";
+import { uebergabeOrt, manuelFaehrt } from "@/lib/eventverleih/config";
 import { buildTerminErinnerung, buildRueckgabeErinnerung } from "@/lib/eventverleih/mail-templates/build/termin-erinnerung";
 
 const TZ = "Europe/Berlin";
@@ -117,6 +117,7 @@ export async function runTerminReminder(): Promise<{
       restLink: b.Stripe_Restzahlung_Link,
       kautionSoll: b.Kaution_Soll_Eur,
       kautionHinterlegtAm: b.Kaution_Hinterlegt_am,
+      manuelLiefert: manuelFaehrt(b, "uebergabe"),
     });
 
     try {
@@ -168,7 +169,7 @@ export async function runTerminReminder(): Promise<{
     const terminText = berlinDateTime(b.Rueckgabe_Termin);
     const ort = uebergabeOrt(b, "rueckgabe");
 
-    const mail2 = buildRueckgabeErinnerung({ kundeName, terminText, ort });
+    const mail2 = buildRueckgabeErinnerung({ kundeName, terminText, ort, manuelHoltAb: manuelFaehrt(b, "rueckgabe") });
 
     try {
       await createRow(TABLES.MailQueue, {

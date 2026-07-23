@@ -22,7 +22,7 @@ export function buildGoogleReview(ctx: GoogleReviewCtx): MailText {
 
 ich hoffe, Ihre Feier war ein voller Erfolg und die Ausstattung hat alles mitgemacht!
 
-Wenn Sie zufrieden waren, würde mir eine kurze Google-Bewertung enorm helfen — als kleiner Betrieb lebe ich von Weiterempfehlungen.
+Wenn Sie zufrieden waren, würde mir eine kurze Google-Bewertung enorm helfen, als kleiner Betrieb lebe ich von Weiterempfehlungen.
 
 ${linkBlock}Vielen Dank und bis zum nächsten Fest!
 

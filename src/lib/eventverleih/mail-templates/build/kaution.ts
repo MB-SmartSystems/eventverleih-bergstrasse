@@ -38,7 +38,7 @@ export function buildKautionHoldLink(ctx: KautionHoldCtx): MailText {
     subject: "Kaution hinterlegen | Eventverleih Bergstraße",
     body: `${greeting},
 
-vor der Übergabe brauchen wir Ihre Kaution als Sicherheit. **Wir buchen die Kaution NICHT ab** — Stripe blockiert den Betrag nur auf Ihrer Karte (sogenannte Pre-Authorization). Bei Rückgabe ohne Schäden wird der Hold automatisch aufgelöst, es fließt kein Geld.
+vor der Übergabe brauchen wir Ihre Kaution als Sicherheit. **Wir buchen die Kaution NICHT ab.** Stripe blockiert den Betrag nur auf Ihrer Karte (sogenannte Pre-Authorization). Bei Rückgabe ohne Schäden wird der Hold automatisch aufgelöst, es fließt kein Geld.
 
 Kautions-Betrag: ${amountFmt} EUR
 
@@ -49,7 +49,7 @@ Wichtiges in Kürze:
   * Karte wird geprüft + Betrag vorgemerkt (kein Abbuchen)
   * Hold ist standardmäßig 7 Tage aktiv. Bei Visa/Mastercard verlängert Stripe ggf. auf bis zu 30 Tage automatisch.
   * Bei Rückgabe ohne Schäden: Auflösung des Holds in der Regel innerhalb 1-3 Werktagen.
-  * Falls beim Hinterlegen etwas klemmt, melden Sie sich kurz — dann finden wir gemeinsam eine Lösung.${memberBlock}
+  * Falls beim Hinterlegen etwas klemmt, melden Sie sich kurz, dann finden wir gemeinsam eine Lösung.${memberBlock}
 
 Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.
 

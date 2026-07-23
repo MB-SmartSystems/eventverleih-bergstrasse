@@ -82,7 +82,7 @@ export const BEISPIEL_ABLEHNUNG = [
     ctx: {
       vorname: KUNDE.Vorname,
       nachname: KUNDE.Nachname,
-      grund: "Leider sind die von Ihnen gewünschten Artikel für diesen Termin bereits vergeben.",
+      grund: "Die von Ihnen gewünschten Artikel sind für diesen Termin bereits vergeben.",
     },
   },
   {
@@ -237,7 +237,7 @@ export const BEISPIEL_TERMIN_ERINNERUNG = [
     },
   },
   {
-    label: "Alles bezahlt — reine Terminmail",
+    label: "Alles bezahlt, reine Terminmail",
     ctx: {
       kundeName: NAME,
       terminText: TERMIN,
@@ -262,10 +262,25 @@ export const BEISPIEL_TERMIN_ERINNERUNG = [
       kautionHinterlegtAm: null,
     },
   },
+  {
+    label: "Lieferung durch Manuel (alles bezahlt)",
+    ctx: {
+      kundeName: NAME,
+      terminText: TERMIN,
+      ort: ORT,
+      restSoll: 52.5,
+      restBezahltAm: "2026-07-20",
+      restLink: null,
+      kautionSoll: 30,
+      kautionHinterlegtAm: "2026-07-20",
+      manuelLiefert: true,
+    },
+  },
 ];
 
 export const BEISPIEL_RUECKGABE_ERINNERUNG = [
-  { label: "Regelfall", ctx: { kundeName: NAME, terminText: "Montag, 27.07.2026 um 10:00 Uhr", ort: ORT } },
+  { label: "Selbstrückgabe zum Treffpunkt", ctx: { kundeName: NAME, terminText: "Montag, 27.07.2026 um 10:00 Uhr", ort: ORT, manuelHoltAb: false } },
+  { label: "Abholung durch Manuel", ctx: { kundeName: NAME, terminText: "Montag, 27.07.2026 um 10:00 Uhr", ort: ORT, manuelHoltAb: true } },
 ];
 
 export const BEISPIEL_TERMIN_1H = (label: string) => [
@@ -347,7 +362,7 @@ export const BEISPIEL_STORNO_UEBERZAHLUNG = {
     nachname: KUNDE.Nachname,
     buchungId: 32,
     stornogebuehrProzent: 50,
-    staffelLabel: "7 Tage vor dem Event — 50 %",
+    staffelLabel: "7 Tage vor dem Event: 50 %",
     mietsumme: 75,
     stornogebuehrEur: 37.5,
     bezahlt: 75,
@@ -365,7 +380,7 @@ export const BEISPIEL_STORNO_NUR_UEBERZAHLUNG = {
     nachname: KUNDE.Nachname,
     buchungId: 32,
     stornogebuehrProzent: 100,
-    staffelLabel: "Weniger als 4 Tage vor Event — 100 % Stornogebühr",
+    staffelLabel: "Weniger als 4 Tage vor Event: 100 % Stornogebühr",
     mietsumme: 75,
     stornogebuehrEur: 75,
     bezahlt: 75,
@@ -383,7 +398,7 @@ export const BEISPIEL_STORNO_BAR = {
     nachname: KUNDE.Nachname,
     buchungId: 32,
     stornogebuehrProzent: 50,
-    staffelLabel: "7-14 Tage vor Event — 50 % Stornogebühr",
+    staffelLabel: "7-14 Tage vor Event: 50 % Stornogebühr",
     mietsumme: 75,
     stornogebuehrEur: 37.5,
     bezahlt: 75,
