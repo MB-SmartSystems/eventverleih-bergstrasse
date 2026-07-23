@@ -12,8 +12,8 @@
  * Webhook-Key, daher nie doppelt (z.B. manuelle Erfassung NACH Stripe-Webhook).
  */
 import { createRow, getRow, listRows, TABLES } from "@/lib/baserow/client";
-import { kundeNameAusLink, anredeZeile } from "@/lib/eventverleih/kunde-name";
-import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { kundeNameAusLink } from "@/lib/eventverleih/kunde-name";
+import { buildAnzahlungErhalten } from "@/lib/eventverleih/mail-templates/build/zahlung-erhalten";
 
 export async function queueAnzahlungErhaltenMail(buchungId: number): Promise<void> {
   const b = await getRow<{ Kunde_Link: Array<{ id: number; value: string }> | null }>(
@@ -32,13 +32,14 @@ export async function queueAnzahlungErhaltenMail(buchungId: number): Promise<voi
 
   // NICHT .value — das ist die Kunde_ID-Zahl ("Hallo 12"-Bug). Echten Namen laden.
   const kname = await kundeNameAusLink(b.Kunde_Link);
+  const mailAnzahlung = buildAnzahlungErhalten({ kname });
   await createRow(TABLES.MailQueue, {
     Erstellt_am: new Date().toISOString(),
     Buchung_Link: [buchungId],
     Kunde_Link: [kid],
     Template_Key: "anzahlung_erhalten",
-    Subject: "Anzahlung erhalten — Ihr Termin ist reserviert",
-    Body: `${anredeZeile(kname)}\n\nvielen Dank — Ihre Anzahlung ist bei uns eingegangen. Ihr Termin ist damit verbindlich für Sie reserviert. Die Restzahlung wird zur Übergabe fällig; wir erinnern Sie rechtzeitig.\n\n${UEBERGABE_HINWEIS}\n\nWir freuen uns auf Ihr Event!\n\nMit freundlichen Grüßen\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`,
+    Subject: mailAnzahlung.subject,
+    Body: mailAnzahlung.body,
     Approval_Status: "Auto_Reply",
     Idempotency_Key: idemKey,
   });
