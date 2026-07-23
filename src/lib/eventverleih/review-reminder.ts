@@ -11,6 +11,7 @@
  *  - Google-Review-Link aus ENV GOOGLE_REVIEW_URL (optional; ohne Var generischer Verweis)
  */
 import { listAllRows, listRows, createRow, getRow, TABLES } from "@/lib/baserow/client";
+import { buildGoogleReview } from "@/lib/eventverleih/mail-templates/build/google-review";
 
 interface BuchungRow {
   id: number;
@@ -25,28 +26,6 @@ function daysSince(past: string | null): number {
   const d = new Date(past);
   if (isNaN(d.getTime())) return -1;
   return Math.floor((Date.now() - d.getTime()) / 86_400_000);
-}
-
-function buildReviewMail(kundeName: string): { subject: string; body: string } {
-  const reviewUrl = (process.env.GOOGLE_REVIEW_URL || "").trim();
-  const linkBlock = reviewUrl
-    ? `Hier geht's direkt zur Bewertung (dort können Sie auch gern ein Foto Ihrer Feier anhängen):\n${reviewUrl}\n\n`
-    : `Am einfachsten über unser Google-Profil „Eventverleih Bergstraße" — dort können Sie auch gern ein Foto Ihrer Feier anhängen.\n\n`;
-  const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
-  return {
-    subject: "Wie war Ihre Feier? Über eine kurze Bewertung freue ich mich",
-    body: `${anrede}
-
-ich hoffe, Ihre Feier war ein voller Erfolg und die Ausstattung hat alles mitgemacht!
-
-Wenn Sie zufrieden waren, würde mir eine kurze Google-Bewertung enorm helfen — als kleiner Betrieb lebe ich von Weiterempfehlungen.
-
-${linkBlock}Vielen Dank und bis zum nächsten Fest!
-
-Viele Grüße
-Manuel Büttner — Eventverleih Bergstraße
-Tel/WhatsApp +49 156 79521124`,
-  };
 }
 
 export async function runReviewReminder(): Promise<{
@@ -94,7 +73,10 @@ export async function runReviewReminder(): Promise<{
       continue;
     }
 
-    const mail = buildReviewMail(kundeName);
+    const mail = buildGoogleReview({
+      kundeName,
+      reviewUrl: (process.env.GOOGLE_REVIEW_URL || "").trim(),
+    });
     try {
       await createRow(TABLES.MailQueue, {
         Erstellt_am: new Date().toISOString(),
