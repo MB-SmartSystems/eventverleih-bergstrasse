@@ -53,8 +53,9 @@ export const REIHENFOLGE: readonly PostenTyp[] = ["anzahlung", "restzahlung", "k
  * Soll- und Ist-Stand der drei Posten.
  *
  * `kautionBezahltEur` gibt es in Baserow nicht als eigenes Feld — dort steht nur
- * `Kaution_Hinterlegt_am`. Der Aufrufer setzt deshalb `kautionSollEur`, sobald das
- * Datum gesetzt ist. Diese Funktion rechnet bewusst nur mit Zahlen und liest nichts.
+ * `Kaution_Hinterlegt_am`. Ist das Datum gesetzt, setzt der Aufrufer `kautionReserviert`
+ * (Kartenreservierung oder bereits erhaltene Kaution). Diese Funktion rechnet bewusst
+ * nur mit Zahlen und liest nichts.
  */
 export interface PostenStand {
   anzahlungSollEur: number;
@@ -63,6 +64,16 @@ export interface PostenStand {
   restzahlungBezahltEur: number;
   kautionSollEur: number;
   kautionBezahltEur: number;
+  /**
+   * Eine aktive Kartenreservierung deckt die Kaution vollstaendig ab (Manuel, 2026-07-23).
+   *
+   * Der Betrag ist auf der Karte des Kunden geblockt und wird bei Bedarf eingezogen —
+   * es ist nichts mehr einzusammeln. Ohne dieses Flag wuerde die Kaution als offener
+   * Posten mitlaufen und Geld an sich ziehen, das dem Kunden gehoert: Manuel naehme
+   * bei der Uebergabe Bargeld fuer etwas, das laengst gesichert ist, und der Kunde
+   * haette denselben Betrag zweimal gebunden.
+   */
+  kautionReserviert?: boolean;
 }
 
 export interface Zuweisung {
@@ -108,7 +119,9 @@ export function verteileBetrag(betragEur: number, stand: PostenStand): Aufteilun
   const offenCent: Record<PostenTyp, number> = {
     anzahlung: Math.max(0, cent(stand.anzahlungSollEur) - cent(stand.anzahlungBezahltEur)),
     restzahlung: Math.max(0, cent(stand.restzahlungSollEur) - cent(stand.restzahlungBezahltEur)),
-    kaution: Math.max(0, cent(stand.kautionSollEur) - cent(stand.kautionBezahltEur)),
+    kaution: stand.kautionReserviert
+      ? 0
+      : Math.max(0, cent(stand.kautionSollEur) - cent(stand.kautionBezahltEur)),
   };
 
   let restCent = cent(betragEur);

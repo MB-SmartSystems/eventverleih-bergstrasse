@@ -96,6 +96,29 @@ describe('verteileBetrag', () => {
     expect(Math.round(summe * 100)).toBe(8333);
   });
 
+  it('treats an active card hold as a covered deposit', () => {
+    // Manuel, 2026-07-23: Die Reservierung liegt auf der Karte. Es ist nichts mehr
+    // einzusammeln — wer hier Bargeld nimmt, bindet dasselbe Geld ein zweites Mal.
+    const reserviert: PostenStand = { ...B32, kautionReserviert: true };
+    const a = verteileBetrag(100, reserviert);
+    expect(a.zuweisungen).toEqual([
+      { typ: 'restzahlung', betragEur: 52.5, offenVorherEur: 52.5, offenNachherEur: 0 },
+    ]);
+    expect(a.ueberzahlungEur).toBe(47.5);
+    expect(a.offenDanach.kautionEur).toBe(0);
+    expect(a.vollstaendig).toBe(true);
+  });
+
+  it('needs exactly the rent when the deposit is reserved', () => {
+    const a = verteileBetrag(52.5, { ...B32, kautionReserviert: true });
+    expect(a.ueberzahlungEur).toBe(0);
+    expect(a.vollstaendig).toBe(true);
+  });
+
+  it('keeps the old behaviour when the flag is absent or false', () => {
+    expect(verteileBetrag(100, { ...B32, kautionReserviert: false })).toEqual(verteileBetrag(100, B32));
+  });
+
   it('treats an overpaid post as done, never as negative', () => {
     const ueberbezahlt: PostenStand = { ...B32, restzahlungBezahltEur: 60 };
     const a = verteileBetrag(30, ueberbezahlt);
