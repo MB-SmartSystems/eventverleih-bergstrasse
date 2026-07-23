@@ -11,6 +11,7 @@
  *
  * Vercel-Cron-Auth via CRON_SECRET (Header Authorization: Bearer <CRON_SECRET>).
  */
+import { buildKautionBarHinweis } from "@/lib/eventverleih/mail-templates/build/kaution";
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
 import { runReviewReminder } from "@/lib/eventverleih/review-reminder";
@@ -91,23 +92,15 @@ export async function GET(req: NextRequest) {
         if (!kunde.Email) { result.skipped_other++; result.details.push({ buchung_id: b.id, skip: "no_email" }); continue; }
 
         const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
-        const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        const subject = "Kaution zur Übergabe | Eventverleih Bergstraße";
-        const mailBody =
-          `Hallo ${kundeName},\n\n` +
-          `zur Vorbereitung auf Ihre Übergabe in ${tageBis <= 1 ? "Kürze" : `ca. ${tageBis} Tagen`}: ` +
-          `Bitte denken Sie daran, die Kaution (${betrag} EUR) bar bei der Übergabe mitzubringen.\n\n` +
-          `Die Kaution erhalten Sie nach der Rückgabe ohne Schäden vollständig zurück.\n\n` +
-          `Bei Fragen jederzeit per WhatsApp oder Anruf: +49 156 79521124.\n\n` +
-          `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße`;
+        const mail = buildKautionBarHinweis({ kundeName, kautionSoll, tageBis });
 
         await createRow(TABLES.MailQueue, {
           Erstellt_am: new Date().toISOString(),
           Buchung_Link: [b.id],
           Kunde_Link: [kundeId],
           Template_Key: "kaution_bar_hinweis",
-          Subject: subject,
-          Body: mailBody,
+          Subject: mail.subject,
+          Body: mail.body,
           Approval_Status: "Auto_Reply",
           Idempotency_Key: idemKey,
         });

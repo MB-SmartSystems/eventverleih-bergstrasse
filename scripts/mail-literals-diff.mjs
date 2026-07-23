@@ -25,13 +25,22 @@ const MIN_LEN = 40;
  * Einzige Normalisierung: führende Einrückung nach einem Zeilenumbruch, damit ein
  * Literal beim Umzug in eine Funktion anders eingerückt werden darf.
  */
-export function literals(source) {
+/**
+ * Alle Backtick-Literale einer Quelldatei.
+ *
+ * `minLen` steuert NUR, was als schützenswerter Textbaustein GILT — es wird auf die
+ * Vorher-Seite angewendet. Die Nachher-Seite wird ungefiltert eingesammelt (minLen 0),
+ * sonst verschwindet ein Literal aus dem Suchraum, nur weil es beim Umzug kürzer
+ * geworden ist (`${kunde.Vorname}` wird `${vorname}`) — und der Vergleich meldet
+ * einen Textverlust, den es nicht gibt.
+ */
+export function literals(source, minLen = MIN_LEN) {
   const out = [];
   const re = /`(?:\\.|\$\{(?:[^{}]|\{[^}]*\})*\}|[^`\\])*`/gs;
   let m;
   while ((m = re.exec(source)) !== null) {
     const raw = m[0];
-    if (raw.length < MIN_LEN) continue;
+    if (raw.length < minLen) continue;
     out.push(raw.replace(/\n[ \t]+/g, '\n'));
   }
   return out;
@@ -77,7 +86,7 @@ export function vergleiche(ref, files) {
   for (const file of files) {
     const alt = fromRef(ref, file);
     if (alt !== null) before.push(...literals(alt).map((text) => ({ file, text })));
-    if (existsSync(file)) after.push(...literals(readFileSync(file, 'utf8')));
+    if (existsSync(file)) after.push(...literals(readFileSync(file, 'utf8'), 0));
   }
 
   const nachherGeruest = after.map(geruest);

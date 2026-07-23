@@ -56,6 +56,16 @@ describe('geruest()', () => {
     expect(geruest('Offen: ${rest} und ${kaution}.')).not.toEqual(geruest('Offen: ${rest}.'));
   });
 
+  it('does not lose a literal that got shorter than the threshold while moving', () => {
+    // Real bug, found while extracting the deposit mails: `Hallo ${kunde.Vorname}
+    // ${kunde.Nachname}` is 42 characters, `Hallo ${vorname} ${nachname}` only 32.
+    // With the length filter on both sides the shorter one vanished from the search
+    // space and the comparison reported a text loss that never happened.
+    const kurz = 'const g = `Hallo ${vorname} ${nachname}`;';
+    expect(literals(kurz)).toHaveLength(0);
+    expect(literals(kurz, 0)).toHaveLength(1);
+  });
+
   it('lists the interpolations so a swap stays visible in the report', () => {
     expect(ausdruecke('Offen sind ${restSoll} EUR und ${kautionSoll} EUR.')).toEqual([
       '${restSoll}',
