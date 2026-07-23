@@ -13,12 +13,16 @@ angehängt statt überschrieben. Detailverlauf steht im `git log`, Stolpersteine
   wenn leer — angewendet nur in Fließtext-Mails, nicht in Angebot/Vertrag/Beleg. Umlaut-Gate: `Stornogebühr`
   mit ß, Satzende-Heuristik ergänzt (fand direkt eine zweite Live-Stelle). Alles grün: tsc, 147 Tests,
   Umlaut-Gate, Codex ohne Befund.
-- **Läuft noch:** Branch **nicht** nach `main` gemergt/deployt. Deploy war freigegeben, dann durch
-  PC-Shutdown-Anweisung ausdrücklich zurückgezogen (nicht pushen/deployen).
-- **Nächster Schritt:** `zahlung-aufteilen` nach `main` fast-forwarden (ff-fähig geprüft) und per Vercel-CLI
-  deployen, danach am Zielort belegen: Erstattungsvorschau Buchung 32 = 47,50 €, die drei geänderten Texte
-  live. **Harte Frist: Montag 27.07. 14:30** (Rückgabe Buchung 32, Kundin hat 47,50 € schriftlich zugesagt).
-  Details im WIP-Handoff `wip-eventverleih-zahlung-aufteilen-deploy`.
+- **Live (2026-07-23 20:07):** `zahlung-aufteilen` per Fast-Forward nach `main` (Cockpit), Prod-Deployment
+  `765o5hrfi` READY, Domain 200. Danach ein Anzeige-Nachtrag: `KautionErstattenPanel` zeigte nur die Kaution,
+  nicht die Überzahlung — Manuel sah am Handy die 17,50 € nicht. Reine Anzeige (page.tsx reicht
+  `Ueberzahlung_Eur` durch, Panel zeigt bei >0 „Zu viel gezahlt" + „Auszahlung gesamt", bei 0 unverändert),
+  Commit `4969e0c`, Prod-Deployment `dpl_3ENGCqLxv2tZg4p77nvKU9hiFC4Q` READY, `eventverleih-bergstrasse.de`
+  HTTP 200. tsc/147 Tests/Umlaut-Gate/Codex je grün.
+- **Nächster Schritt:** Einzig offen — Manuels eigene Sichtprüfung im eingeloggten Live-Admin, dass Buchung 32
+  die Auszahlung 47,50 € zeigt (Produktions-Passwort nur bei ihm, für morgen hinterlegt). Danach separat
+  Plan Teil 2 (`plan-zahlungsablauf-teil2.md`): eine Bezahlseite/QR, PayPal-Links für Miete,
+  Kautions-Erinnerung (rechnet ab Eventbeginn statt 5 Tage vor Rückgabe; sagt noch „bar mitbringen").
 
 ## 2026-07-23
 - **Fertig:** Buchungsdetail — Entfernen-Kreuz direkt in der Positionszeile (separater Entfernen-Block
