@@ -16,9 +16,15 @@ mit gleichnamigen Tabellen (Namensschilder/Spardosen) — NICHT Eventverleih. **
 
 ## Zahlungs-Policy (Manuel nachdrücklich — Fakten vor Kundentexten im Code/AGB verifizieren)
 - Standard = **Stripe: 30 % Anzahlung, 70 % Rest spätestens bei Übergabe, Kaution als Hold.**
-- **Restzahlung ist „weich": KEINE Mahn-Eskalation** (nur T-3-Service-Info). Mahn-Mechanik NIE erneut vorschlagen.
+  Zahlweg-Rangfolge in ALLEN Kundentexten: **Stripe (empfohlen) → PayPal → Überweisung → Bar (nie priorisiert)**;
+  Komplettzahlung ist der empfohlene Default vor Anzahlung+Rest.
+- **Restzahlung ist „weich": KEINE Mahn-Eskalation** (nur die freundliche T-3-Übergabe-Info, kein „fällig").
+  Mahn-Mechanik NIE erneut vorschlagen. Anzahlungs-Reminder = 2 Stufen (post3 + pre7), freundlicher Nudge.
   Echtes Risiko = No-Show (Anzahlung deckt), nicht Zahlungsausfall (Übergabe = Zug um Zug).
-- Barzahlung nur Ausnahme nach Absprache — nie als gleichwertige Option in Kundentexten. Steht so in AGB §3.
+- Barzahlung ist nachrangige Ausnahme nach Absprache: darf als **letzte Option** in Kundentexten genannt werden,
+  nie empfohlen, nie gleichgestellt. Wird Bar genannt, IMMER die zwei Pflicht-Hinweise (Betrag passend/kein
+  Wechselgeld; Überzahlung mit der Kaution zurück — Baustein `BAR_ZAHLUNG_HINWEIS` in `src/lib/eventverleih/constants.ts`).
+  Steht so in AGB §3. (Revidiert 2026-07-23, Entscheidung A2 — ersetzt die frühere „bar nie im Kundentext"-Regel.)
 
 ## Weiteres
 - **Das Dashboard sendet KEINE Kundenmail automatisch** — Kundenkontakt immer nur als Draft, Freigabe je Stück.

@@ -74,13 +74,15 @@ export default function AGB() {
               Kaution verrechnet.
             </p>
             <p>
-              <strong>Zahlungswege:</strong> Die Anzahlung erfolgt online per Karte
-              (Kreditkarte/Stripe) über den im Angebot bzw. in Ihrem Kundenbereich
-              hinterlegten Zahlungslink. Die Restzahlung erfolgt ebenfalls online per
-              Karte über den hinterlegten Zahlungslink. Die Kaution wird per Karte als
-              Vorautorisierung hinterlegt und nach beanstandungsfreier Rückgabe wieder
-              freigegeben. Abweichende Zahlungsweisen (z.&nbsp;B. Barzahlung) sind nur
-              nach vorheriger Absprache möglich.
+              <strong>Zahlungswege:</strong> Die Anzahlung erfolgt bevorzugt online per
+              Karte (Kreditkarte/Stripe) über den im Angebot bzw. in Ihrem Kundenbereich
+              hinterlegten Zahlungslink; alternativ ist PayPal möglich. Die Restzahlung
+              erfolgt ebenfalls bevorzugt online über den hinterlegten Zahlungslink; sie
+              kann nach Absprache auch bar bei der Übergabe geleistet werden. Die Kaution
+              wird bevorzugt per Karte als Vorautorisierung hinterlegt und nach
+              beanstandungsfreier Rückgabe wieder freigegeben; nach Absprache ist sie
+              auch bar bei der Übergabe möglich. Bei Barzahlung bringen Sie den Betrag
+              bitte passend mit; eine etwaige Überzahlung wird mit der Kaution erstattet.
             </p>
 
             <h2>§ 4 Widerrufsrecht</h2>
