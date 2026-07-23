@@ -21,6 +21,7 @@ type PositionRow = {
   Einzelpreis_Eur: string | null;
   Position_Gesamt_Eur: string | null;
   Artikel_Link: Array<{ id: number; value: string }> | null;
+  Buchung_Link: Array<{ id: number }> | null;
 };
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
@@ -39,9 +40,23 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
   const buchungId = body.buchungId;
 
   try {
-    // Guard VOR jedem Lese- oder Schreibzugriff auf die Position: eine gesperrte Buchung darf
-    // auch dann nichts verändern, wenn die Positions-ID gar nicht existiert.
-    const rechnung = await findRechnungForBuchung(buchungId);
+    // Die massgebliche Buchung ist die an der Position verlinkte, NICHT die aus dem Body: sonst
+    // liesse sich der Rechnungs-Guard umgehen, indem ein direkter Aufruf eine ungesperrte
+    // buchungId mitschickt und damit eine Position einer abgerechneten Buchung loescht (und
+    // obendrein die falsche Buchung neu berechnet). Der Body-Wert wird nur noch gegengeprueft.
+    const vorher = await getRow<PositionRow>(TABLES.Buchungs_Position, positionId);
+    const echteBuchungId = vorher.Buchung_Link?.[0]?.id;
+    if (!echteBuchungId) {
+      return NextResponse.json({ error: "Position hat keine Buchung" }, { status: 422 });
+    }
+    if (echteBuchungId !== buchungId) {
+      return NextResponse.json(
+        { error: "buchungId passt nicht zur Position", detail: `Position ${positionId} gehoert zu Buchung ${echteBuchungId}.` },
+        { status: 400 },
+      );
+    }
+
+    const rechnung = await findRechnungForBuchung(echteBuchungId);
     if (rechnung) {
       return NextResponse.json(
         {
@@ -52,9 +67,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       );
     }
 
-    const vorher = await getRow<PositionRow>(TABLES.Buchungs_Position, positionId);
     await deleteRow(TABLES.Buchungs_Position, positionId);
-    await recalcBuchung(buchungId);
+    await recalcBuchung(echteBuchungId);
 
     // Audit-Log best effort: eine geldrelevante Änderung soll eine Spur hinterlassen, ein
     // fehlgeschlagener Log-Eintrag darf die bereits vollzogene Löschung aber nicht kippen.
