@@ -63,7 +63,7 @@ und muss 4,5:1 erreichen, sonst wird der Ton angepasst.
 `Preis_Abbau` entfernbar ist. Die Zeile wird ergänzt, damit Anzeige und Entfernbarkeit
 übereinstimmen. Das ist rein intern: sie erscheint nur bei `Preis_Abbau > 0`, also nur wenn Manuel
 selbst einen Abbau-Preis gesetzt hat. Es ist keine Aussage darüber, ob Abbau als Leistung angeboten
-wird (offenes Thema, siehe Abschnitt 7).
+wird (offenes Thema, siehe Abschnitt 8).
 
 ## 4. Design B: Haken sitzt beim Rausschicken, Status stimmt wieder
 
@@ -99,12 +99,32 @@ Ohne Guard läuft die Buchungssumme still von der ausgestellten Rechnung weg, oh
 auffällt. Der richtige Weg für eine Änderung nach Rechnungsstellung ist eine Storno- oder
 Korrekturrechnung, nicht ein stilles Löschen.
 
-**Audit-Log:** `position/[id]/delete` schreibt bisher gar nichts, während `service-entfernen` bereits
-protokolliert. Das wird symmetrisch ergänzt (Artikel, Anzahl, Einzelpreis, Gesamtbetrag vor dem
-Löschen), fail-soft wie beim Service. Begründung: die Aktion wird durch das Inline-Kreuz leichter
-auslösbar, eine geldrelevante Änderung soll eine Spur hinterlassen.
+## 6. Design D: Audit-Spur beim Entfernen
 
-## 6. Zahlungskontext
+Eigener Punkt, nicht Teil von C, damit im Commit sichtbar bleibt, dass diese Ergänzung bewusst
+dazugehört und nicht durchgerutscht ist.
+
+`position/[id]/delete` protokolliert bisher gar nichts, `service-entfernen` dagegen schon. Das wird
+symmetrisch ergänzt: Artikel, Anzahl, Einzelpreis und Gesamtbetrag werden **vor** dem Löschen erfasst,
+hinterher ist der Zustand nicht mehr rekonstruierbar. Fail-soft wie beim Service, ein fehlgeschlagener
+Log-Eintrag darf die bereits vollzogene Löschung nicht kippen.
+
+**Warum das keine Scope-Überschreitung ist:** Die Regel, ungefragte Nebenänderungen aus dem Diff zu
+halten, zielt auf Verbesserungen ohne Bezug zum Auftrag, also Umbenennungen, Stilangleichungen,
+Aufräumen im Vorbeigehen. Hier rückt der Auftrag eine geldrelevante Löschung bewusst näher an den
+Klick. Wenn der Knopf näher rückt, muss die Spur mitwachsen, sonst verschlechtert die Änderung unter
+dem Strich die Nachvollziehbarkeit. Das ist eine Folge des Auftrags, keine Zutat. Dass die beiden
+Routen sich hier unterschiedlich verhalten, hat ohnehin nie jemand bewusst entschieden.
+
+**Zweiter Fund, gleicher Ort:** `Audit_Log.Aktion` ist ein Single-Select mit fester Optionsliste, und
+`Service_entfernt` steht nicht darin. Der bestehende Log-Aufruf in `service-entfernen` läuft also in
+einen Baserow-400, den das umgebende `try/catch` verschluckt. In Tabelle 970 existiert kein einziger
+Eintrag dieser Art. Das Protokoll, zu dem der neue symmetrisch sein soll, hat nie funktioniert. Beide
+Routen schreiben deshalb `Aktion: "Sonstiges"` und tragen die eigentliche Aktion in `Details.typ` und
+im `Name`. Neue Select-Optionen in Baserow anzulegen wäre die sauberere Lösung, ist aber eine
+Schema-Änderung an der Produktionsdatenbank und braucht eine eigene Entscheidung.
+
+## 7. Zahlungskontext
 
 Berührt wird kein Kundentext. Die Bestätigungsdialoge und der Guthaben-Hinweis sind Backoffice-intern,
 der `Zahlungs_Methode`-Default im `bezahlt`-Endpoint bleibt unverändert. Die seit 2026-07-23
@@ -112,7 +132,7 @@ verbindliche Regel (Stripe ist Standardweg für Anzahlung, Restzahlung und Kauti
 Bargeld nur als stille Ausnahme, nie von sich aus angeboten) wird durch dieses Design nicht berührt.
 Es entsteht kein neuer Text, der Bargeld nennt.
 
-## 7. Nicht im Scope
+## 8. Nicht im Scope
 
 | Thema | Warum nicht |
 |---|---|
@@ -121,7 +141,7 @@ Es entsteht kein neuer Text, der Bargeld nennt.
 | `isPaid`-Guard am Button "Als bezahlt markieren" | Verhält sich korrekt, kein Defekt |
 | Anzahl einer Position ändern statt sie ganz zu entfernen | Nicht Teil des Auftrags |
 
-## 8. Verifikation
+## 9. Verifikation
 
 - `tsc --noEmit`, danach Codex-Review über den Diff, Runde für Runde bis clean
 - **A, B1 und C (UI-Teil)** lokal am echten Datenstand: Dev-Server, Buchung 16 öffnen. Haken muss
@@ -149,7 +169,7 @@ Minute):
 
 Der Haken aus B1 sitzt in beiden Fällen, weil er nur an der Existenz der Rechnung hängt.
 
-## 9. Risiken
+## 10. Risiken
 
 | Risiko | Umgang |
 |---|---|
@@ -157,7 +177,7 @@ Der Haken aus B1 sitzt in beiden Fällen, weil er nur an der Existenz der Rechnu
 | Der Guard aus C sperrt einen legitimen Fall aus, den wir nicht bedacht haben | 409 mit klarer Meldung. Fällt sofort auf, statt still zu wirken. Nachjustieren ist billig |
 | Client-Komponente lädt die Positionsliste in den Browser | Nur Daten, die die Seite ohnehin rendert. Kein neuer Endpunkt, keine neuen Daten |
 
-## 10. Freigaben und Grenzen
+## 11. Freigaben und Grenzen
 
 - Kein Deploy und kein Push ohne ausdrückliche Freigabe pro Aktion
 - Codex-Review läuft vor jeder Fertig-Meldung
