@@ -1,0 +1,186 @@
+import type { MailText } from "./types";
+import { TEMPLATES } from "./registry";
+
+/**
+ * Checks that run over the RENDERED text, not over the source.
+ *
+ * The point of the overview is to surface contradictions like the deposit one:
+ * `kaution_hold_link` promises a Stripe hold, `kaution_bar_hinweis` asks for cash,
+ * both can reach the same customer. A check that runs on source code would miss it,
+ * because the sentence only exists once the conditional block is evaluated.
+ */
+
+export type Schwere = "fehler" | "hinweis";
+
+export interface Befund {
+  regel: string;
+  schwere: Schwere;
+  /** Short German explanation of what is wrong. */
+  text: string;
+  /** The offending passage, so it can be judged without opening the file. */
+  stelle: string;
+}
+
+/** Brand separator used in every signature — a deliberate, consistent house style. */
+const SIGNATUR_TRENNER = "Manuel Büttner — Eventverleih Bergstraße";
+
+function ausschnitt(text: string, index: number, laenge = 90): string {
+  const von = Math.max(0, index - 35);
+  const bis = Math.min(text.length, index + laenge);
+  return (von > 0 ? "…" : "") + text.slice(von, bis).replace(/\n/g, " ") + (bis < text.length ? "…" : "");
+}
+
+/**
+ * Cash wording anywhere in customer text.
+ *
+ * Stripe is the standard way for deposit, remaining payment and security (business
+ * rule, 2026-07-23). Cash stays possible in exceptional cases, but is never offered
+ * in a customer text — not even as a friendly-sounding alternative. So every
+ * standalone occurrence is a finding, not just the ones that sound like an offer.
+ */
+function pruefeBargeld(mail: MailText): Befund[] {
+  const befunde: Befund[] = [];
+  const re = /\b(bar|bares|bargeld|barzahlung)\b/gi;
+  for (const feld of ["subject", "body"] as const) {
+    const text = mail[feld];
+    let m: RegExpExecArray | null;
+    const rx = new RegExp(re.source, "gi");
+    while ((m = rx.exec(text)) !== null) {
+      befunde.push({
+        regel: "bargeld",
+        schwere: "fehler",
+        text: "Bargeld im Kundentext. Stripe ist der Standardweg; bar wird nie von sich aus angeboten.",
+        stelle: ausschnitt(text, m.index),
+      });
+    }
+  }
+  return befunde;
+}
+
+/** Em dashes are the strongest AI marker in German copy. */
+function pruefeEmDash(mail: MailText): Befund[] {
+  const befunde: Befund[] = [];
+  for (const feld of ["subject", "body"] as const) {
+    // The signature separator is house style and would drown out the real hits.
+    const text = mail[feld].split(SIGNATUR_TRENNER).join("");
+    let index = text.indexOf("—");
+    while (index !== -1) {
+      befunde.push({
+        regel: "em-dash",
+        schwere: "hinweis",
+        text: "Geviertstrich im Fließtext. Stärkster KI-Marker; durch Komma, Punkt oder Umformulierung ersetzen.",
+        stelle: ausschnitt(text, index),
+      });
+      index = text.indexOf("—", index + 1);
+    }
+  }
+  return befunde;
+}
+
+/** A mail without sender identification looks like spam and is legally thin. */
+function pruefeSignatur(mail: MailText): Befund[] {
+  if (mail.body.includes("Eventverleih Bergstraße")) return [];
+  return [
+    {
+      regel: "signatur-fehlt",
+      schwere: "fehler",
+      text: "Kein Absenderhinweis im Text.",
+      stelle: mail.body.slice(-90).replace(/\n/g, " "),
+    },
+  ];
+}
+
+/** Classic assembly failures that reach the customer as visible garbage. */
+function pruefeReste(mail: MailText): Befund[] {
+  const befunde: Befund[] = [];
+  const muster: Array<[string, RegExp]> = [
+    ["platzhalter", /\{\{|\}\}/],
+    ["undefined", /\bundefined\b/],
+    ["null", /\bnull\b/],
+    ["NaN", /\bNaN\b/],
+    ["objekt", /\[object Object\]/],
+  ];
+  for (const feld of ["subject", "body"] as const) {
+    const text = mail[feld];
+    for (const [name, re] of muster) {
+      const m = re.exec(text);
+      if (m) {
+        befunde.push({
+          regel: "rest-im-text",
+          schwere: "fehler",
+          text: `Unaufgelöster Rest im Text: ${name}.`,
+          stelle: ausschnitt(text, m.index),
+        });
+      }
+    }
+  }
+  return befunde;
+}
+
+/** Three or more blank lines in a row means a block was left out without tidying up. */
+function pruefeLeerzeilen(mail: MailText): Befund[] {
+  const m = /\n[ \t]*\n[ \t]*\n[ \t]*\n/.exec(mail.body);
+  if (!m) return [];
+  return [
+    {
+      regel: "leerzeilen",
+      schwere: "hinweis",
+      text: "Drei oder mehr Leerzeilen hintereinander — meist ein weggefallener Block.",
+      stelle: ausschnitt(mail.body, m.index),
+    },
+  ];
+}
+
+export function pruefeText(mail: MailText): Befund[] {
+  return [
+    ...pruefeBargeld(mail),
+    ...pruefeEmDash(mail),
+    ...pruefeSignatur(mail),
+    ...pruefeReste(mail),
+    ...pruefeLeerzeilen(mail),
+  ];
+}
+
+export interface VorlagenBefund {
+  tpl: string;
+  title: string;
+  /** Which example produced the finding — the branch matters. */
+  label: string;
+  befunde: Befund[];
+}
+
+/**
+ * Runs every check over every template and every example case.
+ *
+ * Iterating ALL examples is essential, not thorough-for-its-own-sake: the cash
+ * sentence in `termin_erinnerung` only exists in the branch where the deposit is
+ * still open. With one example per template it would stay invisible.
+ */
+export function pruefeAlle(): VorlagenBefund[] {
+  const out: VorlagenBefund[] = [];
+  for (const t of TEMPLATES) {
+    for (const ex of t.examples) {
+      const befunde = pruefeText(t.build(ex.ctx));
+      if (befunde.length > 0) {
+        out.push({ tpl: t.tpl, title: t.title, label: ex.label, befunde });
+      }
+    }
+  }
+  return out;
+}
+
+/** Findings for one template across all its examples, deduplicated by rule and passage. */
+export function befundeFuer(tpl: string): Befund[] {
+  const gesehen: Record<string, true> = {};
+  const out: Befund[] = [];
+  for (const v of pruefeAlle()) {
+    if (v.tpl !== tpl) continue;
+    for (const b of v.befunde) {
+      const schluessel = `${b.regel}|${b.stelle}`;
+      if (gesehen[schluessel]) continue;
+      gesehen[schluessel] = true;
+      out.push(b);
+    }
+  }
+  return out;
+}
