@@ -284,6 +284,23 @@ export async function createRechnungForBuchung(
     Snapshot_JSON: JSON.stringify(snapshot),
   });
 
+  // Ursache-Fix: der Übergang "Zurueckgegeben" -> "Abgerechnet" lag bisher ausschließlich in
+  // /api/admin/rechnung/[id]/bezahlt. Entsteht eine Rechnung aber bereits als "Bezahlt" (Kunde
+  // hat vor der Rückgabe gezahlt, bei uns der Normalfall), wird der dortige Button "Als bezahlt
+  // markieren" nie angezeigt, der Endpoint nie aufgerufen und der Status nie gesetzt. Deshalb
+  // hier im Helper, den beide Erstellungspfade durchlaufen (rechnung-erstellen und
+  // kaution-erstatten).
+  //
+  // Gleicher Guard wie im bezahlt-Endpoint: nur aus "Zurueckgegeben" heraus, damit eine früh
+  // bezahlte Rechnung keine Buchung schließt, deren Material noch draußen ist.
+  if (vollBezahlt && buchung.Status_Erweitert?.value === "Zurueckgegeben") {
+    try {
+      await updateRow(TABLES.Buchungen, buchungId, { Status_Erweitert: "Abgerechnet" });
+    } catch (e) {
+      console.error("[rechnung] Buchung-Abschluss fehlgeschlagen:", e);
+    }
+  }
+
   // n8n-Beleg-Mail (nur wenn gewünscht — kaution-erstatten verlinkt den Beleg stattdessen)
   if (opts.sendMail) {
     const webhookUrl = process.env.N8N_RECHNUNG_PDF_URL;
