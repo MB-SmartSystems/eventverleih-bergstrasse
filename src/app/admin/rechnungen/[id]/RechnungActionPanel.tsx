@@ -101,7 +101,7 @@ export default function RechnungActionPanel({
 
       {isPaid && (
         <div className="p-3 rounded bg-green-50 border border-green-200 text-green-700 text-sm text-center">
-          ✓ Diese Rechnung ist bezahlt.
+          ✓ Dieser Beleg ist bezahlt.
         </div>
       )}
     </section>

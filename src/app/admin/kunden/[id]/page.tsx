@@ -203,9 +203,9 @@ export default async function KundeDetailPage({ params }: { params: Promise<{ id
           </section>
 
           <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-            <h2 className="text-lg font-semibold text-warm-text mb-3">Rechnungen ({rechnungen.length})</h2>
+            <h2 className="text-lg font-semibold text-warm-text mb-3">Belege ({rechnungen.length})</h2>
             {rechnungen.length === 0 ? (
-              <p className="text-sm text-warm-muted">Noch keine Rechnungen.</p>
+              <p className="text-sm text-warm-muted">Noch keine Belege.</p>
             ) : (
               <div className="space-y-2">
                 {rechnungen.map((r) => (

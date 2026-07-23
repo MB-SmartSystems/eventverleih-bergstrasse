@@ -163,7 +163,7 @@ export default async function FinanzenPage({ searchParams }: { searchParams: Pro
         <div className="p-5 rounded-xl bg-warm-surface border border-warm-border">
           <div className="text-xs text-warm-muted uppercase tracking-wide">Ausgaben</div>
           <div className="text-2xl font-bold text-red-700 mt-1">{fmtEur(summeAusgaben)}</div>
-          <div className="text-xs text-warm-muted mt-1">{ausgaben.length} Belege</div>
+          <div className="text-xs text-warm-muted mt-1">{ausgaben.length} Ausgabenbelege</div>
         </div>
         <div className="p-5 rounded-xl bg-warm-surface border border-warm-border">
           <div className="text-xs text-warm-muted uppercase tracking-wide">Gewinn (vorl.)</div>
@@ -175,7 +175,7 @@ export default async function FinanzenPage({ searchParams }: { searchParams: Pro
         <div className="p-5 rounded-xl bg-warm-surface border border-warm-border">
           <div className="text-xs text-warm-muted uppercase tracking-wide">Offen</div>
           <div className="text-2xl font-bold text-yellow-700 mt-1">{fmtEur(offenSumme)}</div>
-          <div className="text-xs text-warm-muted mt-1">{offenCount} Rechnungen</div>
+          <div className="text-xs text-warm-muted mt-1">{offenCount} Belege</div>
         </div>
       </div>
 

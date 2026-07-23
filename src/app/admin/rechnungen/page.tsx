@@ -78,8 +78,8 @@ export default async function RechnungenPage({
     <div className="space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-warm-text">Rechnungen</h1>
-          <p className="text-sm text-warm-muted mt-1">{rows.length} {rows.length === 1 ? "Rechnung" : "Rechnungen"}</p>
+          <h1 className="text-2xl font-bold text-warm-text">Belege</h1>
+          <p className="text-sm text-warm-muted mt-1">{rows.length} {rows.length === 1 ? "Beleg" : "Belege"}</p>
         </div>
         {totalOffen > 0 && (
           <div className="text-right">
@@ -107,7 +107,7 @@ export default async function RechnungenPage({
 
       {rows.length === 0 ? (
         <div className="p-8 rounded-xl bg-warm-surface border border-warm-border text-center text-warm-muted">
-          Keine Rechnungen.
+          Keine Belege.
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-warm-border bg-warm-surface">
