@@ -6,6 +6,7 @@
  * Generiert/rotiert Member-Token fuer Kunden mit dieser Mail, queued Login-Link-Mail.
  * Sicherheits-Hinweis: returnt IMMER 200 (auch wenn Mail nicht in DB) — Enumeration-Schutz.
  */
+import { buildLoginMagicLink } from "@/lib/eventverleih/mail-templates/build/anfrage-und-member";
 import { NextRequest, NextResponse } from "next/server";
 import { createRow, listRows, TABLES } from "@/lib/baserow/client";
 import { ensureMemberToken } from "@/lib/eventverleih/member-auth";
@@ -38,27 +39,15 @@ export async function POST(req: NextRequest) {
     if (kunde) {
       const token = await ensureMemberToken(kunde.id);
       const magicLink = `${baseUrl}/mein-bereich/login?token=${token}`;
-      const subject = "Ihr Login-Link für Mein Bereich — Eventverleih Bergstraße";
-      const body = `Hallo,
-
-hier ist Ihr Login-Link für Mein Bereich bei Eventverleih Bergstraße:
-
-${magicLink}
-
-Der Link ist 30 Tage gültig. Wenn Sie diesen Login nicht angefordert haben, ignorieren Sie diese Mail einfach.
-
-Bei Fragen: WhatsApp +49 156 79521124 oder direkt antworten.
-
-Mit freundlichen Grüßen
-Manuel Büttner — Eventverleih Bergstraße`;
+      const mail = buildLoginMagicLink({ magicLink });
 
       try {
         await createRow(TABLES.MailQueue, {
           Erstellt_am: new Date().toISOString(),
           Kunde_Link: [kunde.id],
           Template_Key: "login_magic_link",
-          Subject: subject,
-          Body: body,
+          Subject: mail.subject,
+          Body: mail.body,
           To_Email: email,
           Approval_Status: "Auto_Reply",
           Idempotency_Key: `magic-link-${email}-${Math.floor(Date.now() / 60000)}`, // 1-Minute-Idempotency
