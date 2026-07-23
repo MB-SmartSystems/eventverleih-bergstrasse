@@ -51,12 +51,15 @@ export function uebergabeOrt(
 }
 
 /**
- * Fährt Manuel (Lieferung bei der Übergabe / Abholung bei der Rückgabe) oder holt/bringt
- * der Kunde selbst zum Treffpunkt? Gleiche Klassifikation wie `uebergabeOrt`, nur als
- * boolescher Wert für die logistik-abhängige Kundenkommunikation (Übergabe/Rückgabe-Mails):
- *  - Übergabe_Typ "Beim_Kunden" / "Lieferung" → Manuel fährt.
- *  - Übergabe_Typ "Standard" → Selbstabholung/-rückgabe zum Treffpunkt.
- *  - leer/null → Fallback über die Preise (Preis_Lieferung bei Übergabe, Preis_Abholung bei Rückgabe).
+ * Fährt Manuel selbst, oder erledigt der Kunde die Fahrt zum Treffpunkt? Boolescher Wert
+ * für die logistik-abhängige Kundenkommunikation (Übergabe/Rückgabe-Mails).
+ *
+ * WICHTIG — richtungsabhängig, nicht symmetrisch:
+ *  - **Übergabe:** Manuel liefert bei Übergabe_Typ "Beim_Kunden"/"Lieferung", sonst (leer/Standard)
+ *    über den Lieferpreis (Preis_Lieferung > 0).
+ *  - **Rückgabe:** Manuel holt NUR ab, wenn ein Abhol-Service gebucht ist (Preis_Abholung > 0).
+ *    Aus einer gebuchten Lieferung folgt KEINE Abholung — eine Lieferung heißt nicht, dass Manuel
+ *    die Artikel am Ende auch wieder abholt. Sonst gilt Selbstrückgabe zum Treffpunkt.
  */
 export function manuelFaehrt(
   b: {
@@ -66,15 +69,20 @@ export function manuelFaehrt(
   },
   which: "uebergabe" | "rueckgabe",
 ): boolean {
+  const num = (v: string | number | null | undefined): number =>
+    typeof v === "number" ? v : parseFloat(String(v ?? "0")) || 0;
+
+  // Rückgabe: allein der gebuchte Abhol-Service entscheidet.
+  if (which === "rueckgabe") return num(b.Preis_Abholung) > 0;
+
+  // Übergabe: expliziter Typ gewinnt, sonst der Lieferpreis.
   const typVal =
     typeof b.Übergabe_Typ === "object" && b.Übergabe_Typ !== null
       ? (b.Übergabe_Typ as { value: string }).value
       : ((b.Übergabe_Typ as string | null | undefined) ?? "");
   if (typVal === "Beim_Kunden" || typVal === "Lieferung") return true;
   if (typVal === "Standard") return false;
-  const num = (v: string | number | null | undefined): number =>
-    typeof v === "number" ? v : parseFloat(String(v ?? "0")) || 0;
-  return which === "uebergabe" ? num(b.Preis_Lieferung) > 0 : num(b.Preis_Abholung) > 0;
+  return num(b.Preis_Lieferung) > 0;
 }
 
 export const KONTAKT_TEL = "+49 156 79521124";
