@@ -357,6 +357,42 @@ export const BEISPIEL_STORNO_UEBERZAHLUNG = {
   },
 };
 
+/** 100 % Gebuehr: die Erstattung besteht ausschliesslich aus zu viel gezahltem Geld. */
+export const BEISPIEL_STORNO_NUR_UEBERZAHLUNG = {
+  label: "Volle Gebühr, nur Überzahlung zurück",
+  ctx: {
+    vorname: KUNDE.Vorname,
+    nachname: KUNDE.Nachname,
+    buchungId: 32,
+    stornogebuehrProzent: 100,
+    staffelLabel: "Weniger als 4 Tage vor Event — 100 % Stornogebühr",
+    mietsumme: 75,
+    stornogebuehrEur: 75,
+    bezahlt: 75,
+    erstattungEur: 0,
+    nachzahlungEur: 0,
+    ueberzahlungEur: 17.5,
+  },
+};
+
+/** Bar bezahlt: es gibt nichts zurueckzubuchen, die Mail fragt nach der Bankverbindung. */
+export const BEISPIEL_STORNO_BAR = {
+  label: "Bar bezahlt, Bankverbindung nötig",
+  ctx: {
+    vorname: KUNDE.Vorname,
+    nachname: KUNDE.Nachname,
+    buchungId: 32,
+    stornogebuehrProzent: 50,
+    staffelLabel: "7-14 Tage vor Event — 50 % Stornogebühr",
+    mietsumme: 75,
+    stornogebuehrEur: 37.5,
+    bezahlt: 75,
+    erstattungEur: 37.5,
+    nachzahlungEur: 0,
+    erstattungsweg: "bank" as const,
+  },
+};
+
 export const BEISPIEL_LOGIN_LINK = [
   {
     label: "Regelfall",

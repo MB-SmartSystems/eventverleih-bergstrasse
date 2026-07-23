@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { berechneStorno } from "@/lib/eventverleih/storno";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
-import { bezahltEur, ueberzahlungEur } from "@/lib/eventverleih/zahlung";
+import { bezahltEur, ueberzahlungEur, erstattungsweg } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 
@@ -70,6 +70,9 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // eingerechnet, sondern separat ausgewiesen — sonst wuerde die Gebuehr darauf
     // erhoben. Der Refund selbst laeuft hier ohnehin von Hand.
     const ueberzahlung = ueberzahlungEur(buchung);
+    // Bar oder per Ueberweisung eingegangenes Geld laesst sich nicht zurueckbuchen —
+    // dann fragt die Mail nach der Bankverbindung statt eine Rueckbuchung anzukuendigen.
+    const weg = erstattungsweg(buchung.Zahlungen_JSON);
 
     // GATE (Phase 0): Storno-Staffel greift NUR bei verbindlicher Buchung.
     // Anzahlung-Modell: ein Vertrag besteht erst ab Bestaetigt/Reserviert. Eine
@@ -133,6 +136,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       erstattungEur: calc.erstattung_eur,
       nachzahlungEur: calc.nachzahlung_eur,
       ueberzahlungEur: ueberzahlung,
+      erstattungsweg: weg,
     });
 
     try {
@@ -172,10 +176,15 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             auszahlung_gesamt_eur: (calc.erstattung_eur + ueberzahlung).toFixed(2),
             nachzahlung_eur: calc.nachzahlung_eur.toFixed(2),
             tage_bis_event: calc.tage_bis_event,
+            erstattungsweg: weg,
             hinweis: calc.erstattung_eur + ueberzahlung > 0
-              ? ueberzahlung > 0
-                ? `Manueller Stripe-Refund nötig: ${(calc.erstattung_eur + ueberzahlung).toFixed(2)} EUR — davon ${ueberzahlung.toFixed(2)} EUR zu viel gezahlt, die NICHT unter die Storno-Staffel fallen`
-                : "Manueller Stripe-Refund nötig — sicherheitshalber nicht automatisch ausgeloest"
+              ? weg === "bank"
+                // Bar/Ueberweisung: es gibt nichts zurueckzubuchen. Die Mail hat den
+                // Kunden nach der IBAN gefragt, die Ueberweisung macht Manuel.
+                ? `Rückzahlung per Überweisung nötig: ${(calc.erstattung_eur + ueberzahlung).toFixed(2)} EUR — der Kunde wurde in der Mail nach IBAN und Kontoinhaber gefragt`
+                : ueberzahlung > 0
+                  ? `Manueller ${weg === "paypal" ? "PayPal" : "Stripe"}-Refund nötig: ${(calc.erstattung_eur + ueberzahlung).toFixed(2)} EUR — davon ${ueberzahlung.toFixed(2)} EUR zu viel gezahlt, die NICHT unter die Storno-Staffel fallen`
+                  : `Manueller ${weg === "paypal" ? "PayPal" : "Stripe"}-Refund nötig — sicherheitshalber nicht automatisch ausgeloest`
               : "Keine Erstattung fällig",
           }),
           signal: AbortSignal.timeout(5000),
@@ -203,6 +212,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           erstattung_eur: calc.erstattung_eur,
           ueberzahlung_eur: ueberzahlung,
           auszahlung_gesamt_eur: Math.round((calc.erstattung_eur + ueberzahlung) * 100) / 100,
+          erstattungsweg: weg,
           refund_notify: notifyResult,
           refund_pending: calc.erstattung_eur + ueberzahlung > 0,
         }),

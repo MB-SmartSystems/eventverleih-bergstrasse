@@ -108,6 +108,61 @@ describe('buildStornoBestaetigung', () => {
     expect(body).toContain('Sie erhalten 22,50 EUR zurück');
     expect(body).not.toContain('Differenz von');
   });
+
+  // 100 % Gebuehr: die Erstattung besteht NUR aus zu viel gezahltem Geld. "Darin
+  // enthalten sind 17,50" waere formal richtig und trotzdem irrefuehrend.
+  const voll = {
+    ...basis,
+    stornogebuehrProzent: 100,
+    staffelLabel: 'Weniger als 4 Tage vor Event — 100 % Stornogebühr',
+    stornogebuehrEur: 75,
+    bezahlt: 75,
+    erstattungEur: 0,
+    ueberzahlungEur: 17.5,
+  };
+
+  it('explains a refund that is nothing but the overpayment', () => {
+    const body = buildStornoBestaetigung(voll).body;
+    expect(body).toContain('Sie erhalten 17,50 EUR zurück');
+    expect(body).toContain('den Sie zu viel gezahlt hatten');
+    expect(body).toContain('eine Erstattung der Miete gibt es deshalb nicht');
+    expect(body).not.toContain('Darin enthalten sind');
+  });
+
+  it('keeps the wording of a partial fee untouched', () => {
+    const body = buildStornoBestaetigung({ ...basis, erstattungEur: 37.5, ueberzahlungEur: 17.5 }).body;
+    expect(body).toContain('Sie erhalten 55,00 EUR zurück');
+    expect(body).toContain('Darin enthalten sind 17,50 EUR');
+    expect(body).not.toContain('eine Erstattung der Miete gibt es deshalb nicht');
+  });
+
+  // Manuel, 2026-07-23: der Erstattungsweg richtet sich nach der Zahlungsart.
+  it('asks for the bank details when the customer paid cash', () => {
+    const body = buildStornoBestaetigung({ ...basis, erstattungEur: 22.5, erstattungsweg: 'bank' as const }).body;
+    expect(body).toContain('Sie erhalten 22,50 EUR zurück');
+    expect(body).toContain('brauche ich Ihre Bankverbindung');
+    expect(body).toContain('IBAN und Kontoinhaber');
+    expect(body).not.toContain('Stripe');
+  });
+
+  it('names PayPal instead of Stripe when PayPal was used', () => {
+    const body = buildStornoBestaetigung({ ...basis, erstattungEur: 22.5, erstattungsweg: 'paypal' as const }).body;
+    expect(body).toContain('über PayPal auf Ihr ursprüngliches Zahlungsmittel');
+    expect(body).not.toContain('Stripe');
+  });
+
+  it('is byte-identical to today without the new fields', () => {
+    // Gegenprobe: der Normalfall Karte darf sich durch die Erweiterung nicht bewegen.
+    expect(buildStornoBestaetigung({ ...basis, erstattungEur: 22.5 }).body).toBe(
+      buildStornoBestaetigung({ ...basis, erstattungEur: 22.5, erstattungsweg: 'karte' as const, ueberzahlungEur: 0 }).body,
+    );
+  });
+
+  it('routes the cash case through the full-fee wording too', () => {
+    const body = buildStornoBestaetigung({ ...voll, erstattungsweg: 'bank' as const }).body;
+    expect(body).toContain('eine Erstattung der Miete gibt es deshalb nicht');
+    expect(body).toContain('brauche ich Ihre Bankverbindung');
+  });
 });
 
 describe('buildLoginMagicLink', () => {

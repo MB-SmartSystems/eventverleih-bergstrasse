@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { verteileBetrag, erstattungEur, ueberzahlungEur, bezahltEur, parseKassiert } from '../zahlung';
+import { verteileBetrag, erstattungEur, ueberzahlungEur, bezahltEur, parseKassiert, erstattungsweg } from '../zahlung';
 import type { PostenStand } from '../zahlung';
 
 /** Buchung 32, der Fall der die Regel ausgeloest hat: 100 € bar, faellig waren 82,50 €. */
@@ -160,6 +160,42 @@ describe('erstattungEur', () => {
 
   it('stays at zero without a deposit', () => {
     expect(erstattungEur({}).gesamtEur).toBe(0);
+  });
+});
+
+describe('erstattungsweg', () => {
+  const j = (...e: Array<[string, string]>) =>
+    JSON.stringify(e.map(([typ, methode]) => ({ datum: '2026-07-01', typ, methode, betrag: 10 })));
+
+  it('is a card refund without any history', () => {
+    // Der Stripe-Webhook schreibt nur die Skalar-Felder — keine Historie heisst Karte.
+    expect(erstattungsweg(null)).toBe('karte');
+    expect(erstattungsweg('')).toBe('karte');
+    expect(erstattungsweg('[]')).toBe('karte');
+  });
+
+  it('is a card refund for Stripe entries', () => {
+    expect(erstattungsweg(j(['anzahlung', 'Stripe'], ['restzahlung', 'Stripe']))).toBe('karte');
+  });
+
+  it('asks for bank details as soon as one part came in cash', () => {
+    expect(erstattungsweg(j(['anzahlung', 'Bar']))).toBe('bank');
+    expect(erstattungsweg(j(['anzahlung', 'Stripe'], ['restzahlung', 'Bar']))).toBe('bank');
+    expect(erstattungsweg(j(['restzahlung', 'Ueberweisung']))).toBe('bank');
+  });
+
+  it('reports PayPal only when no cash and no card is involved', () => {
+    expect(erstattungsweg(j(['restzahlung', 'PayPal']))).toBe('paypal');
+    expect(erstattungsweg(j(['anzahlung', 'PayPal'], ['restzahlung', 'Bar']))).toBe('bank');
+  });
+
+  it('ignores deposit entries — the deposit is not part of this refund', () => {
+    expect(erstattungsweg(j(['kaution', 'Bar']))).toBe('karte');
+  });
+
+  it('falls back to the card on broken JSON instead of throwing', () => {
+    expect(erstattungsweg('{kaputt')).toBe('karte');
+    expect(erstattungsweg('{"kein":"array"}')).toBe('karte');
   });
 });
 

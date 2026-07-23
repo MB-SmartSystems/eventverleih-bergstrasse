@@ -1,5 +1,5 @@
 import type { MailText } from "../types";
-import { eurMail } from "@/lib/eventverleih/zahlung";
+import { eurMail, type Erstattungsweg } from "@/lib/eventverleih/zahlung";
 import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
 
 /** Confirmation that an inquiry arrived. Goes out automatically. */
@@ -128,7 +128,26 @@ export interface StornoBestaetigungCtx {
    * der Mietsumme und geht ungekuerzt zurueck. Fehlt = 0.
    */
   ueberzahlungEur?: number;
+  /**
+   * Wie das Geld zurueckgeht. Fehlt = "karte" (bisheriges Verhalten): eine reine
+   * Kartenzahlung hinterlaesst keine Historie, aus der ein anderer Weg ablesbar waere.
+   */
+  erstattungsweg?: Erstattungsweg;
 }
+
+/** Rueckbuchung oder Bankverbindung — je nachdem, wie der Kunde gezahlt hat. */
+const WEG_SATZ: Record<Erstattungsweg, string> = {
+  karte: "die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).",
+  paypal: "die Erstattung erfolgt über PayPal auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).",
+  bank: "Für die Rückzahlung brauche ich Ihre Bankverbindung. Bitte antworten Sie kurz auf diese E-Mail mit IBAN und Kontoinhaber.",
+};
+
+/** Derselbe Satz als eigenstaendiger Satzanfang. */
+const WEG_SATZ_ALLEIN: Record<Erstattungsweg, string> = {
+  karte: "Die Rückzahlung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).",
+  paypal: "Die Rückzahlung erfolgt über PayPal auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).",
+  bank: WEG_SATZ.bank,
+};
 
 /** Cancellation confirmed, with the fee breakdown from the AGB. */
 export function buildStornoBestaetigung(ctx: StornoBestaetigungCtx): MailText {
@@ -144,12 +163,22 @@ export function buildStornoBestaetigung(ctx: StornoBestaetigungCtx): MailText {
   const ueber = Math.round((ctx.ueberzahlungEur ?? 0) * 100) / 100;
   const auszahlung = Math.round((calc.erstattung_eur + ueber) * 100) / 100;
   const ueberSatz = ueber > 0 ? ` Darin enthalten sind ${eurMail(ueber)} EUR, die Sie zu viel gezahlt hatten.` : "";
+  const weg: Erstattungsweg = ctx.erstattungsweg ?? "karte";
 
-  const erstattungText = auszahlung > 0
-    ? `Sie erhalten ${eurMail(auszahlung)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).${ueberSatz}`
-    : calc.nachzahlung_eur > 0
-      ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
-      : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
+  // Bei 100 % Stornogebuehr besteht die Erstattung ausschliesslich aus zu viel
+  // gezahltem Geld. "Sie erhalten 17,50 zurück … darin enthalten sind 17,50" waere
+  // formal richtig und trotzdem irrefuehrend — dieser Fall bekommt einen eigenen Satz.
+  const nurUeberzahlung = ueber > 0 && calc.erstattung_eur === 0;
+
+  const erstattungText = nurUeberzahlung
+    ? `Sie erhalten ${eurMail(ueber)} EUR zurück. Das ist der Betrag, den Sie zu viel gezahlt hatten. Die Stornogebühr entspricht der vollen Mietsumme, eine Erstattung der Miete gibt es deshalb nicht. ${WEG_SATZ_ALLEIN[weg]}`
+    : auszahlung > 0
+      ? weg === "bank"
+        ? `Sie erhalten ${eurMail(auszahlung)} EUR zurück.${ueberSatz} ${WEG_SATZ.bank}`
+        : `Sie erhalten ${eurMail(auszahlung)} EUR zurück — ${WEG_SATZ[weg]}${ueberSatz}`
+      : calc.nachzahlung_eur > 0
+        ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
+        : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
 
   return {
     subject: `Stornierung Ihrer Buchung #${buchungId} — Eventverleih Bergstraße`,

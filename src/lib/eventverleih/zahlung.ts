@@ -194,6 +194,50 @@ export function erstattungEur(b: ErstattungFelder, schadenEur = 0): Erstattung {
 }
 
 /* ------------------------------------------------------------------------- *
+ * Weg, auf dem Geld zurueckgeht
+ * ------------------------------------------------------------------------- */
+
+/**
+ * Wie eine Erstattung den Kunden erreicht.
+ *
+ * `karte` und `paypal` sind Rueckbuchungen auf das Zahlungsmittel, `bank` braucht
+ * eine Bankverbindung vom Kunden — bar oder per Ueberweisung eingegangenes Geld
+ * laesst sich nicht zurueckbuchen.
+ */
+export type Erstattungsweg = "karte" | "paypal" | "bank";
+
+/**
+ * Leitet den Erstattungsweg aus der Zahlungs-Historie ab.
+ *
+ * Vorrang: bank > paypal > karte. Sobald EIN Teilbetrag bar oder per Ueberweisung
+ * kam, geht die gesamte Erstattung auf ein Konto — es gibt nur eine Rueckzahlung,
+ * und sie muss den Weg nehmen, der fuer jeden Teil funktioniert.
+ *
+ * Leere Historie heisst `karte`: `Zahlungen_JSON` fuellt nur die manuelle Erfassung,
+ * der Stripe-Webhook schreibt ausschliesslich die Skalar-Felder. Keine Historie ist
+ * damit der Normalfall einer reinen Kartenzahlung.
+ */
+export function erstattungsweg(zahlungenJson: string | null | undefined): Erstattungsweg {
+  if (!zahlungenJson) return "karte";
+  let eintraege: Array<{ typ?: unknown; methode?: unknown }>;
+  try {
+    const roh = JSON.parse(zahlungenJson);
+    eintraege = Array.isArray(roh) ? roh : [];
+  } catch {
+    return "karte";
+  }
+  let paypal = false;
+  for (let i = 0; i < eintraege.length; i++) {
+    const e = eintraege[i];
+    if (e.typ !== "anzahlung" && e.typ !== "restzahlung") continue;
+    const m = String(e.methode ?? "").toLowerCase();
+    if (m === "bar" || m === "ueberweisung") return "bank";
+    if (m === "paypal") paypal = true;
+  }
+  return paypal ? "paypal" : "karte";
+}
+
+/* ------------------------------------------------------------------------- *
  * Bei der Uebergabe kassierter Betrag (Eingabe pruefen)
  * ------------------------------------------------------------------------- */
 

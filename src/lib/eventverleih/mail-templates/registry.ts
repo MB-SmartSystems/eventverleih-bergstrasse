@@ -254,7 +254,12 @@ export const TEMPLATES: Entry[] = [
     freigabe: "automatisch",
     source: "src/app/api/member/buchung/[id]/storno/route.ts:136",
     build: buildStornoBestaetigung,
-    examples: [...B.BEISPIEL_STORNO, B.BEISPIEL_STORNO_UEBERZAHLUNG],
+    examples: [
+      ...B.BEISPIEL_STORNO,
+      B.BEISPIEL_STORNO_UEBERZAHLUNG,
+      B.BEISPIEL_STORNO_NUR_UEBERZAHLUNG,
+      B.BEISPIEL_STORNO_BAR,
+    ],
   },
   {
     tpl: "login_magic_link",
