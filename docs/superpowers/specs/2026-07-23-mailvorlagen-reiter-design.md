@@ -91,9 +91,15 @@ selbst, nicht in einem Bericht, den niemand öffnet:
 
 1. **Herausziehen ohne Verhaltensänderung.** Je Datei den Textaufbau in eine reine Funktion verschieben,
    Aufrufstelle ruft sie auf. Kein neuer Text, keine neue Bedingung.
-2. **Beweis, dass sich kein Zeichen geändert hat.** Vor dem Umbau je Vorlage den erzeugten Text mit
-   festen Eingaben in eine Snapshot-Datei schreiben, nach dem Umbau erneut und **zeichengleich**
-   vergleichen. Das ist die Abnahme des Schritts, nicht ein grüner Build.
+2. **Beweis, dass sich kein Zeichen geändert hat.** Ein Skript zieht alle Text-Literale einer Datei aus
+   `git show main:<datei>` und aus dem Arbeitsstand und vergleicht sie **zeichengleich**. Verschieben ist
+   erlaubt, Ändern nicht. Das ist die Abnahme des Schritts, nicht ein grüner Build.
+
+   *Korrektur gegenüber der ersten Fassung dieses Entwurfs (2026-07-23):* Dort stand „vor dem Umbau
+   Snapshot erzeugen, nach dem Umbau vergleichen". Das geht nicht — vor der Extraktion gibt es keine
+   aufrufbare Funktion, deren Ausgabe man festhalten könnte. Der Literal-Vergleich gegen `main` leistet
+   dasselbe und ist unabhängig davon, ob eine Funktion schon existiert. Renderende Snapshots kommen
+   zusätzlich in Task 8 dazu, dann als Regressionsschutz für die Zukunft.
 3. Registry und Beispielfälle anlegen.
 4. Admin-Seite `/admin/vorlagen` plus Eintrag in der Navigation (`src/app/admin/layout.tsx`).
 5. Prüfungen ergänzen und die bekannten Befunde gegenprüfen: der bar-Text in `termin_erinnerung` **muss**
