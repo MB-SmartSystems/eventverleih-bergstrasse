@@ -632,7 +632,19 @@ Vertrag
             key: "abgerechnet",
             phase: "Abrechnung",
             label: "Rechnung erstellt + Mail raus",
-            checked: status === "Abgerechnet",
+            // Hängt an der Existenz der Rechnung, nicht am Buchungsstatus: der Punkt sagt
+            // "erstellt und Mail raus", nicht "Vorgang vollständig geschlossen".
+            checked: rechnungen.length > 0,
+            meta: rechnungen[0]
+              ? [
+                  rechnungen[0].Rechnungsnummer,
+                  rechnungen[0].Rechnungsdatum
+                    ? new Date(rechnungen[0].Rechnungsdatum).toLocaleDateString("de-DE")
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : undefined,
           },
         ];
 
