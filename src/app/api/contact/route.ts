@@ -28,6 +28,7 @@ import { getAvailability } from "@/lib/eventverleih/availability";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
 import { rundeKaution } from "@/lib/eventverleih/constants";
 import { matchByName } from "@/lib/eventverleih/artikel-match";
+import { artikelLabel } from "@/lib/eventverleih/artikel-label";
 
 interface CartItemPayload {
   name: string;
@@ -73,6 +74,7 @@ interface AngebotRow { id: number; Angebot_ID: number; Token_Public: string }
 interface ArtikelRow {
   id: number;
   Bezeichnung: string;
+  Mehrzahl?: string | null;
   Mietpreis_WE_Eur: string | null;
   Kaution_Pro_Stueck_Eur: string | null;
   Aufbau_Pauschale_Eur: string | null;
@@ -200,7 +202,10 @@ export async function POST(req: NextRequest) {
     // === Schritt 3: Cart-Items mit Artikel-Tabelle matchen + Preise berechnen
     interface MatchedItem {
       artikelId: number;
+      /** Einzahl — steht so auch in der angelegten Buchungs-Position. */
       bezeichnung: string;
+      /** Mehrzahl aus der Artikel-Tabelle; leer heisst: Bezeichnung unveraendert. */
+      mehrzahl: string | null;
       anzahl: number;
       einzelpreis: number;
       kaution_pro_stueck: number;
@@ -224,6 +229,7 @@ export async function POST(req: NextRequest) {
         matched.push({
           artikelId: art.id,
           bezeichnung: art.Bezeichnung,
+          mehrzahl: art.Mehrzahl ?? null,
           anzahl: ci.quantity,
           einzelpreis: ep,
           kaution_pro_stueck: kps,
@@ -390,7 +396,7 @@ export async function POST(req: NextRequest) {
     // Kunde bekommt erst nach Manuel-Telegram-Freigabe die Angebots-Mail.
     const greeting = `Hallo ${payload.vorname} ${payload.nachname}`;
     const summary = matched.length
-      ? matched.map((m) => `  ${m.anzahl}× ${m.bezeichnung}`).join("\n") +
+      ? matched.map((m) => `  ${artikelLabel(m.anzahl, { Bezeichnung: m.bezeichnung, Mehrzahl: m.mehrzahl }, "Artikel")}`).join("\n") +
         (unmatched.length ? `\n\nWeitere Wuensche: ${unmatched.join(", ")}` : "")
       : `${payload.nachricht}`;
     const fmtDe = (iso: string) => {
@@ -433,7 +439,7 @@ export async function POST(req: NextRequest) {
       ? `\n\nNICHT ZUGEORDNET — manuell pruefen:\n${unmatched.map((u) => `${u} ?!`).join("\n")}`
       : "";
     const cartSummary = (matched.length
-      ? matched.map((m) => `${m.anzahl}× ${m.bezeichnung} (${m.einzelpreis.toFixed(2)} €)`).join("\n")
+      ? matched.map((m) => `${artikelLabel(m.anzahl, { Bezeichnung: m.bezeichnung, Mehrzahl: m.mehrzahl }, "Artikel")} (${m.einzelpreis.toFixed(2)} €)`).join("\n")
       : payload.nachricht.slice(0, 300)) + unmatchedWarnung;
 
     // Vercel Serverless killt fire-and-forget nach Response-Return — daher AWAITEN.

@@ -23,6 +23,7 @@ import { uebergabeOrt } from "@/lib/eventverleih/config";
 import { isAuthenticated } from "@/lib/auth";
 import { buildUebergabeErfolgt } from "@/lib/eventverleih/mail-templates/build/uebergabe";
 import { parseKassiert } from "@/lib/eventverleih/zahlung";
+import { artikelLabel, artikelNamenById } from "@/lib/eventverleih/artikel-label";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,12 +127,15 @@ export async function POST(
         if (kunde.Email && !alreadySent) {
           const [posAll, artAll] = await Promise.all([
             listAllRows<{ id: number; Anzahl: string | null; Artikel_Link: Array<{ id: number }> | null; Buchung_Link: Array<{ id: number }> | null }>(TABLES.Buchungs_Position),
-            listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
+            listAllRows<{ id: number; Bezeichnung: string; Mehrzahl?: string | null }>(TABLES.Artikel),
           ]);
-          const nameById = new Map(artAll.results.map((a) => [a.id, a.Bezeichnung]));
+          const nameById = artikelNamenById(artAll.results);
           const lines = posAll.results
             .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
-            .map((p) => `- ${parseFloat(p.Anzahl ?? "1") || 1}× ${nameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel"}`);
+            .map((p) => {
+              const anzahl = parseFloat(p.Anzahl ?? "1") || 1;
+              return `- ${artikelLabel(anzahl, nameById.get(p.Artikel_Link?.[0]?.id ?? 0), "Artikel")}`;
+            });
 
           const dec = (v: string | number | null | undefined) => parseFloat(String(v ?? "0")) || 0;
           const kautionSoll = dec(b.Kaution_Soll_Eur);
