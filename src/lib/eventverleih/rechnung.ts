@@ -25,6 +25,7 @@ type BuchungRow = {
   Kaution_Soll_Eur: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_Eur: string | null;
+  Kaution_Rueckzahlung_am: string | null;
   Kaution_Pruefung_Status: { value: string } | null;
   Schaden_Betrag_Eur: string | null;
   Kaution_Schaden_Notiz: string | null;
@@ -293,7 +294,15 @@ export async function createRechnungForBuchung(
   //
   // Gleicher Guard wie im bezahlt-Endpoint: nur aus "Zurueckgegeben" heraus, damit eine früh
   // bezahlte Rechnung keine Buchung schließt, deren Material noch draußen ist.
-  if (vollBezahlt && buchung.Status_Erweitert?.value === "Zurueckgegeben") {
+  //
+  // Zusätzlich: eine noch offene Kaution hält die Buchung aktiv (Manuel 2026-06-16, "solange eine
+  // Kautionsrückzahlung fällig ist, darf die Buchung nicht abgeschlossen erscheinen"). Praktisch
+  // hängt daran auch das Kaution-erstatten-Panel im Backoffice, das nur bei "Zurueckgegeben"
+  // gerendert wird — ein vorzeitiges "Abgerechnet" würde Manuel die Erstattungs-Oberfläche
+  // wegnehmen. Beim Weg über kaution-erstatten ist Kaution_Rueckzahlung_am zu diesem Zeitpunkt
+  // bereits gesetzt, dort greift die Automatik also weiterhin.
+  const kautionOffen = num(buchung.Kaution_Soll_Eur) > 0 && !buchung.Kaution_Rueckzahlung_am;
+  if (vollBezahlt && !kautionOffen && buchung.Status_Erweitert?.value === "Zurueckgegeben") {
     try {
       await updateRow(TABLES.Buchungen, buchungId, { Status_Erweitert: "Abgerechnet" });
     } catch (e) {
