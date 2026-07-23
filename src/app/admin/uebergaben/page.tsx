@@ -10,6 +10,7 @@
 import { redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/auth";
 import { listAllRows, TABLES } from "@/lib/baserow/client";
+import { artikelName, artikelNamenById } from "@/lib/eventverleih/artikel-label";
 import UebergabeActions from "./UebergabeActions";
 import RueckgabeCardActions from "./RueckgabeCardActions";
 
@@ -51,6 +52,11 @@ interface KundeRow {
 
 const ANSTEHEND = new Set(["Bestaetigt", "Reserviert"]);
 const DRAUSSEN = new Set(["Uebergeben", "In_Miete"]);
+
+/** Ware beim Kunden, Kaution nirgends hinterlegt (Manuel, 2026-07-23: rot ausweisen). */
+function ohneKaution(b: BuchungRow): boolean {
+  return num(b.Kaution_Soll_Eur) > 0 && !b.Kaution_Hinterlegt_am;
+}
 
 function num(v: string | number | null | undefined): number {
   if (v === null || v === undefined) return 0;
@@ -101,11 +107,11 @@ export default async function UebergabenPage() {
   const [buchungenAll, positionenAll, artikelAll, kundenAll] = await Promise.all([
     listAllRows<BuchungRow>(TABLES.Buchungen),
     listAllRows<PositionRow>(TABLES.Buchungs_Position),
-    listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
+    listAllRows<{ id: number; Bezeichnung: string; Mehrzahl?: string | null }>(TABLES.Artikel),
     listAllRows<KundeRow>(TABLES.Kunden),
   ]);
 
-  const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
+  const artikelNameById = artikelNamenById(artikelAll.results);
   const kundeById = new Map(kundenAll.results.map((k) => [k.id, k]));
 
   // Packliste (für Übergabe) + Positionen (für Rückgabe-Dialog) je Buchung
@@ -115,8 +121,8 @@ export default async function UebergabenPage() {
     const bid = p.Buchung_Link?.[0]?.id;
     if (!bid) continue;
     const aid = p.Artikel_Link?.[0]?.id;
-    const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—";
     const anzahl = parseInt(p.Anzahl ?? "1", 10) || 1;
+    const name = artikelName(anzahl, aid ? artikelNameById.get(aid) : null, aid ? `Artikel ${aid}` : "—");
     const pl = packByBuchung.get(bid) ?? [];
     pl.push({ positionId: p.id, label: `${anzahl}× ${name}`, checked: false });
     packByBuchung.set(bid, pl);
@@ -238,6 +244,13 @@ export default async function UebergabenPage() {
                     {STATUS_LABEL[status] ?? status}
                   </span>
                 </div>
+                {ohneKaution(b) && (
+                  // Ware ist draussen, Kaution ist nirgends hinterlegt. Rot, weil hier
+                  // nichts mehr einzusammeln ist — es ist ein offenes Risiko, kein Posten.
+                  <div className="mb-2 px-2 py-1 rounded text-sm font-medium bg-red-100 text-red-800">
+                    Ohne Kaution übergeben · {num(b.Kaution_Soll_Eur).toFixed(2).replace(".", ",")} € nicht hinterlegt
+                  </div>
+                )}
                 {tel && (
                   <a href={`tel:${tel.replace(/\s/g, "")}`} className="text-sm text-accent">
                     {tel}

@@ -31,6 +31,8 @@ import UebergabeTypPanel from "./UebergabeTypPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 import { bezahltEur } from "@/lib/eventverleih/zahlung";
 import { statusKlartext, type StatusTon } from "@/lib/eventverleih/status";
+import { OHNE_KAUTION_UNTERWEGS } from "@/lib/eventverleih/kaution-status";
+import { artikelName, artikelNamenById } from "@/lib/eventverleih/artikel-label";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -178,7 +180,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   const [positionenAll, rechnungenAll, artikelAll, angeboteAll, mailsAll] = await Promise.all([
     listAllRows<PositionRow>(TABLES.Buchungs_Position),
     listAllRows<RechnungRow>(TABLES.Rechnungen),
-    listAllRows<{ id: number; Bezeichnung: string }>(TABLES.Artikel),
+    listAllRows<{ id: number; Bezeichnung: string; Mehrzahl?: string | null }>(TABLES.Artikel),
     listAllRows<{ id: number; Anfragedatum: string | null; Angebotsdatum: string | null; Akzeptiert_am: string | null; Buchung_Link: Array<{ id: number }> }>(TABLES.Angebote),
     listAllRows<{
       id: number;
@@ -193,7 +195,7 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   ]);
   const positionen = positionenAll.results.filter((p) => p.Buchung_Link?.[0]?.id === buchungId);
   const rechnungen = rechnungenAll.results.filter((r) => r.Buchung_Link?.[0]?.id === buchungId);
-  const artikelNameById = new Map(artikelAll.results.map((a) => [a.id, a.Bezeichnung]));
+  const artikelNameById = artikelNamenById(artikelAll.results);
   const mails = mailsAll.results
     .filter((m) => m.Buchung_Link?.[0]?.id === buchungId)
     .sort((a, b) => (b.Sent_am || b.Erstellt_am || "").localeCompare(a.Sent_am || a.Erstellt_am || ""));
@@ -222,6 +224,10 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
       ? numv(buchung.Restzahlung_Soll_Eur)
       : 0;
   const kautionEinzusammeln = kautionSoll > 0 && !buchung.Kaution_Hinterlegt_am ? kautionSoll : 0;
+  // Ware beim Kunden, Kaution nirgends hinterlegt: die Uebergabe war erlaubt, das
+  // Risiko bleibt trotzdem und wird deshalb rot statt gelb gezeigt (Manuel, 2026-07-23).
+  const ohneKautionUnterwegs =
+    kautionSoll > 0 && !buchung.Kaution_Hinterlegt_am && OHNE_KAUTION_UNTERWEGS.has(status);
   const zeigeKassierBanner =
     uebergabeBald &&
     (status === "Bestaetigt" || status === "Reserviert") &&
@@ -230,8 +236,8 @@ export default async function BuchungDetailPage({ params }: { params: Promise<{ 
   // Packliste (geteilt: Übergabe-Bereich + Checkliste unten) — persistiert über Position.Eingepackt
   const packItems = positionen.map((p) => {
     const aid = p.Artikel_Link?.[0]?.id;
-    const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "Artikel";
     const anzahl = parseFloat(p.Anzahl ?? "1");
+    const name = artikelName(anzahl, aid ? artikelNameById.get(aid) : null, aid ? `Artikel ${aid}` : "Artikel");
     return { positionId: p.id, label: `${anzahl}× ${name}`, checked: !!p.Eingepackt };
   });
 
@@ -352,6 +358,10 @@ Vertrag
                         {fmtEur(buchung.Kaution_Soll_Eur)} hinterlegt · {fmtDate(buchung.Kaution_Hinterlegt_am)}
                       </span>
                     )
+                  ) : ohneKautionUnterwegs ? (
+                    <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-red-100 text-red-800">
+                      {fmtEur(buchung.Kaution_Soll_Eur)} — ohne Kaution übergeben
+                    </span>
                   ) : (
                     <span className="inline-block px-2 py-0.5 rounded text-sm font-medium bg-amber-100 text-amber-800">
                       {fmtEur(buchung.Kaution_Soll_Eur)} — noch offen
@@ -392,7 +402,7 @@ Vertrag
             buchungId={buchung.id}
             positionen={positionen.map((p) => ({
               id: p.id,
-              name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
+              name: artikelName(parseFloat(p.Anzahl ?? "1"), artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0), "Artikel"),
               anzahl: parseFloat(p.Anzahl ?? "1"),
               eingepackt: !!p.Eingepackt,
             }))}
@@ -407,7 +417,7 @@ Vertrag
             buchungId={buchung.id}
             positionen={positionen.map((p) => ({
               id: p.id,
-              name: artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel",
+              name: artikelName(parseFloat(p.Anzahl ?? "1"), artikelNameById.get(p.Artikel_Link?.[0]?.id ?? 0), "Artikel"),
               anzahl: parseFloat(p.Anzahl ?? "1"),
             }))}
           />
@@ -448,7 +458,9 @@ Vertrag
         buchungId={buchung.id}
         positionen={positionen.map((p) => ({
           id: p.id,
-          name: (p.Artikel_Link?.[0]?.id ? artikelNameById.get(p.Artikel_Link[0].id) : null) ?? "Artikel",
+          // Tabelle mit eigener Anzahl-Spalte: hier bleibt die Einzahl stehen, wie auf
+          // jeder Rechnung ("Stuhl · 30 · 1,50 €"). Die Mehrzahl gehoert in Fliesstext.
+          name: (p.Artikel_Link?.[0]?.id ? artikelNameById.get(p.Artikel_Link[0].id)?.Bezeichnung : null) ?? "Artikel",
           anzahl: p.Anzahl,
           einzelpreis: p.Einzelpreis_Eur,
           gesamt: p.Position_Gesamt_Eur,
