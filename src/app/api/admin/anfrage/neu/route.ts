@@ -17,6 +17,7 @@ import { randomUUID } from "crypto";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, listRows, listAllRows, TABLES } from "@/lib/baserow/client";
 import { rundeKaution } from "@/lib/eventverleih/constants";
+import { freigebenNachManuellerAnlage } from "@/lib/eventverleih/angebot-freigeben-manuell";
 
 interface CartItem { artikel_id: number; anzahl: number }
 interface ArtikelRow {
@@ -48,6 +49,7 @@ export async function POST(req: NextRequest) {
     event_datum_bis?: string;
     cart_items?: CartItem[];
     notiz?: string;
+    freigeben?: boolean;
   };
   try {
     body = await req.json();
@@ -206,12 +208,31 @@ export async function POST(req: NextRequest) {
     });
     created.push({ table: TABLES.Angebote, id: angebot.id });
 
+    // Optionale Direkt-Freigabe (C3): Status auf "Angebot versendet" + Snapshot + Stripe-Links.
+    // Der Auto-Mailversand haengt im Helper hinter einem heute-AUS-Flag — es geht KEINE Mail raus.
+    let freigabe: { freigegeben: boolean; mail_queued: boolean } = { freigegeben: false, mail_queued: false };
+    if (body.freigeben === true) {
+      try {
+        freigabe = await freigebenNachManuellerAnlage({
+          angebotId: angebot.id,
+          buchungId: buchung.id,
+          kundeId,
+          token: sharedToken,
+        });
+      } catch (e) {
+        console.error("[anfrage-neu] Direkt-Freigabe fehlgeschlagen:", e);
+        // Soft-fail: Anfrage ist angelegt; Freigabe kann manuell nachgeholt werden.
+      }
+    }
+
     return NextResponse.json({
       ok: true,
       buchung_id: buchung.id,
       buchung_nr: buchung.Buchung_ID,
       angebot_id: angebot.id,
       token: sharedToken,
+      freigegeben: freigabe.freigegeben,
+      mail_queued: freigabe.mail_queued,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";

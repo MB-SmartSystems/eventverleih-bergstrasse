@@ -46,7 +46,7 @@ export default function NeueAnfrageForm({
   const [artikelToAdd, setArtikelToAdd] = useState<number | "">("");
   const [anzahlToAdd, setAnzahlToAdd] = useState(1);
   const [notiz, setNotiz] = useState("");
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting] = useState<false | "save" | "release">(false);
   const [error, setError] = useState("");
 
   function addItem() {
@@ -74,7 +74,7 @@ export default function NeueAnfrageForm({
 
   const cartSum = cart.reduce((s, c) => s + c.preis * c.anzahl, 0);
 
-  async function submit() {
+  async function submit(freigeben: boolean) {
     setError("");
     if (kundeMode === "existing" && !kundeId) {
       setError("Bitte einen Kunden auswählen oder 'Neuer Kunde' anlegen.");
@@ -93,7 +93,7 @@ export default function NeueAnfrageForm({
     if (!vonIso || !bisIso) { setError("Bitte Mietzeitraum auswählen."); return; }
     if (bisIso < vonIso) { setError("Bis-Datum muss nach Von-Datum liegen."); return; }
     if (cart.length === 0) { setError("Bitte mindestens einen Artikel hinzufügen."); return; }
-    setSubmitting(true);
+    setSubmitting(freigeben ? "release" : "save");
     try {
       const res = await fetch("/api/admin/anfrage/neu", {
         method: "POST",
@@ -105,6 +105,7 @@ export default function NeueAnfrageForm({
           event_datum_bis: bisIso,
           cart_items: cart.map((c) => ({ artikel_id: c.artikel_id, anzahl: c.anzahl })),
           notiz,
+          freigeben,
         }),
       });
       const d = await res.json();
@@ -345,15 +346,26 @@ export default function NeueAnfrageForm({
           />
         </div>
 
-        <button
-          onClick={submit}
-          disabled={submitting}
-          className="w-full py-3 rounded bg-accent text-white text-sm font-semibold hover:bg-accent-dark disabled:opacity-40 transition-colors"
-        >
-          {submitting ? "Anfrage wird angelegt…" : "Anfrage anlegen"}
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <button
+            onClick={() => submit(false)}
+            disabled={submitting !== false}
+            className="flex-1 py-3 rounded border border-warm-border bg-warm-bg text-warm-text text-sm font-semibold hover:bg-warm-border/30 disabled:opacity-40 transition-colors"
+          >
+            {submitting === "save" ? "Wird gespeichert…" : "Anfrage speichern"}
+          </button>
+          <button
+            onClick={() => submit(true)}
+            disabled={submitting !== false}
+            className="flex-1 py-3 rounded bg-accent text-white text-sm font-semibold hover:bg-accent-dark disabled:opacity-40 transition-colors"
+          >
+            {submitting === "release" ? "Wird freigegeben…" : "Anlegen + Angebot freigeben"}
+          </button>
+        </div>
         <p className="text-xs text-warm-muted text-center">
-          Es wird keine Auto-Reply-Mail an den Kunden geschickt. Du entscheidest danach, ob du das Angebot freigibst.
+          „Speichern" legt die Anfrage im Status „Anfrage" an, du gibst das Angebot später frei.
+          „Anlegen + Angebot freigeben" setzt direkt auf „Angebot versendet". In beiden Fällen geht
+          aktuell keine automatische Mail an den Kunden raus.
         </p>
       </div>
     </div>
