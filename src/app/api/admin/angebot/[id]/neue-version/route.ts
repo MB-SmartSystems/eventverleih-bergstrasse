@@ -10,9 +10,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, listRows, updateRow, TABLES } from "@/lib/baserow/client";
 import { buildSnapshot } from "@/lib/angebot-snapshot";
-import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { buildAngebotAktualisiert } from "@/lib/eventverleih/mail-templates/build/angebot-versand";
 
-const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) {
@@ -105,31 +104,22 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     }
 
     const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
-    const anmerkungBlock = body.anmerkung?.trim()
-      ? `\n*Anmerkung:*\n${body.anmerkung.trim()}\n`
-      : "";
-    const subject = `Aktualisiertes Angebot ${angebot.Angebotsnummer} - Eventverleih Bergstraße`;
-    const fmt = (n: number) => n.toFixed(2).replace(".", ",");
-    const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
-
-Ihr Angebot wurde aktualisiert (Version ${nextVersion}).${anmerkungBlock}
-
-Die aktuelle Mietsumme beträgt ${fmt(snapshot.preis_artikel)} EUR.
-
-Bitte schauen Sie sich die aktualisierten Details an und bestätigen Sie das Angebot erneut, wenn alles passt:
-${publicUrl}
-
-${UEBERGABE_HINWEIS}
-
-Bei Fragen jederzeit per WhatsApp oder Anruf erreichbar: +49 156 79521124.${SIGNATURE}`;
+    const mail = buildAngebotAktualisiert({
+      kunde: { Vorname: kunde.Vorname, Nachname: kunde.Nachname },
+      angebotsnummer: angebot.Angebotsnummer,
+      nextVersion,
+      preisArtikel: snapshot.preis_artikel,
+      publicUrl,
+      anmerkung: body.anmerkung,
+    });
 
     await createRow(TABLES.MailQueue, {
       Erstellt_am: new Date().toISOString(),
       Buchung_Link: [buchungId],
       Kunde_Link: [kundeId],
       Template_Key: "angebot_aktualisiert",
-      Subject: subject,
-      Body: mailBody,
+      Subject: mail.subject,
+      Body: mail.body,
       Approval_Status: "Approved",
       Idempotency_Key: `A${angebotId}-update-v${nextVersion}`,
     });

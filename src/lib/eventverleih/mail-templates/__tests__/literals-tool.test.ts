@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { literals } from '../../../../../scripts/mail-literals-diff.mjs';
+import { literals, geruest, ausdruecke } from '../../../../../scripts/mail-literals-diff.mjs';
 
 /**
  * The literal comparison is the safety net for the whole extraction. If it stops
@@ -32,5 +32,34 @@ describe('literals()', () => {
     const alt = literals('const t = `eine kurze Erinnerung an unseren Übergabe-Termin morgen.`;');
     const neu = literals('const t = `eine kurze Erinnerung an Ihren Übergabe-Termin morgen.`;');
     expect(alt[0]).not.toEqual(neu[0]);
+  });
+});
+
+/**
+ * The skeleton is the actual thing under protection: the fixed characters a customer
+ * reads. Renaming a variable is plumbing and must pass; changing a word must not.
+ */
+describe('geruest()', () => {
+  it('treats a renamed interpolation as the same text', () => {
+    const alt = 'Guten Tag ${body.anmerkung.trim()}, Ihr Termin steht fest und wir freuen uns.';
+    const neu = 'Guten Tag ${anmerkung}, Ihr Termin steht fest und wir freuen uns.';
+    expect(geruest(alt)).toEqual(geruest(neu));
+  });
+
+  it('still separates texts that differ by a single word', () => {
+    const alt = 'Ihre Kaution von ${betrag} EUR wird bar bei der Übergabe erhoben.';
+    const neu = 'Ihre Kaution von ${betrag} EUR wird online hinterlegt.';
+    expect(geruest(alt)).not.toEqual(geruest(neu));
+  });
+
+  it('does not paper over a removed interpolation', () => {
+    expect(geruest('Offen: ${rest} und ${kaution}.')).not.toEqual(geruest('Offen: ${rest}.'));
+  });
+
+  it('lists the interpolations so a swap stays visible in the report', () => {
+    expect(ausdruecke('Offen sind ${restSoll} EUR und ${kautionSoll} EUR.')).toEqual([
+      '${restSoll}',
+      '${kautionSoll}',
+    ]);
   });
 });

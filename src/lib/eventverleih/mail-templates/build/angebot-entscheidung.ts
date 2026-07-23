@@ -1,5 +1,6 @@
 import type { MailText } from "../types";
 import { UEBERGABE_HINWEIS } from "@/lib/eventverleih/constants";
+import { SIGNATURE } from "./bausteine";
 
 /**
  * The three customer mails behind an inquiry decision: offer, callback request,
@@ -21,7 +22,6 @@ export function resolveAblehnenText(kategorie?: string, kundenText?: string): st
   return ABLEHNEN_TEXTE[kategorie] || "";
 }
 
-const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 export function buildAngebotsMail(opts: {
   vorname: string;

@@ -16,9 +16,8 @@ import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { parseSnapshot } from "@/lib/angebot-snapshot";
 import { memberAutoLoginUrl } from "@/lib/eventverleih/member-auth";
-import { formatGermanShort } from "@/lib/eventverleih/constants";
+import { buildAngebotNachhaken } from "@/lib/eventverleih/mail-templates/build/angebot-versand";
 
-const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
 
 export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string }> }) {
   if (!(await isAuthenticated())) {
@@ -92,33 +91,21 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     } catch (e) {
       console.error("[nachhaken] memberAutoLoginUrl fehlgeschlagen:", e);
     }
-    const memberBlock = meinBereichUrl
-      ? `\n\nMein Bereich (alle Buchungen + Zahlungen + Rechnungen einsehen):\n${meinBereichUrl}`
-      : "";
-
     const publicUrl = `https://eventverleih-bergstrasse.de/angebot/${angebot.Token_Public}`;
-    const datumStr = buchung.Event_datum_von ? ` am ${formatGermanShort(buchung.Event_datum_von)}` : "";
-
-    const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
-
-vor einigen Tagen habe ich Ihnen Ihr Angebot für Ihren Termin${datumStr} zugeschickt – ich wollte kurz nachfragen, ob alles passt oder ob noch Fragen offen sind.
-
-Falls Sie es annehmen möchten: Sie können das Angebot online mit einem Klick bestätigen und direkt die Anzahlung (30 %) leisten. Erst damit sind die Artikel für Ihren Termin verbindlich reserviert – bis dahin kann sie leider auch jemand anderes anfragen.
-
-Angebot ansehen und bestätigen:
-${publicUrl}
-
-Sollte sich Ihr Plan geändert haben, ist das natürlich auch in Ordnung – eine kurze Rückmeldung genügt, dann lege ich die Anfrage zu den Akten.
-
-Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${memberBlock}${SIGNATURE}`;
+    const mail = buildAngebotNachhaken({
+      kunde: { Vorname: kunde.Vorname, Nachname: kunde.Nachname },
+      publicUrl,
+      eventDatumVon: buchung.Event_datum_von,
+      meinBereichUrl,
+    });
 
     await createRow(TABLES.MailQueue, {
       Erstellt_am: new Date().toISOString(),
       Buchung_Link: [buchungId],
       Kunde_Link: [kundeId],
       Template_Key: "angebot_nachhaken",
-      Subject: "Kurze Rückfrage zu Ihrem Angebot – Eventverleih Bergstraße",
-      Body: mailBody,
+      Subject: mail.subject,
+      Body: mail.body,
       Approval_Status: "Approved",
       // Zeitstempel im Key: jeder bewusste Klick = eigene Mail (Dedup nur gegen Doppel-Submit)
       Idempotency_Key: `A${angebotId}-nachhaken-${Date.now()}`,

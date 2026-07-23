@@ -37,6 +37,28 @@ export function literals(source) {
   return out;
 }
 
+/**
+ * Das Textgerüst eines Literals: die festen Zeichen, die der Kunde liest.
+ * Jede Einsetzung wird auf `${}` reduziert.
+ *
+ * Warum das die richtige Prüfgröße ist: Zieht ein Text in eine Bau-Funktion um,
+ * heißt die eingesetzte Variable dort oft anders (`${body.anmerkung.trim()}` wird
+ * `${anmerkung}`). Am gelesenen Text ändert das nichts. Ein verändertes WORT dagegen
+ * verändert das Gerüst sofort.
+ *
+ * Was diese Prüfung NICHT leistet: Sie merkt nicht, wenn eine falsche Variable
+ * eingesetzt wird (Kaution statt Restzahlung). Dafür sind die Tests da — beide
+ * zusammen, nicht eines statt des anderen.
+ */
+export function geruest(literal) {
+  return literal.replace(/\$\{(?:[^{}]|\{[^}]*\})*\}/g, '${}');
+}
+
+/** Die Einsetzungen eines Literals, zur Anzeige veränderter Ausdrücke. */
+export function ausdruecke(literal) {
+  return literal.match(/\$\{(?:[^{}]|\{[^}]*\})*\}/g) || [];
+}
+
 function fromRef(ref, file) {
   try {
     return execSync(`git show ${ref}:${file}`, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
@@ -57,7 +79,19 @@ export function vergleiche(ref, files) {
     if (alt !== null) before.push(...literals(alt).map((text) => ({ file, text })));
     if (existsSync(file)) after.push(...literals(readFileSync(file, 'utf8')));
   }
-  return { gesamt: before.length, fehlend: before.filter((b) => !after.includes(b.text)) };
+
+  const nachherGeruest = after.map(geruest);
+  const fehlend = before.filter((b) => !nachherGeruest.includes(geruest(b.text)));
+
+  // Gleiches Gerüst, andere Einsetzung: kein Textfehler, aber sichtbar machen.
+  const umbenannt = [];
+  for (const b of before) {
+    if (after.includes(b.text)) continue;
+    const treffer = after.find((a) => geruest(a) === geruest(b.text));
+    if (treffer) umbenannt.push({ file: b.file, vorher: ausdruecke(b.text), nachher: ausdruecke(treffer) });
+  }
+
+  return { gesamt: before.length, fehlend, umbenannt };
 }
 
 function main() {
@@ -67,7 +101,7 @@ function main() {
     process.exit(2);
   }
 
-  const { gesamt, fehlend } = vergleiche(ref, files);
+  const { gesamt, fehlend, umbenannt } = vergleiche(ref, files);
 
   if (gesamt === 0) {
     console.error(`FEHLER: in ${ref} wurde in den angegebenen Dateien kein einziges Literal gefunden.`);
@@ -85,7 +119,17 @@ function main() {
     process.exit(1);
   }
 
-  console.log(`ok — ${gesamt} Literal(e) unverändert wiedergefunden (${files.length} Datei(en) geprüft).`);
+  if (umbenannt.length > 0) {
+    console.log(`Hinweis: bei ${umbenannt.length} Literal(en) ist der Text gleich, aber die Einsetzung heißt anders.`);
+    console.log('Das ist beim Umzug normal. Ob die RICHTIGE Variable eingesetzt wird, prüfen die Tests, nicht dieser Vergleich.');
+    for (const u of umbenannt) {
+      console.log(`  ${u.file}`);
+      console.log(`    vorher:  ${u.vorher.join(' ')}`);
+      console.log(`    nachher: ${u.nachher.join(' ')}`);
+    }
+  }
+
+  console.log(`ok — ${gesamt} Textgerüst(e) unverändert wiedergefunden (${files.length} Datei(en) geprüft).`);
   process.exit(0);
 }
 
