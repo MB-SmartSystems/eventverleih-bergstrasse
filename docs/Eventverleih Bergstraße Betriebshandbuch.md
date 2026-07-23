@@ -165,6 +165,17 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
   nicht), nicht über stilles Löschen. Entfernte Positionen und Leistungen landen jetzt außerdem im
   Audit-Log (Zustand vor dem Löschen). Volle Entscheidung: Vault
   `Decisions/2026-07-23-positionen-nach-rechnungsstellung-gesperrt.md`.
+- **Belegmail geht genau einmal raus, und das ist nachvollziehbar** (seit 2026-07-23). Das Feld
+  `Beleg_Mail_am` (Rechnungen 950) hält fest, wann die Belegmail ausgelöst wurde. Der Knopf im
+  Buchungsdetail sagt vorher, was er tun wird: „Rechnung erstellen + Mail senden" (neu),
+  „Belegmail nachholen" (Rechnung da, noch kein Versand vermerkt) oder „Beleg bereits versendet"
+  (gesperrt, mit Datum). Nach dem Klick wird gemeldet, was mit der **Mail** passiert ist, nicht nur,
+  dass die Rechnung existiert. **Wichtig zum Lesen des Feldes: LEER heißt UNBEKANNT, nicht „nicht
+  verschickt"** — das Feld existiert erst seit dem 23.07.2026. Für die drei Rechnungen davor wurde
+  der belegte Versandzeitpunkt aus dem BCC-Postfach nachgetragen; die beiden importierten
+  Altbelege ZV-0007_01 und ZV-0008 bleiben leer.
+  Hintergrund: Wer den Beleg über „Kaution erstatten" anlegen ließ, konnte danach über den Knopf
+  keine Belegmail mehr auslösen — er meldete Erfolg, es passierte nur nichts.
 - **Buchung wird beim Rechnung-Erstellen automatisch abgerechnet**, wenn sie auf „Zurueckgegeben" steht,
   die Rechnung bereits bezahlt entsteht **und** keine Kautionsrückzahlung mehr offen ist. Vorher hing
   dieser Übergang allein am Button „Als bezahlt markieren", der bei einer schon bezahlt entstehenden

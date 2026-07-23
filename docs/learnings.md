@@ -58,13 +58,32 @@ sich im Nachhinein weder belegen noch widerlegen.
 3. Beim Ändern der Rechnungslogik immer **beide** Erstellungspfade mitdenken: `rechnung-erstellen`
    (mit Mail) und `kaution-erstatten` (ohne). Sie unterscheiden sich genau in dieser einen Zeile.
 
-**Status:** Befund vorgelegt, **nicht gefixt**. Der naheliegende Fix (Marker `Beleg_Mail_am` an
-Rechnungen 950 + Trigger im Idempotenz-Zweig) berührt die Sende-Grenze und braucht eine
-Baserow-Schemaänderung — beides Manuels Entscheidung. Details im Handoff
-`docs/superpowers/2026-07-23-handoff-admin-bestellliste.md`.
+**Status:** **gefixt am 2026-07-23**, von Manuel freigegeben. Feld `Beleg_Mail_am` (Rechnungen 950,
+Datum mit Uhrzeit) ist der Versand-Marker; der Trigger hängt jetzt am `sendMail`-Flag plus Marker
+statt am Neuanlage-Pfad, und die Oberfläche meldet den Mail-Status statt pauschal Erfolg.
+
+**Nachtrag aus der Umsetzung — zwei Folgefehler, die derselben Wurzel entstammen:**
+
+1. **Ein Marker schützt nur, wenn er persistiert ist.** Erster Entwurf meldete „gesendet", auch wenn
+   das Schreiben des Markers fehlschlug — beim nächsten Klick wäre das Feld leer gewesen und der
+   Kunde hätte die Mail doppelt bekommen. Genau der Fall, den der Marker verhindern soll. Jetzt:
+   Wiederholversuch, und wenn auch der scheitert, ein eigener Status, der in der Oberfläche sagt
+   „Mail ist raus, Vermerk fehlt, NICHT erneut auslösen, bitte von Hand nachtragen".
+2. **Validierungen der Erstellung dürfen die Wiederherstellung nicht blockieren.** Die Prüfungen auf
+   Kundenadresse und Summe > 0 standen vor dem Idempotenz-Zweig. Für eine längst eingefrorene
+   Rechnung sind sie sachfremd: stehen die Buchungspreise inzwischen auf 0, hätte das Nachholen der
+   Belegmail an einem 422 scheitern müssen. Die Idempotenz läuft jetzt zuerst — server- **und**
+   clientseitig, denn dieselbe Prüfung saß auch im Button.
+
+**Verallgemeinert:** Wenn ein Pfad vom „Normalfall" zum „Reparaturfall" wird, gehören seine
+Vorbedingungen überprüft. Bedingungen, die für das Erzeugen richtig sind, sind für das Nachholen oft
+falsch. Und: Ein Schutzmechanismus ist erst dann einer, wenn sein Fehlschlag sichtbar wird.
 
 ---
 
 ## Offen / noch nicht erprobt
 
-- Belegmail-Lücke (Eintrag oben): Entscheidung über den Fix liegt bei Manuel.
+- **Der Versand-Marker ist ungetestet im Echtbetrieb.** Der Pfad wurde geprüft, aber bewusst nie
+  gefeuert — ein Testlauf hätte eine echte Kundenmail ausgelöst. Belegt ist er erst, wenn bei der
+  nächsten echten Rechnung `Beleg_Mail_am` gefüllt ist und der Knopf danach auf „Beleg bereits
+  versendet" steht.

@@ -17,12 +17,39 @@
    Buchung aus `Position.Buchung_Link` ab, nicht aus dem Request-Body.
 5. Audit-Log für entfernte Positionen; `Aktion: "Sonstiges"`, echte Aktion in `Details.typ`.
 
+6. **Versand-Marker `Beleg_Mail_am`** (Rechnungen 950, Datum mit Uhrzeit, Zeitzone Europe/Berlin,
+   Feld-ID 11385). Die Belegmail geht genau einmal raus, der Knopf sagt vor **und** nach dem Klick,
+   was mit der Mail passiert. Freigegeben von Manuel inklusive Schemaänderung.
+
 ## ⏳ Wartet auf Manuel
 
 - **Merge nach `main`** (= Live-Gang, Vercel deployt bei Push auf main).
-- **Belegmail-Lücke** — Befund liegt vor, Fix nicht begonnen. Siehe unten.
+
+## Versand-Marker: was im Datenbestand steht
+
+`Beleg_Mail_am` wurde für den Altbestand aus dem **BCC-Postfach** nachgetragen — der Workflow
+`eve-rechnung-render-mail` setzt `bccEmail = info@eventverleih-bergstrasse.de`, dort liegt der
+Nachweis. Eingetragen wurde jeweils das belegte Datum, nicht das heutige:
+
+| Rechnung | Buchung | `Beleg_Mail_am` | Beleg |
+|---|---|---|---|
+| RG-2026-0001 | 22 | 18.06.2026 11:35 | Mail an `ute-reinhard@gmx.de` |
+| RG-2026-0002 | 16 | 24.06.2026 14:14 | Mail an `ski-michael@web.de` |
+| RG-2026-0003 | 27 | 29.06.2026 21:17 | Mail an `m.kraemer9208@yahoo.com`, **erste** von mehreren |
+| ZV-0007_01, ZV-0008 | 3, 4 | leer | Altimporte aus PDF, kein Versandnachweis |
+
+**Ein leeres Feld heißt „unbekannt", nicht „nicht verschickt".** Das steht so auch in der
+Feldbeschreibung in Baserow und im Betriebshandbuch, weil es sonst zwangsläufig falsch gelesen wird.
+
+Bei RG-2026-0003 ist eine **Dublette belegt**: fünf Sendezeitpunkte am 29.06. (21:17, 21:38, 21:42,
+21:44, 21:47). Genau davor schützt der Marker jetzt.
 
 ## Ungeprüft geblieben — was ein späterer echter Vorgang belegen muss
+
+Zwei Punkte sind **reviewed, nicht verifiziert** — der Statusübergang (Punkt 3) und der Versand-Marker
+(Punkt 6). Beim Marker wurde der Pfad geprüft, aber bewusst nie gefeuert: ein Testlauf hätte eine echte
+Kundenmail ausgelöst. Er gilt als belegt, sobald bei der nächsten echten Rechnung `Beleg_Mail_am`
+gefüllt ist und der Knopf danach auf „Beleg bereits versendet" steht.
 
 Der Statusübergang (Punkt 3) ist **reviewed, nicht verifiziert**. Ein Testlauf hätte eine echte
 GoBD-Rechnungsnummer verbrannt und eine Beleg-Mail ausgelöst. Er gilt erst als verifiziert, wenn ein
@@ -47,23 +74,27 @@ In Baserow 950 die neue Rechnung ansehen.
 
 Solange das nicht passiert ist, bleibt dieser Punkt offen. Er hakt sich nicht von selbst ab.
 
-## Befund, nicht gefixt: Belegmail nach „Kaution erstatten"
+## Gefixt: Belegmail nach dem Weg ueber Kaution erstatten
 
-- **Heute:** `kaution-erstatten` legt den Beleg mit `sendMail: false` an und sendet bewusst keine
-  Kundenmail (Route, Zeile 183). `createRechnungForBuchung` steigt bei bereits vorhandener Rechnung
-  früh aus — **vor** dem n8n-Mail-Trigger. Ein späterer Klick auf „Rechnung erstellen + Mail senden"
-  löst deshalb keine Belegmail mehr aus.
-- **Sollte:** Der Button löst die Belegmail auch für eine bereits existierende Rechnung aus, und zwar
-  genau einmal.
-- **Berührt Manuels Entscheidung:** ja, Sende-Grenze. Kein neuer Text nötig (das Template liegt im
-  n8n-Workflow `eve-rechnung-render-mail`), aber es fehlt ein Versand-Marker. Ohne ihn droht eine
-  doppelte Belegmail an einen echten Kunden. Sauber wird es erst mit einem Feld an der Rechnung
-  (z. B. `Beleg_Mail_am`) → Baserow-Schemaänderung, also Manuels Entscheidung.
+**War:** `kaution-erstatten` legt den Beleg mit `sendMail: false` an. `createRechnungForBuchung` stieg
+bei bereits vorhandener Rechnung früh aus, **vor** dem n8n-Mail-Trigger. Ein späterer Klick auf
+Rechnung erstellen + Mail senden löste deshalb keine Belegmail mehr aus: der Knopf meldete Erfolg,
+es passierte nur nichts.
 
-**Beweislage, ehrlich:** Ob konkrete Kunden ihre Rechnung per Mail bekamen, lässt sich **nicht mehr
-feststellen**. Belegmails laufen nicht über die MailQueue (kein Rechnungs-Key in 88 Zeilen), `EmailLog`
-(953) ist leer, und die n8n-Executions aus Juni sind aufgeräumt. Die Lücke ist aus dem Code belegt, der
-Einzelfall nicht.
+**Ist:** Der Versand hängt am `sendMail`-Flag plus Marker, nicht mehr am Neuanlage-Pfad. Die
+Idempotenz-Prüfung läuft jetzt **vor** den Erstellungs-Validierungen (Kundenadresse, Summe > 0),
+sonst wäre das Nachholen an Bedingungen gescheitert, die nur für das Erzeugen gelten. Dieselbe
+Reihenfolge gilt im Button.
+
+**Wenn der Marker nicht geschrieben werden kann:** Wiederholversuch, und wenn auch der scheitert,
+meldet die Oberfläche ausdrücklich, dass die Mail raus ist, der Vermerk aber fehlt, samt Anweisung,
+`Beleg_Mail_am` von Hand nachzutragen und NICHT erneut auszulösen. Ein Erfolg zu melden, dessen
+Dublettenschutz gar nicht persistiert ist, wäre wieder dieselbe stille Zusage gewesen.
+
+**Beweislage zum Altbestand:** Der Versandnachweis liegt im BCC-Postfach, nicht in Baserow. Die
+MailQueue führt keine Belegmails (kein Rechnungs-Key in 88 Zeilen), `EmailLog` (953) ist leer. Über
+das Postfach ist belegt: alle drei App-Rechnungen sind beim Kunden angekommen, kein Kunde ist ohne
+Rechnung geblieben.
 
 ## Lokale Umgebung
 
@@ -81,3 +112,19 @@ Einzelfall nicht.
 
 - `src/app/admin/layout.tsx:136` feuert `fetch('/api/admin/products')` und erzeugt im Buchungsdetail
   zwei 401 in der Browser-Konsole. Gehört der Mail-Session, ist dort gemeldet.
+
+### Für die Mail-Session: eine Belegmail in Du-Form
+
+Eventverleih siezt. Im Postfach `info@eventverleih-bergstrasse.de` liegt eine Belegmail mit
+Du-Anrede im Betreff:
+
+- **29.06.2026, 21:47**, Ordner **Gesendet**
+- Betreff: `Dein Beleg RG-2026-0003 – Eventverleih Bergstraße`
+- Empfänger: `m.kraemer9208@yahoo.com`
+
+Zum Vergleich: Die vier automatischen Mails desselben Vorgangs (21:17 bis 21:44) tragen alle
+`Ihr Beleg RG-2026-0003 – …`. Die Vorlage im n8n-Workflow `eve-rechnung-render-mail` erzeugt
+ausschließlich die Sie-Form (`Ihr Beleg ${rgNr} – Eventverleih Bergstraße` bzw.
+`Rechnung ${rgNr} – …`). Die Du-Variante stammt also **nicht** aus diesem Workflow — vermutlich
+Handversand oder eine zweite Vorlage. Wenn es kein Codefall ist, ist hier nichts zu tun; falls doch
+eine zweite Vorlage existiert, gehört sie in den Vorlagen-Reiter.

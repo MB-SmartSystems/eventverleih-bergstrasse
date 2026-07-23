@@ -41,10 +41,40 @@ type RechnungRow = {
   Rechnungsdatum: string | null;
   Token_Public?: string | null;
   Buchung_Link?: Array<{ id: number }>;
+  Beleg_Mail_am?: string | null;
 };
 
+/**
+ * Was mit der Belegmail passiert ist. Der Aufrufer MUSS das anzeigen: ein Erfolg ohne Mail
+ * darf nie wie ein Versand aussehen — genau dieser stille Fehlschlag war der Defekt.
+ *
+ * - `gesendet`        → Versand wurde ausgelöst, `Beleg_Mail_am` ist gesetzt
+ * - `schon_gesendet`  → `Beleg_Mail_am` war bereits gefüllt, bewusst keine zweite Mail
+ * - `nicht_angefordert` → Aufruf mit `sendMail: false` (kaution-erstatten)
+ * - `kein_webhook`    → `N8N_RECHNUNG_PDF_URL` fehlt, es ging nichts raus
+ * - `fehlgeschlagen`  → Versand wurde versucht und schlug fehl, `Beleg_Mail_am` bleibt leer
+ * - `gesendet_marker_fehlt` → Mail IST raus, der Marker konnte aber nicht gespeichert werden. Der
+ *   Schutz vor einer zweiten Mail fehlt damit für den nächsten Klick; das muss die Oberfläche sagen.
+ */
+export type BelegMailStatus =
+  | "gesendet"
+  | "schon_gesendet"
+  | "nicht_angefordert"
+  | "kein_webhook"
+  | "fehlgeschlagen"
+  | "gesendet_marker_fehlt";
+
 export type RechnungErgebnis =
-  | { ok: true; rechnung_id: number; rechnungsnummer: string; token: string; url: string }
+  | {
+      ok: true;
+      rechnung_id: number;
+      rechnungsnummer: string;
+      token: string;
+      url: string;
+      mail: BelegMailStatus;
+      /** ISO-Zeitpunkt des belegten Versands, falls bekannt. */
+      mail_am?: string | null;
+    }
   | { ok: false; status: number; error: string };
 
 function num(v: string | null | undefined): number {
@@ -120,11 +150,112 @@ export async function findRechnungForBuchung(
   };
 }
 
+/**
+ * Löst die Belegmail für eine Rechnung aus — genau einmal.
+ *
+ * Der Versand-Marker `Beleg_Mail_am` (Rechnungen 950) ist die Wahrheit darüber, ob der Kunde die
+ * Mail bekommen hat. Ohne ihn war beides unmöglich: nachsehen, ob etwas rausging, und gefahrlos
+ * nachsenden. Er wird erst NACH dem erfolgreichen Webhook-Aufruf gesetzt; schlägt der fehl, bleibt
+ * er leer, damit ein zweiter Versuch möglich ist.
+ *
+ * Ein LEERES Feld heißt "unbekannt", nicht "nicht verschickt" — es existiert erst seit 2026-07-23.
+ */
+async function sendeBelegMail(
+  rechnungId: number,
+  faelligkeit: string,
+  bereitsGesendetAm: string | null | undefined,
+): Promise<{ status: BelegMailStatus; mailAm: string | null }> {
+  if (bereitsGesendetAm) return { status: "schon_gesendet", mailAm: bereitsGesendetAm };
+
+  const webhookUrl = process.env.N8N_RECHNUNG_PDF_URL;
+  if (!webhookUrl) {
+    console.error("[rechnung] N8N_RECHNUNG_PDF_URL fehlt — keine Belegmail ausgeloest");
+    return { status: "kein_webhook", mailAm: null };
+  }
+
+  try {
+    const res = await fetch(webhookUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ rechnung_id: rechnungId, faelligkeit }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    if (!res.ok) {
+      console.error(`[rechnung] Beleg-Mail-Webhook antwortete ${res.status}`);
+      return { status: "fehlgeschlagen", mailAm: null };
+    }
+  } catch (e) {
+    console.error("n8n rechnung-pdf webhook failed", e);
+    return { status: "fehlgeschlagen", mailAm: null };
+  }
+
+  // Marker erst nach erfolgreichem Versand schreiben. Scheitert das, ist die Mail trotzdem draußen,
+  // aber der Schutz vor einer zweiten fehlt: beim nächsten Klick wäre das Feld wieder leer und der
+  // Guard würde durchlassen. Deshalb ein Wiederholversuch — und wenn auch der scheitert, ein eigener
+  // Status, den die Oberfläche sichtbar macht. Ein „gesendet" zu melden, dessen Dublettenschutz gar
+  // nicht persistiert ist, wäre wieder genau die stille Zusage, die den Defekt ausgemacht hat.
+  const jetzt = new Date().toISOString();
+  for (const versuch of [1, 2]) {
+    try {
+      await updateRow(TABLES.Rechnungen, rechnungId, { Beleg_Mail_am: jetzt });
+      return { status: "gesendet", mailAm: jetzt };
+    } catch (e) {
+      console.error(`[rechnung] Beleg_Mail_am Schreibversuch ${versuch} fehlgeschlagen:`, e);
+      if (versuch === 1) await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+  console.error(
+    `[rechnung] Belegmail für Rechnung ${rechnungId} ist RAUS, Beleg_Mail_am konnte nicht gesetzt werden. ` +
+      `Marker bitte von Hand auf ${jetzt} setzen, sonst droht ein Doppelversand.`,
+  );
+  return { status: "gesendet_marker_fehlt", mailAm: jetzt };
+}
+
 export async function createRechnungForBuchung(
   buchungId: number,
   opts: { sendMail: boolean },
 ): Promise<RechnungErgebnis> {
   const buchung = await getRow<BuchungRow>(TABLES.Buchungen, buchungId);
+
+  // Vollstaendig paginiert (nicht listRows size:500 -> Baserow klemmt auf 200, dann
+  // saehe die Nummernvergabe ab der 201. Rechnung/Jahr nur die aeltesten 200 und
+  // vergaebe eine bereits genutzte RG-Nummer). GoBD: Nummern muessen eindeutig sein.
+  const existing = await listAllRows<RechnungRow>(TABLES.Rechnungen);
+  // Idempotenz ZUERST, vor jeder Validierung: existiert schon ein Beleg, wird keiner erzeugt
+  // (kein Doppel-Beleg; jeder verbraucht sonst eine Nummer -> Stornopflicht). Die Prüfungen
+  // darunter gehören zur ERSTELLUNG — eine längst eingefrorene Rechnung nachträglich an ihnen
+  // zu messen, würde nur das Nachholen der Belegmail blockieren, etwa wenn die Preise der
+  // Buchung inzwischen auf 0 stehen oder eine Adresse geleert wurde.
+  const vorhanden = existing.results.find((x) => x.Buchung_Link?.[0]?.id === buchungId);
+  if (vorhanden) {
+    const t = vorhanden.Token_Public ?? "";
+    // Der frühe Ausstieg gibt zwar die vorhandene Rechnung zurück, hat aber bis 2026-07-23 auch den
+    // Mail-Trigger mitverschluckt: Wer den Beleg über kaution-erstatten (sendMail: false) angelegt
+    // hatte, konnte danach über "Rechnung erstellen + Mail senden" keine Belegmail mehr auslösen —
+    // der Button meldete Erfolg, es passierte nur nichts. Der Versand hängt jetzt am sendMail-Flag
+    // plus Marker, nicht mehr am Neuanlage-Pfad.
+    let mail: BelegMailStatus = "nicht_angefordert";
+    let mailAm: string | null = vorhanden.Beleg_Mail_am ?? null;
+    if (opts.sendMail) {
+      const basis = (vorhanden.Rechnungsdatum ?? new Date().toISOString()).slice(0, 10);
+      const faelligBestand = new Date(new Date(basis).getTime() + 14 * 86400 * 1000)
+        .toISOString()
+        .slice(0, 10);
+      const r = await sendeBelegMail(vorhanden.id, faelligBestand, vorhanden.Beleg_Mail_am);
+      mail = r.status;
+      mailAm = r.mailAm;
+    }
+    return {
+      ok: true,
+      rechnung_id: vorhanden.id,
+      rechnungsnummer: vorhanden.Rechnungsnummer,
+      token: t,
+      url: t ? `https://eventverleih-bergstrasse.de/rechnung/${t}` : "",
+      mail,
+      mail_am: mailAm,
+    };
+  }
+
   const kundeId = buchung.Kunde_Link?.[0]?.id;
   if (!kundeId) return { ok: false, status: 422, error: "Buchung hat keinen Kunden" };
 
@@ -164,23 +295,6 @@ export async function createRechnungForBuchung(
 
   const vollBezahlt = !!buchung.Anzahlung_Bezahlt_am && !!buchung.Restzahlung_Bezahlt_am;
 
-  // Vollstaendig paginiert (nicht listRows size:500 -> Baserow klemmt auf 200, dann
-  // saehe die Nummernvergabe ab der 201. Rechnung/Jahr nur die aeltesten 200 und
-  // vergaebe eine bereits genutzte RG-Nummer). GoBD: Nummern muessen eindeutig sein.
-  const existing = await listAllRows<RechnungRow>(TABLES.Rechnungen);
-  // Idempotenz: existiert schon ein Beleg fuer diese Buchung -> diesen zurueckgeben
-  // (kein Doppel-Beleg; jeder Beleg verbraucht sonst eine Nummer -> Stornopflicht).
-  const vorhanden = existing.results.find((x) => x.Buchung_Link?.[0]?.id === buchungId);
-  if (vorhanden) {
-    const t = vorhanden.Token_Public ?? "";
-    return {
-      ok: true,
-      rechnung_id: vorhanden.id,
-      rechnungsnummer: vorhanden.Rechnungsnummer,
-      token: t,
-      url: t ? `https://eventverleih-bergstrasse.de/rechnung/${t}` : "",
-    };
-  }
   const year = new Date().getFullYear();
   const rechnungsnummer = await reserviereRechnungsnummer(year, existing.results);
   const token = randomUUID();
@@ -310,21 +424,14 @@ export async function createRechnungForBuchung(
     }
   }
 
-  // n8n-Beleg-Mail (nur wenn gewünscht — kaution-erstatten verlinkt den Beleg stattdessen)
+  // n8n-Beleg-Mail (nur wenn gewünscht — kaution-erstatten verlinkt den Beleg stattdessen).
+  // Frisch angelegt, also ist der Marker zwangsläufig leer.
+  let mail: BelegMailStatus = "nicht_angefordert";
+  let mailAm: string | null = null;
   if (opts.sendMail) {
-    const webhookUrl = process.env.N8N_RECHNUNG_PDF_URL;
-    if (webhookUrl) {
-      try {
-        await fetch(webhookUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rechnung_id: created.id, faelligkeit }),
-          signal: AbortSignal.timeout(10_000),
-        });
-      } catch (e) {
-        console.error("n8n rechnung-pdf webhook failed", e);
-      }
-    }
+    const r = await sendeBelegMail(created.id, faelligkeit, null);
+    mail = r.status;
+    mailAm = r.mailAm;
   }
 
   // Render-Flow für In-Portal-Download (Blob + Rechnungen.PDF_URL), fail-soft.
@@ -336,5 +443,7 @@ export async function createRechnungForBuchung(
     rechnungsnummer,
     token,
     url: `https://eventverleih-bergstrasse.de/rechnung/${token}`,
+    mail,
+    mail_am: mailAm,
   };
 }

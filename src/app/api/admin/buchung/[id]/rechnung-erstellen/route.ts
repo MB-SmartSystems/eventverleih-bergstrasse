@@ -28,6 +28,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       rechnungsnummer: res.rechnungsnummer,
       token: res.token,
       url: res.url,
+      // Muss durchgereicht werden: die Oberfläche darf keinen Versand suggerieren, der nicht
+      // stattgefunden hat. Der stille Erfolg war der eigentliche Defekt.
+      mail: res.mail,
+      mail_am: res.mail_am ?? null,
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";

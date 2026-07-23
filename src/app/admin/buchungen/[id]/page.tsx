@@ -120,6 +120,7 @@ type RechnungRow = {
   Status: { value: string } | null;
   Betrag_Gesamt: string | null;
   Rechnungsdatum: string | null;
+  Beleg_Mail_am: string | null;
   Buchung_Link: Array<{ id: number }>;
 };
 
@@ -439,6 +440,7 @@ Vertrag
         buchungId={buchung.id}
         hasPrice={parseFloat(buchung.Preis_Artikel ?? "0") > 0}
         alreadyHasRechnung={rechnungen.length > 0}
+        belegMailAm={rechnungen[0]?.Beleg_Mail_am ?? null}
       />
 
       {/* 3. Bestellung */}
