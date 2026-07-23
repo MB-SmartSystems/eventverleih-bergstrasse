@@ -103,11 +103,40 @@ export function vergleiche(ref, files) {
   return { gesamt: before.length, fehlend, umbenannt };
 }
 
+/**
+ * Ohne Dateiliste: alle Dateien, die Mailtexte erzeugen — im Arbeitsstand UND in der
+ * Ref, damit auch die gefunden werden, aus denen ein Text gerade herausgezogen wurde.
+ * Dadurch ist `npm run check:mail-literals` ohne Argumente ein vollständiges Gate,
+ * statt einer Fehlermeldung.
+ */
+function alleMailDateien(ref) {
+  const menge = new Set();
+  const sammle = (cmd) => {
+    try {
+      const out = execSync(cmd, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      for (const zeile of out.split('\n')) if (zeile.trim()) menge.add(zeile.trim());
+    } catch {
+      /* kein Treffer ist kein Fehler */
+    }
+  };
+  sammle('git grep -l "Template_Key" -- src');
+  sammle(`git grep -l "Template_Key" ${ref} -- src`);
+  sammle('git ls-files src/lib/eventverleih/mail-templates/build');
+  // Treffer aus der Ref kommen als "<ref>:<pfad>" zurück
+  return [...menge].map((p) => (p.startsWith(`${ref}:`) ? p.slice(ref.length + 1) : p));
+}
+
 function main() {
-  const [ref, ...files] = process.argv.slice(2);
-  if (!ref || files.length === 0) {
-    console.error('Aufruf: mail-literals-diff.mjs <git-ref> <datei...>');
+  const [ref, ...argFiles] = process.argv.slice(2);
+  if (!ref) {
+    console.error('Aufruf: mail-literals-diff.mjs <git-ref> [datei...]');
+    console.error('Ohne Dateiliste werden alle Mailtext-Dateien geprüft.');
     process.exit(2);
+  }
+  const files = argFiles.length > 0 ? argFiles : alleMailDateien(ref);
+  if (files.length === 0) {
+    console.error('FEHLER: keine Mailtext-Dateien gefunden. Ein leerer Vergleich ist kein bestandener Vergleich.');
+    process.exit(1);
   }
 
   const { gesamt, fehlend, umbenannt } = vergleiche(ref, files);

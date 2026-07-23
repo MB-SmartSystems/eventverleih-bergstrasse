@@ -47,14 +47,23 @@ Wird ein Text aus einer Route in eine Bau-Funktion gezogen, darf er **wandern, a
 Das prüft:
 
 ```bash
-node scripts/mail-literals-diff.mjs main <alte-datei> <neue-datei>
+npm run check:mail-literals          # alle Mailtext-Dateien gegen main
+node scripts/mail-literals-diff.mjs main <alte-datei> <neue-datei>   # gezielt beim Umzug
 ```
 
-Alte **und** neue Datei im selben Aufruf übergeben, sonst gilt das gewanderte Literal als verschwunden.
-Der Fehler geht bewusst in diese Richtung: Vergessen führt zum Fehlalarm, nie zum stillen Freispruch.
+Beim gezielten Aufruf alte **und** neue Datei im selben Aufruf übergeben, sonst gilt das gewanderte
+Literal als verschwunden. Der Fehler geht bewusst in diese Richtung: Vergessen führt zum Fehlalarm, nie
+zum stillen Freispruch.
 
-Exit 0 heißt: kein Zeichen am Kundentext verändert. Es heißt **nicht**, dass der Aufruf richtig verdrahtet
-ist — dafür sind die Tests da. Schlägt der Vergleich fehl, wird die Extraktion korrigiert, nicht der
+Verglichen wird das **Textgerüst**: die festen Zeichen zwischen den Einsetzungen. Eine umbenannte Variable
+(`${body.anmerkung.trim()}` wird `${anmerkung}`) ändert am gelesenen Text nichts und geht durch, wird aber
+im Bericht aufgeführt. Ein verändertes Wort geht nicht durch.
+
+Exit 0 heißt: kein Zeichen am Kundentext verändert. Es heißt **nicht**, dass die richtige Variable
+eingesetzt wird und auch nicht, dass der Aufruf korrekt verdrahtet ist — dafür sind die Tests da, und für
+den Rest ein Fremdmodell-Review. Beides zusammen, nicht eines statt des anderen: beim ersten Durchgang
+dieser Umstellung ging genau so ein optionales Funktionsargument verloren, das weder `tsc` noch der
+Textvergleich sehen konnte. Schlägt der Vergleich fehl, wird die Extraktion korrigiert, nicht der
 Vergleich.
 
 ## Was nicht mehr gilt
