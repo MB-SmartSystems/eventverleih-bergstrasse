@@ -74,7 +74,7 @@ describe('registry', () => {
     const fehlend = keysInCode()
       .filter((k) => bekannt.indexOf(k) === -1)
       .sort();
-    expect(fehlend, 'Diese Vorlagen verschickt der Code, die Uebersicht kennt sie nicht').toEqual([]);
+    expect(fehlend, 'Diese Vorlagen verschickt der Code, die Übersicht kennt sie nicht').toEqual([]);
   });
 
   it('lists no key that the code cannot produce', () => {
@@ -83,7 +83,7 @@ describe('registry', () => {
     const erfunden = alleBekannten()
       .filter((k) => k !== 'rechnung_beleg' && imCode.indexOf(k) === -1)
       .sort();
-    expect(erfunden, 'Diese Vorlagen stehen in der Uebersicht, existieren im Code aber nicht').toEqual([]);
+    expect(erfunden, 'Diese Vorlagen stehen in der Übersicht, existieren im Code aber nicht').toEqual([]);
   });
 
   it('uses each key exactly once', () => {
@@ -134,7 +134,7 @@ describe('registry', () => {
   it('names a reason for every uncovered template', () => {
     expect(UNCOVERED.length).toBeGreaterThan(0);
     for (const u of UNCOVERED) {
-      expect(u.reason.length, `${u.tpl} ohne Begruendung`).toBeGreaterThan(10);
+      expect(u.reason.length, `${u.tpl} ohne Begründung`).toBeGreaterThan(10);
       expect(u.source.length).toBeGreaterThan(3);
     }
   });
