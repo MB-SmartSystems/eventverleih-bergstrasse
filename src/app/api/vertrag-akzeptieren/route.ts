@@ -355,7 +355,7 @@ async function handle(
       // Auto-Login-Link fuer Mein-Bereich
       let meinBereichUrl = "";
       try {
-        meinBereichUrl = await memberAutoLoginUrl(kundeId);
+        meinBereichUrl = await memberAutoLoginUrl(kundeId, origin);
       } catch (e) {
         console.error("[vertrag-akzeptieren] memberAutoLoginUrl fehlgeschlagen:", e);
       }
