@@ -134,7 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   const checkAuth = useCallback(async () => {
     try {
-      const res = await fetch('/api/admin/products');
+      const res = await fetch('/api/admin/session');
       setIsLoggedIn(res.ok);
     } catch {
       setIsLoggedIn(false);
