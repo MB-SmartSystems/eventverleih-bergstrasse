@@ -340,9 +340,81 @@ export const BEISPIEL_STORNO = [
   },
 ];
 
+export const BEISPIEL_STORNO_UEBERZAHLUNG = {
+  label: "Mit zu viel gezahltem Betrag",
+  ctx: {
+    vorname: KUNDE.Vorname,
+    nachname: KUNDE.Nachname,
+    buchungId: 32,
+    stornogebuehrProzent: 50,
+    staffelLabel: "7 Tage vor dem Event — 50 %",
+    mietsumme: 75,
+    stornogebuehrEur: 37.5,
+    bezahlt: 75,
+    erstattungEur: 37.5,
+    nachzahlungEur: 0,
+    ueberzahlungEur: 17.5,
+  },
+};
+
 export const BEISPIEL_LOGIN_LINK = [
   {
     label: "Regelfall",
     ctx: { magicLink: "https://eventverleih-bergstrasse.de/mein-bereich/login?token=beispiel" },
+  },
+];
+
+const RUECKGABE_ZEILE = "\n\nRückgabe-Termin: Montag, 27.07.2026 um 14:30 Uhr (Grillhütte Sandwiese, Alsbach-Hähnlein).";
+
+export const BEISPIEL_UEBERGABE_ERFOLGT = [
+  {
+    label: "Alles vorab bezahlt",
+    ctx: {
+      kundeName: NAME,
+      artikelZeilen: ["- 30× Stuhl", "- 4× Biertisch-Garnitur"],
+      rueckgabeZeile: RUECKGABE_ZEILE,
+      kautionSollEur: 30,
+      kautionHinterlegt: true,
+      offenRestzahlungEur: 0,
+      offenKautionEur: 0,
+    },
+  },
+  {
+    label: "Bei der Übergabe kassiert, mit Überzahlung",
+    ctx: {
+      kundeName: NAME,
+      artikelZeilen: ["- 30× Stuhl"],
+      rueckgabeZeile: RUECKGABE_ZEILE,
+      kautionSollEur: 30,
+      kautionHinterlegt: true,
+      kassiert: { gesamtEur: 100, restzahlungEur: 52.5, kautionEur: 30, ueberzahlungEur: 17.5 },
+      offenRestzahlungEur: 0,
+      offenKautionEur: 0,
+    },
+  },
+  {
+    label: "Danach noch offen",
+    ctx: {
+      kundeName: NAME,
+      artikelZeilen: ["- 30× Stuhl"],
+      rueckgabeZeile: RUECKGABE_ZEILE,
+      kautionSollEur: 30,
+      kautionHinterlegt: false,
+      offenRestzahlungEur: 52.5,
+      offenKautionEur: 30,
+      restLink: STRIPE_REST,
+      kautionLink: STRIPE_KAUTION,
+    },
+  },
+];
+
+export const BEISPIEL_KAUTION_IBAN = [
+  {
+    label: "Kaution und Überzahlung",
+    ctx: { kundeName: NAME, kautionEur: 30, ueberzahlungEur: 17.5 },
+  },
+  {
+    label: "Nur Kaution",
+    ctx: { kundeName: NAME, kautionEur: 30, ueberzahlungEur: 0 },
   },
 ];

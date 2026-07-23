@@ -13,6 +13,7 @@ import {
 import { buildKautionHoldLink, buildKautionBarHinweis } from "./build/kaution";
 import { buildTerminErinnerung, buildRueckgabeErinnerung, buildTermin1h } from "./build/termin-erinnerung";
 import { buildGoogleReview } from "./build/google-review";
+import { buildUebergabeErfolgt, buildKautionIbanAnfordern } from "./build/uebergabe";
 
 /**
  * Every mail this system can send, keyed by the Template_Key that ends up in the
@@ -253,7 +254,7 @@ export const TEMPLATES: Entry[] = [
     freigabe: "automatisch",
     source: "src/app/api/member/buchung/[id]/storno/route.ts:136",
     build: buildStornoBestaetigung,
-    examples: B.BEISPIEL_STORNO,
+    examples: [...B.BEISPIEL_STORNO, B.BEISPIEL_STORNO_UEBERZAHLUNG],
   },
   {
     tpl: "login_magic_link",
@@ -263,6 +264,24 @@ export const TEMPLATES: Entry[] = [
     source: "src/app/api/member/login-link/route.ts:48",
     build: buildLoginMagicLink,
     examples: B.BEISPIEL_LOGIN_LINK,
+  },
+  {
+    tpl: "uebergabe_erfolgt",
+    title: "Übergabe erfolgt",
+    trigger: "Admin schließt den Übergabe-Dialog ab",
+    freigabe: "automatisch",
+    source: "src/app/api/admin/buchung/[id]/uebergabe/route.ts:214",
+    build: buildUebergabeErfolgt,
+    examples: B.BEISPIEL_UEBERGABE_ERFOLGT,
+  },
+  {
+    tpl: "kaution_iban_anfordern",
+    title: "Bankverbindung für die Rückzahlung anfordern",
+    trigger: "Admin klickt im Buchungsdetail auf IBAN anfordern",
+    freigabe: "durch-admin-aktion",
+    source: "src/app/api/admin/buchung/[id]/kaution-iban-anfordern/route.ts:84",
+    build: buildKautionIbanAnfordern,
+    examples: B.BEISPIEL_KAUTION_IBAN,
   },
 ];
 
@@ -282,18 +301,6 @@ export const UNCOVERED: UncoveredTemplate[] = [
     title: "Rückgabe-Termin bestätigt",
     reason: "Phase 2 — die Datei gehört gerade einer parallelen Session",
     source: "src/app/api/admin/buchung/[id]/termin/route.ts:118",
-  },
-  {
-    tpl: "uebergabe_erfolgt",
-    title: "Übergabe erfolgt",
-    reason: "Phase 2 — die Datei gehört gerade einer parallelen Session",
-    source: "src/app/api/admin/buchung/[id]/uebergabe/route.ts:160",
-  },
-  {
-    tpl: "kaution_iban_anfordern",
-    title: "IBAN für die Kautionsrückzahlung anfordern",
-    reason: "Phase 2 — die Datei gehört gerade einer parallelen Session",
-    source: "src/app/api/admin/buchung/[id]/kaution-iban-anfordern/route.ts:81",
   },
   {
     tpl: "rechnung_beleg",

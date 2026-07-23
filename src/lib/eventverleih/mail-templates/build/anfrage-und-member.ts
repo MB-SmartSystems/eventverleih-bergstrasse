@@ -123,6 +123,11 @@ export interface StornoBestaetigungCtx {
   bezahlt: number;
   erstattungEur: number;
   nachzahlungEur: number;
+  /**
+   * Zu viel gezahltes Geld. Faellt NICHT unter die Storno-Staffel: es war nie Teil
+   * der Mietsumme und geht ungekuerzt zurueck. Fehlt = 0.
+   */
+  ueberzahlungEur?: number;
 }
 
 /** Cancellation confirmed, with the fee breakdown from the AGB. */
@@ -136,8 +141,12 @@ export function buildStornoBestaetigung(ctx: StornoBestaetigungCtx): MailText {
     staffel_label: staffelLabel,
   };
 
-  const erstattungText = calc.erstattung_eur > 0
-    ? `Sie erhalten ${eurMail(calc.erstattung_eur)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).`
+  const ueber = Math.round((ctx.ueberzahlungEur ?? 0) * 100) / 100;
+  const auszahlung = Math.round((calc.erstattung_eur + ueber) * 100) / 100;
+  const ueberSatz = ueber > 0 ? ` Darin enthalten sind ${eurMail(ueber)} EUR, die Sie zu viel gezahlt hatten.` : "";
+
+  const erstattungText = auszahlung > 0
+    ? `Sie erhalten ${eurMail(auszahlung)} EUR zurück — die Erstattung erfolgt über Stripe auf Ihr ursprüngliches Zahlungsmittel (in der Regel 5–10 Werktage).${ueberSatz}`
     : calc.nachzahlung_eur > 0
       ? `Die Stornogebühr ist höher als Ihre Anzahlung. Wir stellen Ihnen die Differenz von ${eurMail(calc.nachzahlung_eur)} EUR in Rechnung und melden uns mit dem Zahlungslink.`
       : `Es ist keine Erstattung fällig (kostenfreie Stornierung).`;
