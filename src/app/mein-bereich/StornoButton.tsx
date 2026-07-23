@@ -104,7 +104,7 @@ export default function StornoButton({ buchungId, eventDatumVon, mietsumme, beza
                   )}
                   {calc.erstattung === 0 && calc.gebuehr === 0 && (
                     <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
-                      <div className="text-sm text-green-200">Kostenfreie Stornierung — keine Gebuehr.</div>
+                      <div className="text-sm text-green-200">Kostenfreie Stornierung, keine Gebühr.</div>
                     </div>
                   )}
                   {calc.nachzahlung > 0 && (

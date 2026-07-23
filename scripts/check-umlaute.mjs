@@ -107,7 +107,13 @@ for (const ort of orte) {
           /^\s*[:(=_]/.test(danach) ||
           /^\.[a-zA-Z_]/.test(danach) ||
           /<\/?$/.test(davor)
-        const imSatz = /[a-zA-ZäöüÄÖÜß],?\s$/.test(davor) || /^\s[a-zA-ZäöüÄÖÜß]/.test(danach)
+        // Ein Wort am ENDE eines String-Literals hat weder links einen Buchstaben noch
+        // rechts ein Wort — "… — 100 % Stornogebuehr" rutschte deshalb bis 2026-07-23
+        // durch, obwohl das Wort in der Liste stand. Ein schliessendes Anfuehrungs-
+        // zeichen nach einem Leerzeichen zaehlt darum als Satzende.
+        const satzEnde = /^["'`]/.test(danach) && /\s$/.test(davor)
+        const imSatz =
+          /[a-zA-ZäöüÄÖÜß],?\s$/.test(davor) || /^\s[a-zA-ZäöüÄÖÜß]/.test(danach) || satzEnde
         if (!istBezeichner && imSatz) treffer.push(m[0])
       }
       if (treffer.length) {

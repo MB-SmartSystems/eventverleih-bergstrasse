@@ -51,13 +51,13 @@ export function berechneStorno(args: {
     label = "Mehr als 14 Tage vor Event — kostenfreie Stornierung";
   } else if (tage >= 7) {
     prozent = 50;
-    label = "7-14 Tage vor Event — 50 % Stornogebuehr";
+    label = "7-14 Tage vor Event — 50 % Stornogebühr";
   } else if (tage >= 4) {
     prozent = 75;
-    label = "4-7 Tage vor Event — 75 % Stornogebuehr";
+    label = "4-7 Tage vor Event — 75 % Stornogebühr";
   } else {
     prozent = 100;
-    label = "Weniger als 4 Tage vor Event — 100 % Stornogebuehr";
+    label = "Weniger als 4 Tage vor Event — 100 % Stornogebühr";
   }
 
   const stornogebuehr = Math.round(mietsummeEur * (prozent / 100) * 100) / 100;

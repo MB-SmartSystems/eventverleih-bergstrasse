@@ -99,6 +99,7 @@ gaeng*
 gaerten
 gaeste
 gebaeude
+gebuehr*
 gedaechtnis
 gefaehrlich*
 gefaellt
@@ -238,6 +239,7 @@ sportplaetze
 staedt*
 staerk*
 stoer*
+stornogebuehr*
 stossen
 strasse*
 stueck*

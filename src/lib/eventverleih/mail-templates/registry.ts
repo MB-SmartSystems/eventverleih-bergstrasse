@@ -214,7 +214,7 @@ export const TEMPLATES: Entry[] = [
   {
     tpl: "rueckgabe_erinnerung",
     title: "Erinnerung an die Rückgabe (Vortag)",
-    trigger: "Cron, Vortag der Rückgabe, Status_Erweitert = In_Miete | Uebergeben",
+    trigger: "Cron, Vortag der Rückgabe, Status_Erweitert = In_Miete | Uebergeben (Baserow-Werte)",
     freigabe: "automatisch",
     source: "src/lib/eventverleih/termin-reminder.ts:178",
     build: buildRueckgabeErinnerung,
