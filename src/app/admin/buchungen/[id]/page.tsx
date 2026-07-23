@@ -548,6 +548,19 @@ Vertrag
                 )}
               </td>
             </tr>
+            {(parseFloat(buchung.Ueberzahlung_Eur ?? "0") || 0) > 0 && (
+              <tr>
+                <td className="py-1.5 text-amber-700">Überzahlung</td>
+                <td className="text-right font-mono text-amber-700">
+                  {fmtEur(buchung.Ueberzahlung_Eur)}
+                  <span className="text-xs text-amber-700 block">
+                    {buchung.Kaution_Rueckzahlung_am
+                      ? "↗ mit der Kaution ausgezahlt"
+                      : "geht mit der Kaution zurück"}
+                  </span>
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         <div className="grid grid-cols-2 gap-3 text-center border-t border-warm-border mt-3 pt-3">

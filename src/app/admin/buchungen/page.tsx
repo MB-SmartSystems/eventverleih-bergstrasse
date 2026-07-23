@@ -32,6 +32,7 @@ type BuchungRow = {
   Kaution_Rueckzahlung_Eur: string | null;
   Anzahlung_Bezahlt_Eur: string | null;
   Restzahlung_Bezahlt_Eur: string | null;
+  Ueberzahlung_Eur: string | null;
   Kunde_Link: Array<{ id: number; value: string }>;
 };
 
@@ -77,14 +78,23 @@ function guthabenOffen(b: BuchungRow): boolean {
   return guthabenEur(b) > 0.01;
 }
 
-// "Abgeschlossen" erst, wenn Kaution UND etwaiges Guthaben erledigt sind — sonst bleibt die Buchung "aktiv".
+/** Bei der Übergabe zu viel gezahltes Geld (eigenes Feld), das mit der Kaution zurückgeht. */
+function ueberzahlungEur(b: BuchungRow): number {
+  return parseFloat(b.Ueberzahlung_Eur ?? "0") || 0;
+}
+/** Überzahlung erfasst, aber noch nicht ausgezahlt (Auszahlung läuft mit der Kaution-Rückzahlung). */
+function ueberzahlungOffen(b: BuchungRow): boolean {
+  return ueberzahlungEur(b) > 0.01 && !b.Kaution_Rueckzahlung_am;
+}
+
+// "Abgeschlossen" erst, wenn Kaution, Guthaben UND etwaige Überzahlung erledigt sind — sonst bleibt die Buchung "aktiv".
 function istAktiv(b: BuchungRow): boolean {
   const s = b.Status_Erweitert?.value ?? "";
-  return ACTIVE.has(s) || (DONE.has(s) && (kautionRefundDue(b) || guthabenOffen(b)));
+  return ACTIVE.has(s) || (DONE.has(s) && (kautionRefundDue(b) || guthabenOffen(b) || ueberzahlungOffen(b)));
 }
 function istAbgeschlossen(b: BuchungRow): boolean {
   const s = b.Status_Erweitert?.value ?? "";
-  return DONE.has(s) && !kautionRefundDue(b) && !guthabenOffen(b);
+  return DONE.has(s) && !kautionRefundDue(b) && !guthabenOffen(b) && !ueberzahlungOffen(b);
 }
 
 function fmtDate(d: string | null): string {
@@ -241,48 +251,59 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      {kunde ? (
-                        <div>
-                          <div className="text-warm-text">
-                            {kunde.Vorname} {kunde.Nachname}
+                      <Link href={`/admin/buchungen/${b.id}`} className="block hover:text-accent">
+                        {kunde ? (
+                          <div>
+                            <div className="text-warm-text">
+                              {kunde.Vorname} {kunde.Nachname}
+                            </div>
+                            {kunde.Email && <div className="text-xs text-warm-muted">{kunde.Email}</div>}
                           </div>
-                          {kunde.Email && <div className="text-xs text-warm-muted">{kunde.Email}</div>}
-                        </div>
-                      ) : (
-                        <span className="text-warm-muted text-xs">—</span>
-                      )}
+                        ) : (
+                          <span className="text-warm-muted text-xs">—</span>
+                        )}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor(status)}`}>
-                        {status.replace(/_/g, " ")}
-                      </span>
-                      {(() => {
-                        const k = getKautionStatus(b);
-                        if (!k) return null;
-                        return (
-                          <span
-                            className={`mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium ${KAUTION_TONE_CLASSES[k.tone]}`}
-                          >
-                            {k.done ? "✓ " : "● "}
-                            {k.label}
-                          </span>
-                        );
-                      })()}
-                      {guthabenOffen(b) && (
-                        <span className="mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800">
-                          ● Guthaben {guthabenEur(b).toFixed(2).replace(".", ",")} € — Rückzahlung offen
+                      <Link href={`/admin/buchungen/${b.id}`} className="block">
+                        <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${statusColor(status)}`}>
+                          {status.replace(/_/g, " ")}
                         </span>
-                      )}
+                        {(() => {
+                          const k = getKautionStatus(b);
+                          if (!k) return null;
+                          return (
+                            <span
+                              className={`mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium ${KAUTION_TONE_CLASSES[k.tone]}`}
+                            >
+                              {k.done ? "✓ " : "● "}
+                              {k.label}
+                            </span>
+                          );
+                        })()}
+                        {guthabenOffen(b) && (
+                          <span className="mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800">
+                            ● Guthaben {guthabenEur(b).toFixed(2).replace(".", ",")} € — Rückzahlung offen
+                          </span>
+                        )}
+                        {ueberzahlungOffen(b) && (
+                          <span className="mt-1 block w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-amber-100 text-amber-800">
+                            ● Überzahlung {ueberzahlungEur(b).toFixed(2).replace(".", ",")} € — Auszahlung offen
+                          </span>
+                        )}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-right font-mono text-warm-text">
-                      {fmtEur(
-                        (
-                          (parseFloat(b.Preis_Artikel || "0") || 0) +
-                          (parseFloat(b.Preis_Lieferung || "0") || 0) +
-                          (parseFloat(b.Preis_Abholung || "0") || 0) +
-                          (parseFloat(b.Preis_Aufbau || "0") || 0)
-                        ).toFixed(2),
-                      )}
+                      <Link href={`/admin/buchungen/${b.id}`} className="block hover:text-accent">
+                        {fmtEur(
+                          (
+                            (parseFloat(b.Preis_Artikel || "0") || 0) +
+                            (parseFloat(b.Preis_Lieferung || "0") || 0) +
+                            (parseFloat(b.Preis_Abholung || "0") || 0) +
+                            (parseFloat(b.Preis_Aufbau || "0") || 0)
+                          ).toFixed(2),
+                        )}
+                      </Link>
                     </td>
                   </tr>
                 );
