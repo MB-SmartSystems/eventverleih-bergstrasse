@@ -138,8 +138,9 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 ### Zahlung und Beleg — warum es hier keine Rechnung im üblichen Sinn gibt
 
-(Manuel, 2026-07-23, verbindlich. Diese Regel ist neuer als der Punkt „Rechnung nach der Rückgabe,
-entkoppelt von der Kautionsrückzahlung" weiter unten und ersetzt ihn.)
+(Manuel, 2026-07-23, verbindlich. Ersetzt die frühere Regel „Rechnung nach der Rückgabe, entkoppelt
+von der Kautionsrückzahlung, nicht darauf warten" — die stand bis heute unter den dauerhaften
+Geschäftsregeln und sagte das Gegenteil.)
 
 **Kunden zahlen ausnahmslos vor dem Event.** Die Anzahlung sichert den Termin, die Restzahlung ist
 spätestens zur Übergabe fällig. Es gibt also nie einen Zeitpunkt, an dem wir einer Kundin hinterherlaufen
@@ -191,7 +192,7 @@ angefasst, weil daran Daten hängen.
 - **Kaution = durchlaufender Posten / Sicherheit, KEINE Einnahme.** Nie auf die Mietrechnung, nie abgezogen. Schäden separat über die Kaution, nicht über die Mietsumme.
 - **Refund-Methode folgt der Zahlungsmethode.** Stripe-bezahlt → Stripe-Refund (Button löst Auto-Mail aus). Bar/Überweisung → manuelle (Termin-)Überweisung, **nie** Stripe-Refund.
 - **Zahlungsgebühren nie an den Kunden weitergeben** (§270a BGB). Entfällt eine bezahlte Leistung → volle Differenz erstatten, ohne Gebühren-Abzug.
-- **Rechnung nach der Rückgabe** (Leistung erbracht), **entkoppelt** von der Kautionsrückzahlung — nicht darauf warten.
+- **Beleg erst nach der Kautionsrückzahlung**, nicht schon nach der Rückgabe. Begründung und Abgrenzung: Abschnitt „Zahlung und Beleg" weiter oben.
 - **Offene Kautionsrückzahlung = Buchung gilt NICHT als abgeschlossen** (bleibt offene Aktion bis erstattet).
 - **Positionen ändern nach Rechnungsstellung: gesperrt** (seit 2026-07-23). Sobald für eine Buchung eine
   Rechnung existiert, verschwinden im Buchungsdetail die Entfernen-Kreuze, und ein direkter API-Aufruf

@@ -64,7 +64,7 @@ const MAIL_MELDUNG: Record<
     titel: "text-red-800",
     text: "text-red-700",
     satz: () =>
-      "Der Mailversand ist FEHLGESCHLAGEN. Der Kunde hat den Beleg nicht. Nochmal auslösen — es entsteht keine zweite Rechnung.",
+      "Der Mailversand ist FEHLGESCHLAGEN. Der Kunde hat den Beleg nicht. Nochmal auslösen, es entsteht kein zweiter Beleg.",
   },
 };
 
@@ -94,7 +94,7 @@ export default function RechnungErstellenButton({
     if (alreadyHasRechnung) {
       if (
         !confirm(
-          "Für diese Buchung existiert bereits eine Rechnung. Es wird KEINE zweite erstellt und keine neue Nummer vergeben. Ist noch keine Belegmail versendet, wird sie jetzt nachgeholt. Fortfahren?",
+          "Für diese Buchung existiert bereits ein Beleg. Es wird KEIN zweiter erstellt und keine neue Nummer vergeben. Ist noch keine Belegmail versendet, wird sie jetzt nachgeholt. Fortfahren?",
         )
       )
         return;
@@ -103,7 +103,7 @@ export default function RechnungErstellenButton({
     // Belegmail nach — die Rechnung ist längst eingefroren, die aktuellen Buchungspreise sind
     // dafür ohne Belang. Der Server prüft seit 2026-07-23 in derselben Reihenfolge.
     if (!alreadyHasRechnung && !hasPrice) {
-      setError("Keine Preise gesetzt — Rechnung würde 0 € lauten. Bitte erst in Baserow Preise eintragen.");
+      setError("Keine Preise gesetzt, der Beleg würde 0 € lauten. Bitte erst in Baserow Preise eintragen.");
       return;
     }
     setSubmitting(true);
@@ -154,7 +154,7 @@ export default function RechnungErstellenButton({
 
   return (
     <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-      <h2 className="text-lg font-semibold text-warm-text mb-3">Rechnung</h2>
+      <h2 className="text-lg font-semibold text-warm-text mb-3">Beleg</h2>
       {error && (
         <div className="mb-3 p-2 rounded bg-red-50 border border-red-200 text-red-700 text-xs">{error}</div>
       )}
@@ -169,14 +169,14 @@ export default function RechnungErstellenButton({
             ? "Beleg bereits versendet"
             : alreadyHasRechnung
               ? "Belegmail nachholen"
-              : "Rechnung erstellen + Mail senden"}
+              : "Beleg erstellen + Mail senden"}
       </button>
       <p className="text-xs text-warm-muted mt-2">
         {belegVersendet
           ? `Die Belegmail ging am ${fmtZeit(belegMailAm)} an den Kunden. Ein erneuter Versand würde ihn doppelt erreichen und ist deshalb gesperrt.`
           : alreadyHasRechnung
-            ? "Die Rechnung existiert bereits, es entsteht keine zweite. Für sie ist kein Mailversand vermerkt — der Knopf holt ihn nach."
-            : "Komplettrechnung mit PDF-Anhang an die Kunden-Mail. Web-Ansicht zusätzlich verlinkt."}
+            ? "Der Beleg existiert bereits, es entsteht kein zweiter. Für ihn ist kein Mailversand vermerkt, der Knopf holt ihn nach."
+            : "Kompletter Beleg mit PDF-Anhang an die Kunden-Mail. Web-Ansicht zusätzlich verlinkt."}
       </p>
     </section>
   );

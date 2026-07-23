@@ -633,7 +633,7 @@ Vertrag
           {
             key: "abgerechnet",
             phase: "Abrechnung",
-            label: "Rechnung erstellt + Mail raus",
+            label: "Beleg erstellt + Mail raus",
             // Hängt an der Existenz der Rechnung, nicht am Buchungsstatus: der Punkt sagt
             // "erstellt und Mail raus", nicht "Vorgang vollständig geschlossen".
             checked: rechnungen.length > 0,
@@ -671,7 +671,7 @@ Vertrag
       {/* Rechnungen */}
       {rechnungen.length > 0 && (
         <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-          <h2 className="text-lg font-semibold text-warm-text mb-3">Rechnungen ({rechnungen.length})</h2>
+          <h2 className="text-lg font-semibold text-warm-text mb-3">Belege ({rechnungen.length})</h2>
           <div className="space-y-2">
             {rechnungen.map((r) => (
               <Link
