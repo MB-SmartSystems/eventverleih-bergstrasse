@@ -65,16 +65,27 @@ export interface VertragBestaetigungCtx {
 export function buildVertragBestaetigung(ctx: VertragBestaetigungCtx): MailText {
   const { kundeName, stripeLink, komplettLink, angebotsnummer, vertragsUrl, meinBereichUrl, aufbauAbsatz } = ctx;
 
-  const komplettZeile = komplettLink
-    ? `
+  // Zahlweg-Rangfolge (Entscheidung 2026-07-23): online zuerst (Stripe, dann PayPal).
+  // Komplettzahlung ist der empfohlene Default; die 30-Prozent-Anzahlung bleibt als
+  // Alternative, weil erst sie die Reservierung verbindlich macht.
+  const methodenZeile = "Beides bequem per Karte, Klarna oder Sofort. Alternativ per PayPal an info@eventverleih-bergstrasse.de (bitte „Waren & Dienstleistungen\" wählen).";
+  let stripeBlock: string;
+  if (stripeLink && komplettLink) {
+    stripeBlock = `Am einfachsten alles in einem Schritt komplett zahlen, dann ist Ihre Buchung sofort vollständig erledigt:
+   ${komplettLink}
 
-Oder direkt komplett zahlen (dann ist alles erledigt):
-   ${komplettLink}`
-    : "";
-  const stripeBlock = stripeLink
-    ? `Am bequemsten zahlen Sie online per Karte / Klarna / Sofort:
-   ${stripeLink}${komplettZeile}`
-    : `Ihren persönlichen Zahlungslink sende ich Ihnen umgehend zu — melden Sie sich gern kurz, falls er nicht ankommt.`;
+Oder zunächst nur die Anzahlung von 30 Prozent leisten (die Restzahlung folgt dann zur Übergabe):
+   ${stripeLink}
+
+${methodenZeile}`;
+  } else if (stripeLink) {
+    stripeBlock = `Am bequemsten leisten Sie die Anzahlung von 30 Prozent online:
+   ${stripeLink}
+
+${methodenZeile}`;
+  } else {
+    stripeBlock = `Ihren persönlichen Zahlungslink sende ich Ihnen umgehend zu; melden Sie sich gern kurz, falls er nicht ankommt.`;
+  }
 
   const anrede = kundeName ? `Hallo ${kundeName},` : "Hallo,";
 
@@ -84,11 +95,11 @@ Oder direkt komplett zahlen (dann ist alles erledigt):
 
 vielen Dank für Ihre Bestätigung. Ihr Termin ist zunächst vorgemerkt.
 
-WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestätigt. Bitte leisten Sie die Anzahlung innerhalb von 7 Tagen:
+WICHTIG: Mit Eingang Ihrer Anzahlung von 30 Prozent wird Ihre Reservierung verbindlich bestätigt. Bitte leisten Sie die Anzahlung (oder gleich den Gesamtbetrag) innerhalb von 7 Tagen:
 ${stripeBlock}
 Verwendungszweck: ${angebotsnummer}
 
-Restzahlung und Kaution folgen vor bzw. bei der Übergabe — bequem online per Zahlungslink.
+Restzahlung und Kaution folgen vor bzw. bei der Übergabe, bequem online per Zahlungslink.
 
 Etwa 7 Tage vor dem Event melde ich mich für die finale Abstimmung von Übergabe-Ort und -Zeit. ${UEBERGABE_HINWEIS}${aufbauAbsatz}
 

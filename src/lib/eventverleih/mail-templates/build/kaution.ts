@@ -1,4 +1,5 @@
 import type { MailText } from "../types";
+import { BAR_ZAHLUNG_HINWEIS } from "@/lib/eventverleih/constants";
 
 /**
  * Deposit mails.
@@ -72,8 +73,9 @@ export interface KautionBarCtx {
 }
 
 /**
- * Reminder to bring the deposit in cash, sent automatically (Auto_Reply) a few days
- * before the event. Contradicts the Stripe-first rule — see the note at the top.
+ * Reminder that the deposit is still open, sent automatically (Auto_Reply) a few days
+ * before the event. Stripe-first (Entscheidung 2026-07-23): the hold link is offered
+ * first, cash stays possible as the last option with the two mandatory hints.
  */
 export function buildKautionBarHinweis(ctx: KautionBarCtx): MailText {
   const { kundeName, kautionSoll, tageBis } = ctx;
@@ -84,7 +86,9 @@ export function buildKautionBarHinweis(ctx: KautionBarCtx): MailText {
     body:
       `Hallo ${kundeName},\n\n` +
       `zur Vorbereitung auf Ihre Übergabe in ${tageBis <= 1 ? "Kürze" : `ca. ${tageBis} Tagen`}: ` +
-      `Bitte denken Sie daran, die Kaution (${betrag} EUR) bar bei der Übergabe mitzubringen.\n\n` +
+      `Ihre Kaution (${betrag} EUR) ist noch offen.\n\n` +
+      `Am einfachsten hinterlegen Sie die Kaution vorab online über den Kautions-Link, den ich Ihnen zugeschickt habe. Dabei wird nichts abgebucht, Stripe blockiert den Betrag nur. Den Link finden Sie auch in Ihrem Kundenbereich.\n\n` +
+      `Alternativ ist die Kaution auch bar zur Übergabe möglich. ${BAR_ZAHLUNG_HINWEIS}\n\n` +
       `Die Kaution erhalten Sie nach der Rückgabe ohne Schäden vollständig zurück.\n\n` +
       `Bei Fragen jederzeit per WhatsApp oder Anruf: +49 156 79521124.\n\n` +
       `Viele Grüße\nManuel Büttner — Eventverleih Bergstraße`,

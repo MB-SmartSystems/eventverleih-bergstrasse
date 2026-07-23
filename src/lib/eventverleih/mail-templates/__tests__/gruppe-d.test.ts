@@ -44,9 +44,15 @@ describe('buildKautionBarHinweis', () => {
     expect(buildKautionBarHinweis({ ...basis, tageBis: 0 }).body).not.toContain('ca. 0 Tagen');
   });
 
-  it('still contains the cash wording — this text is knowingly unfixed', () => {
-    // Guard against a silent "fix": correcting customer text is its own approved step.
-    // The overview must flag this, the extraction must not change it.
-    expect(buildKautionBarHinweis(basis).body).toContain('bar bei der Übergabe mitzubringen');
+  it('offers the online hold first and keeps cash as the last option with the hints', () => {
+    // Entscheidung 2026-07-23 (A2): Stripe zuerst, bar als letzte Option mit den zwei
+    // Pflicht-Hinweisen (Betrag passend/kein Wechselgeld; Überzahlung mit der Kaution zurück).
+    const body = buildKautionBarHinweis(basis).body;
+    const onlineIdx = body.indexOf('online');
+    const barIdx = body.indexOf('bar zur Übergabe');
+    expect(onlineIdx).toBeGreaterThanOrEqual(0);
+    expect(barIdx).toBeGreaterThan(onlineIdx);
+    expect(body).toContain('kein Wechselgeld');
+    expect(body).toContain('zusammen mit der Kaution zurück');
   });
 });

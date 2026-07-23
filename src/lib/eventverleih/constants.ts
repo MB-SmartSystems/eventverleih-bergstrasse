@@ -52,7 +52,17 @@ export function rundeKaution(eur: number): number {
  * Geschäftsanschrift (= Privatadresse aus dem Impressum) auftauchen.
  */
 export const UEBERGABE_HINWEIS =
-  "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung — an unserem Treffpunkt (Grillhütte Sandwiese, Alsbach-Hähnlein) oder per vereinbarter Lieferung. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich.";
+  "Übergabe und Rückgabe erfolgen ausschließlich nach Terminvereinbarung, an unserem Treffpunkt (Grillhütte Sandwiese, Alsbach-Hähnlein) oder per vereinbarter Lieferung. Eine Abholung an unserer Geschäftsanschrift ist nicht möglich.";
+
+/**
+ * Pflicht-Hinweise, sobald in einer Kunden-Mail Barzahlung als Option genannt wird
+ * (Entscheidung 2026-07-23, A2): bar ist erlaubt, aber niedrigste Priorität. Wird bar
+ * erwähnt, gehören diese beiden Punkte dazu: (1) Betrag passend, kein Wechselgeld;
+ * (2) Überzahlung kommt mit der Kaution zurück. Ein Textbaustein, damit die Formulierung
+ * über alle Mails identisch bleibt.
+ */
+export const BAR_ZAHLUNG_HINWEIS =
+  "Bei Barzahlung bringen Sie den Betrag bitte passend mit, ich kann vor Ort kein Wechselgeld geben. Sollten Sie zu viel geben, erhalten Sie die Differenz zusammen mit der Kaution zurück.";
 
 /**
  * Hinweis für die Kundenkommunikation, wenn ein Faltzelt MIT Aufbau-Service gebucht wird:
