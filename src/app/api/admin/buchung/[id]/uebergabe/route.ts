@@ -21,6 +21,8 @@ import { invalidateAvailabilityCache } from "@/lib/eventverleih/availability";
 import { cancelKaution } from "@/lib/stripe/payment-links";
 import { uebergabeOrt } from "@/lib/eventverleih/config";
 import { isAuthenticated } from "@/lib/auth";
+import { buildUebergabeErfolgt } from "@/lib/eventverleih/mail-templates/build/uebergabe";
+import { parseKassiert } from "@/lib/eventverleih/zahlung";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,6 +42,12 @@ export async function POST(
     const fotoUrls = Array.isArray(body.foto_urls) ? body.foto_urls : [];
     const checkliste = Array.isArray(body.checkliste) ? body.checkliste : [];
     const notiz = body.notiz || "";
+
+    const kassiertParsed = parseKassiert(body.kassiert);
+    if (!kassiertParsed.ok) {
+      return NextResponse.json({ error: kassiertParsed.fehler }, { status: 400 });
+    }
+    const kassiert = kassiertParsed.wert;
 
     const patch: Record<string, unknown> = {
       Status_Erweitert: "Uebergeben",
@@ -98,6 +106,9 @@ export async function POST(
       const b = await getRow<{
         Kaution_Soll_Eur: string | number | null;
         Kaution_Hinterlegt_am: string | null;
+        Restzahlung_Soll_Eur: string | number | null;
+        Restzahlung_Bezahlt_Eur: string | number | null;
+        Stripe_Restzahlung_Link: string | null;
         Stripe_Kaution_Link: string | null;
         Rueckgabe_Termin: string | null;
         Uebergabe_Adresse: string | null;
@@ -122,18 +133,11 @@ export async function POST(
             .filter((p) => p.Buchung_Link?.[0]?.id === buchungId)
             .map((p) => `- ${parseFloat(p.Anzahl ?? "1") || 1}× ${nameById.get(p.Artikel_Link?.[0]?.id ?? 0) ?? "Artikel"}`);
 
-          const kautionSoll = parseFloat(String(b.Kaution_Soll_Eur ?? "0")) || 0;
-          const eur = (n: number) => n.toFixed(2).replace(".", ",");
-          let kautionLine = "";
-          if (kautionSoll > 0) {
-            if (body.kaution_methode === "bar" && Number(body.kaution_eur) > 0) {
-              kautionLine = `\n\nDie Kaution (${eur(kautionSoll)} EUR) habe ich bar erhalten — Sie bekommen sie nach der Rückgabe vollständig zurück.`;
-            } else if (body.kaution_methode === "stripe_preauth" || b.Kaution_Hinterlegt_am) {
-              kautionLine = `\n\nIhre Kaution (${eur(kautionSoll)} EUR) ist hinterlegt — sie wird nach der Rückgabe ohne Schäden vollständig zurückgegeben.`;
-            } else {
-              kautionLine = `\n\nBitte denken Sie an die Kaution (${eur(kautionSoll)} EUR) — diese wird bar bei der Übergabe erhoben und nach der Rückgabe vollständig zurückgegeben.`;
-            }
-          }
+          const dec = (v: string | number | null | undefined) => parseFloat(String(v ?? "0")) || 0;
+          const kautionSoll = dec(b.Kaution_Soll_Eur);
+          const kautionHinterlegt = body.kaution_methode === "stripe_preauth" || !!b.Kaution_Hinterlegt_am;
+          const offenRestzahlung = Math.max(0, dec(b.Restzahlung_Soll_Eur) - dec(b.Restzahlung_Bezahlt_Eur));
+          const offenKaution = kautionHinterlegt ? 0 : kautionSoll;
 
           const rt = b.Rueckgabe_Termin
             ? new Date(b.Rueckgabe_Termin).toLocaleString("de-DE", {
@@ -151,15 +155,26 @@ export async function POST(
             : `\n\nDen Rückgabe-Termin halten wir wie besprochen fest.`;
 
           const kundeName = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
-          const mailBody = `Hallo ${kundeName},\n\nIhre Mietartikel sind übergeben:\n${lines.join("\n")}${kautionLine}${rueckgabeLine}\n\nViel Freude bei Ihrer Feier!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+          const mail = buildUebergabeErfolgt({
+            kundeName,
+            artikelZeilen: lines,
+            rueckgabeZeile: rueckgabeLine,
+            kautionSollEur: kautionSoll,
+            kautionHinterlegt,
+            kassiert,
+            offenRestzahlungEur: offenRestzahlung,
+            offenKautionEur: offenKaution,
+            restLink: b.Stripe_Restzahlung_Link,
+            kautionLink: b.Stripe_Kaution_Link,
+          });
 
           await createRow(TABLES.MailQueue, {
             Erstellt_am: new Date().toISOString(),
             Buchung_Link: [buchungId],
             Kunde_Link: [kundeId],
             Template_Key: "uebergabe_erfolgt",
-            Subject: "Übergabe erfolgt — Ihre Mietartikel",
-            Body: mailBody,
+            Subject: mail.subject,
+            Body: mail.body,
             Approval_Status: "Auto_Reply",
             Idempotency_Key: idemKey,
           });

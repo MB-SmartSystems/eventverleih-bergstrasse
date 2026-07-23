@@ -15,8 +15,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isAuthenticated } from "@/lib/auth";
 import { createRow, getRow, updateRow, TABLES } from "@/lib/baserow/client";
-
-const SIGNATURE = `\n\nMit freundlichen Grüßen\nManuel Büttner\n\nEventverleih Bergstraße\nSchlesierstraße 19a, 64665 Alsbach-Hähnlein\nTel/WhatsApp: +49 156 79521124\nE-Mail: info@eventverleih-bergstrasse.de\nWeb: eventverleih-bergstrasse.de\n\nNicht umsatzsteuerpflichtig nach § 19 Abs. 1 UStG.`;
+import { erstattungEur } from "@/lib/eventverleih/zahlung";
+import { buildKautionIbanAnfordern } from "@/lib/eventverleih/mail-templates/build/uebergabe";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +32,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     type Buchung = {
       id: number;
       Kaution_Soll_Eur: string | number | null;
+      Ueberzahlung_Eur: string | number | null;
+      Zahlungen_JSON: string | null;
       Kaution_Prueffrist_bis: string | null;
       Stripe_Kaution_PaymentIntent: string | null;
       Kunde_Link: Array<{ id: number; value: string }> | null;
@@ -39,12 +41,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     type Kunde = { id: number; Vorname: string; Nachname: string; Email: string };
 
     const buchung = await getRow<Buchung>(TABLES.Buchungen, buchungId);
-    const kautionSoll =
-      typeof buchung.Kaution_Soll_Eur === "number"
-        ? buchung.Kaution_Soll_Eur
-        : parseFloat(buchung.Kaution_Soll_Eur || "0") || 0;
-    if (kautionSoll <= 0) {
-      return NextResponse.json({ error: "Keine Kaution hinterlegt (Kaution_Soll_Eur = 0)" }, { status: 422 });
+    // Zurueck geht Kaution PLUS zu viel gezahltes Geld. Nur die Kaution zu nennen war
+    // der Fehler, der am 27.07. eine schriftlich zugesagte Summe unterschritten haette.
+    const erstattung = erstattungEur(buchung);
+    if (erstattung.gesamtEur <= 0) {
+      return NextResponse.json(
+        { error: "Nichts zu erstatten (weder Kaution noch Überzahlung)" },
+        { status: 422 },
+      );
     }
     // Bei aktivem Stripe-Hold ist eine Rück-Überweisung der falsche Weg — dann Hold freigeben.
     if (buchung.Stripe_Kaution_PaymentIntent) {
@@ -59,28 +63,19 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     const kunde = await getRow<Kunde>(TABLES.Kunden, kundeId);
     if (!kunde.Email) return NextResponse.json({ error: "Kunde hat keine E-Mail-Adresse" }, { status: 422 });
 
-    const betrag = kautionSoll.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-
-    const mailBody = `Hallo ${kunde.Vorname} ${kunde.Nachname},
-
-vielen Dank für die Rückgabe. Ich prüfe die Artikel in den nächsten 1–2 Tagen auf Vollständigkeit und Schäden.
-
-Da Sie die Kaution (${betrag} EUR) in bar hinterlegt haben, überweise ich Ihnen den Betrag nach erfolgreicher Prüfung zurück. Dafür brauche ich noch Ihre Bankverbindung – bitte antworten Sie kurz auf diese E-Mail mit:
-
-• IBAN
-• Kontoinhaber
-
-Sobald die Prüfung abgeschlossen ist (in der Regel innerhalb von 1–2 Tagen), überweise ich Ihnen die Kaution umgehend zurück.
-
-Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${SIGNATURE}`;
+    const mail = buildKautionIbanAnfordern({
+      kundeName: `${kunde.Vorname} ${kunde.Nachname}`.trim(),
+      kautionEur: erstattung.kautionEur,
+      ueberzahlungEur: erstattung.ueberzahlungEur,
+    });
 
     await createRow(TABLES.MailQueue, {
       Erstellt_am: new Date().toISOString(),
       Buchung_Link: [buchungId],
       Kunde_Link: [kundeId],
       Template_Key: "kaution_iban_anfordern",
-      Subject: "Rückerstattung Ihrer Kaution – Eventverleih Bergstraße",
-      Body: mailBody,
+      Subject: mail.subject,
+      Body: mail.body,
       Approval_Status: "Approved",
       // Jeder bewusste Klick = eigene Mail (Nachfass möglich)
       Idempotency_Key: `B${buchungId}-kaution-iban-${Date.now()}`,
@@ -97,7 +92,13 @@ Bei Fragen am schnellsten per WhatsApp: +49 156 79521124.${SIGNATURE}`;
       console.error("[kaution-iban-anfordern] prueffrist-update fehlgeschlagen:", e);
     }
 
-    return NextResponse.json({ ok: true, email: kunde.Email });
+    return NextResponse.json({
+      ok: true,
+      email: kunde.Email,
+      kaution_eur: erstattung.kautionEur,
+      ueberzahlung_eur: erstattung.ueberzahlungEur,
+      erstattung_gesamt_eur: erstattung.gesamtEur,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";
     console.error("[kaution-iban-anfordern] failed:", msg);

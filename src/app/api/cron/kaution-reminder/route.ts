@@ -14,6 +14,7 @@
 import { buildKautionBarHinweis } from "@/lib/eventverleih/mail-templates/build/kaution";
 import { NextRequest, NextResponse } from "next/server";
 import { listAllRows, listRows, getRow, createRow, TABLES } from "@/lib/baserow/client";
+import { ueberzahlungEur } from "@/lib/eventverleih/zahlung";
 import { runReviewReminder } from "@/lib/eventverleih/review-reminder";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,8 @@ interface BuchungRow {
   Status_Erweitert: { value: string } | null;
   Event_datum_von: string | null;
   Kaution_Soll_Eur: string | number | null;
+  Ueberzahlung_Eur: string | number | null;
+  Zahlungen_JSON: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
 }
@@ -70,6 +73,15 @@ export async function GET(req: NextRequest) {
       if (!b.Event_datum_von) continue;
       const kautionSoll = parseDec(b.Kaution_Soll_Eur);
       if (kautionSoll <= 0) continue;
+      // Wer zu viel gezahlt hat, hat die Kaution laengst mitbezahlt: die Verteilung
+      // fuellt Kaution VOR der Ueberzahlung. Eine Erinnerung "bitte Kaution mitbringen"
+      // waere dann schlicht falsch. Der Betrag der Erinnerung bleibt bewusst die reine
+      // Kaution — hier wird etwas angefordert, nicht ausgezahlt.
+      if (ueberzahlungEur(b) > 0) {
+        result.skipped_other++;
+        result.details.push({ buchung_id: b.id, skip: "ueberzahlung_deckt_kaution" });
+        continue;
+      }
       const tageBis = daysBetween(b.Event_datum_von);
       if (tageBis < 0 || tageBis > TAGE_VOR_EVENT) continue;
 

@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCurrentMember } from "@/lib/eventverleih/member-auth";
 import { berechneStorno } from "@/lib/eventverleih/storno";
 import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
-import { bezahltEur } from "@/lib/eventverleih/zahlung";
+import { bezahltEur, ueberzahlungEur } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 
@@ -64,6 +64,11 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
     // Bezahlt aus Skalar-Feldern (Source of Truth) — Zahlungen_JSON war bei Stripe-Zahlern
     // leer -> Erstattung wurde faelschlich mit bezahlt=0 berechnet (Kunde verlor sein Geld).
     const bezahlt = bezahltEur(buchung);
+    // Zu viel gezahltes Geld war nie Teil der Mietsumme: Es unterliegt keiner
+    // Storno-Staffel und geht ungekuerzt zurueck. Es wird deshalb NICHT in `bezahlt`
+    // eingerechnet, sondern separat ausgewiesen — sonst wuerde die Gebuehr darauf
+    // erhoben. Der Refund selbst laeuft hier ohnehin von Hand.
+    const ueberzahlung = ueberzahlungEur(buchung);
 
     // GATE (Phase 0): Storno-Staffel greift NUR bei verbindlicher Buchung.
     // Anzahlung-Modell: ein Vertrag besteht erst ab Bestaetigt/Reserviert. Eine
@@ -126,6 +131,7 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       bezahlt,
       erstattungEur: calc.erstattung_eur,
       nachzahlungEur: calc.nachzahlung_eur,
+      ueberzahlungEur: ueberzahlung,
     });
 
     try {
@@ -161,10 +167,14 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
             stornogebuehr_prozent: calc.stornogebuehr_prozent,
             stornogebuehr_eur: calc.stornogebuehr_eur.toFixed(2),
             erstattung_eur: calc.erstattung_eur.toFixed(2),
+            ueberzahlung_eur: ueberzahlung.toFixed(2),
+            auszahlung_gesamt_eur: (calc.erstattung_eur + ueberzahlung).toFixed(2),
             nachzahlung_eur: calc.nachzahlung_eur.toFixed(2),
             tage_bis_event: calc.tage_bis_event,
-            hinweis: calc.erstattung_eur > 0
-              ? "Manueller Stripe-Refund nötig — sicherheitshalber nicht automatisch ausgeloest"
+            hinweis: calc.erstattung_eur + ueberzahlung > 0
+              ? ueberzahlung > 0
+                ? `Manueller Stripe-Refund nötig: ${(calc.erstattung_eur + ueberzahlung).toFixed(2)} EUR — davon ${ueberzahlung.toFixed(2)} EUR zu viel gezahlt, die NICHT unter die Storno-Staffel fallen`
+                : "Manueller Stripe-Refund nötig — sicherheitshalber nicht automatisch ausgeloest"
               : "Keine Erstattung fällig",
           }),
           signal: AbortSignal.timeout(5000),
@@ -190,8 +200,10 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           grund: "Kunden_Wunsch",
           stornogebuehr_eur: calc.stornogebuehr_eur,
           erstattung_eur: calc.erstattung_eur,
+          ueberzahlung_eur: ueberzahlung,
+          auszahlung_gesamt_eur: Math.round((calc.erstattung_eur + ueberzahlung) * 100) / 100,
           refund_notify: notifyResult,
-          refund_pending: calc.erstattung_eur > 0,
+          refund_pending: calc.erstattung_eur + ueberzahlung > 0,
         }),
         Aktiv: true,
       });
@@ -199,7 +211,12 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       console.error("[member-storno] audit-log fehlgeschlagen:", e);
     }
 
-    return NextResponse.json({ ok: true, calc });
+    return NextResponse.json({
+      ok: true,
+      calc,
+      ueberzahlung_eur: ueberzahlung,
+      auszahlung_gesamt_eur: Math.round((calc.erstattung_eur + ueberzahlung) * 100) / 100,
+    });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "unknown error";
     console.error("[member-storno]", msg);

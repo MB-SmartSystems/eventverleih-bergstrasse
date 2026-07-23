@@ -17,6 +17,7 @@ import { getRow, createRow, updateRow, TABLES } from "@/lib/baserow/client";
 import { captureKaution, cancelKaution } from "@/lib/stripe/payment-links";
 import { createRechnungForBuchung, findRechnungForBuchung } from "@/lib/eventverleih/rechnung";
 import { bucheEinnahme } from "@/lib/eventverleih/einnahme";
+import { erstattungEur } from "@/lib/eventverleih/zahlung";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ interface BuchungData {
   id: number;
   Stripe_Kaution_PaymentIntent: string | null;
   Kaution_Soll_Eur: number | string | null;
+  Ueberzahlung_Eur: number | string | null;
+  Zahlungen_JSON: string | null;
   Kaution_Hinterlegt_am: string | null;
   Kaution_Rueckzahlung_am: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
@@ -114,7 +117,13 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       }
     }
 
-    // Buchung aktualisieren
+    // Was wirklich an den Kunden zurueckgeht: Kaution PLUS zu viel gezahltes Geld.
+    // Der Schaden mindert nur die Kaution — eine Ueberzahlung war nie eine Sicherheit
+    // und geht auch beim vollen Einzug zurueck.
+    const erstattung = erstattungEur(buchung, schadenEur);
+
+    // Buchung aktualisieren. Kaution_Rueckzahlung_Eur bleibt bewusst der Kautions-Anteil:
+    // die beiden Posten werden getrennt ausgewiesen, nicht vermischt.
     const patch: Record<string, unknown> = {
       Kaution_Pruefung_Status: "abgeschlossen",
       Kaution_Rueckzahlung_am: heute,
@@ -142,6 +151,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
           kaution_soll: kautionSoll,
           schaden_eur: schadenEur,
           erstattung_eur: kautionRueckzahlungEur,
+          ueberzahlung_eur: erstattung.ueberzahlungEur,
+          erstattung_gesamt_eur: erstattung.gesamtEur,
           stripe_action: stripeAction,
           notiz: body.schaden_notiz || "",
         }),
@@ -191,6 +202,8 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ id: string
       action,
       schaden_eur: schadenEur,
       erstattung_eur: kautionRueckzahlungEur,
+      ueberzahlung_eur: erstattung.ueberzahlungEur,
+      erstattung_gesamt_eur: erstattung.gesamtEur,
       stripe: stripeAction,
     });
   } catch (e) {
