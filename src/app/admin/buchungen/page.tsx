@@ -125,8 +125,10 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   if (!(await isAuthenticated())) redirect("/admin");
   const { filter = "aktiv", sort } = await searchParams;
   const heute = new Date().toISOString().slice(0, 10);
-  // Default-Sortierung je Ansicht: "Anstehend" aufsteigend (nächstes zuerst), sonst absteigend (neueste zuerst)
-  const defaultSort = filter === "anstehend" ? "event_asc" : "event_desc";
+  // Default-Sortierung: Arbeits-Ansichten (Alle/Anstehend/Aktiv) aufsteigend (nächstes Event oben),
+  // Archiv-Ansichten (Abgeschlossen/Storniert) absteigend (neueste zuerst).
+  const ARCHIV_ANSICHTEN = new Set(["abgeschlossen", "storniert"]);
+  const defaultSort = ARCHIV_ANSICHTEN.has(filter) ? "event_desc" : "event_asc";
   const sortAsc = (sort ?? defaultSort) === "event_asc";
 
   const [buchungenList, kundenList] = await Promise.all([
@@ -155,7 +157,7 @@ export default async function BuchungenPage({ searchParams }: { searchParams: Pr
   const buildHref = (f: string, s?: string) => {
     const params = new URLSearchParams();
     if (f !== "aktiv") params.set("filter", f);
-    const natural = f === "anstehend" ? "event_asc" : "event_desc";
+    const natural = ARCHIV_ANSICHTEN.has(f) ? "event_desc" : "event_asc";
     if (s && s !== natural) params.set("sort", s);
     const qs = params.toString();
     return `/admin/buchungen${qs ? `?${qs}` : ""}`;
