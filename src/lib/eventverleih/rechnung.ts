@@ -104,12 +104,19 @@ async function reserviereRechnungsnummer(year: number, existing: RechnungRow[]):
 }
 
 /** Bestehende Rechnung für eine Buchung finden (vermeidet Doppel-Belege). */
-export async function findRechnungForBuchung(buchungId: number): Promise<{ id: number; token: string | null; url: string | null } | null> {
+export async function findRechnungForBuchung(
+  buchungId: number,
+): Promise<{ id: number; rechnungsnummer: string; token: string | null; url: string | null } | null> {
   const all = await listAllRows<RechnungRow>(TABLES.Rechnungen);
   const r = all.results.find((x) => x.Buchung_Link?.[0]?.id === buchungId);
   if (!r) return null;
   const token = r.Token_Public ?? null;
-  return { id: r.id, token, url: token ? `https://eventverleih-bergstrasse.de/rechnung/${token}` : null };
+  return {
+    id: r.id,
+    rechnungsnummer: r.Rechnungsnummer,
+    token,
+    url: token ? `https://eventverleih-bergstrasse.de/rechnung/${token}` : null,
+  };
 }
 
 export async function createRechnungForBuchung(
