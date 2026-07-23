@@ -46,14 +46,18 @@ function ausschnitt(text: string, index: number, laenge = 90): string {
 /**
  * Cash wording anywhere in customer text.
  *
- * Stripe is the standard way for deposit, remaining payment and security (business
- * rule, 2026-07-23). Cash stays possible in exceptional cases, but is never offered
- * in a customer text — not even as a friendly-sounding alternative. So every
- * standalone occurrence is a finding, not just the ones that sound like an offer.
+ * Stripe is the standard way for deposit, remaining payment and security. Cash is a
+ * last-priority option (Entscheidung 2026-07-23, A2): it may be named, never recommended
+ * or put on par with online, and only WITH the two mandatory hints (exact amount / no
+ * change; overpayment comes back with the deposit). So the check no longer treats every
+ * cash mention as a hard error: a mention that carries the mandatory hints is an
+ * informational note (is cash staying secondary?), a mention WITHOUT the hints is an error.
  */
 function pruefeBargeld(mail: MailText): Befund[] {
   const befunde: Befund[] = [];
   const re = /\b(bar|bares|bargeld|barzahlung)\b/gi;
+  // "kein Wechselgeld" is the tell-tale of the mandatory hint block (BAR_ZAHLUNG_HINWEIS).
+  const hatPflichtHinweis = /kein Wechselgeld/i.test(mail.body);
   for (const feld of ["subject", "body"] as const) {
     const text = mail[feld];
     let m: RegExpExecArray | null;
@@ -61,8 +65,10 @@ function pruefeBargeld(mail: MailText): Befund[] {
     while ((m = rx.exec(text)) !== null) {
       befunde.push({
         regel: "bargeld",
-        schwere: "fehler",
-        text: "Bargeld im Kundentext. Stripe ist der Standardweg; bar wird nie von sich aus angeboten.",
+        schwere: hatPflichtHinweis ? "hinweis" : "fehler",
+        text: hatPflichtHinweis
+          ? "Barzahlung erwähnt. Als nachrangige Option erlaubt und mit den Pflicht-Hinweisen versehen. Nur prüfen, dass bar nicht empfohlen oder mit online gleichgestellt wird."
+          : "Barzahlung im Kundentext ohne die Pflicht-Hinweise. Bar ist nachrangig erlaubt, aber nur mit: Betrag passend/kein Wechselgeld und Überzahlung kommt mit der Kaution zurück. Stripe bleibt der Standardweg.",
         stelle: ausschnitt(text, m.index),
       });
     }

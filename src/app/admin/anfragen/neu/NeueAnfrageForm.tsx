@@ -114,13 +114,14 @@ export default function NeueAnfrageForm({
         setSubmitting(false);
       } else if (freigeben && !d.freigegeben) {
         // Anfrage wurde angelegt, aber die Direkt-Freigabe ist fehlgeschlagen (Soft-Fail in der Route).
-        // Nicht still weiterleiten: der Nutzer wollte freigeben, muss also erfahren, dass die Buchung
-        // nur als Anfrage gespeichert wurde und die Freigabe manuell nachzuholen ist.
-        setError(
+        // Der Nutzer wollte freigeben, muss also erfahren, dass die Buchung nur als Anfrage gespeichert
+        // wurde. Trotzdem zur Buchung weiterleiten (die Buchung EXISTIERT) — nicht auf dem absendbaren
+        // Formular stehen bleiben, sonst legt ein zweiter Klick eine Dublette an.
+        window.alert(
           `Anfrage wurde angelegt (Buchung #${d.buchung_nr ?? d.buchung_id}), aber die Freigabe ist fehlgeschlagen. ` +
-            `Bitte im Buchungsdetail (/admin/buchungen/${d.buchung_id}) manuell freigeben.`,
+            `Bitte im Buchungsdetail manuell freigeben.`,
         );
-        setSubmitting(false);
+        window.location.href = `/admin/buchungen/${d.buchung_id}`;
       } else {
         window.location.href = `/admin/buchungen/${d.buchung_id}`;
       }
