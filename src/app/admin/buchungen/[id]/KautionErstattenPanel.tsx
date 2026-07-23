@@ -7,11 +7,14 @@ type Action = "voll" | "teil" | "einzug";
 export default function KautionErstattenPanel({
   buchungId,
   kautionSollEur,
+  ueberzahlungEur,
   prueffristBis,
   hasStripeHold,
 }: {
   buchungId: number;
   kautionSollEur: number;
+  /** Zu viel gezahltes Geld, das mit der Kaution zurueckgeht. 0 = keine Ueberzahlung. */
+  ueberzahlungEur: number;
   prueffristBis: string | null;
   hasStripeHold: boolean;
 }) {
@@ -87,6 +90,12 @@ export default function KautionErstattenPanel({
           Kaution gesamt: <strong>{kautionSollEur.toFixed(2)} €</strong>
           {hasStripeHold && <span> · Stripe-Hold aktiv (Pre-Auth)</span>}
         </p>
+        {ueberzahlungEur > 0 && (
+          <p className="text-xs text-amber-700 mt-0.5">
+            Zu viel gezahlt: <strong>{ueberzahlungEur.toFixed(2)} €</strong>
+            <span> · Auszahlung gesamt: <strong>{(kautionSollEur + ueberzahlungEur).toFixed(2)} €</strong></span>
+          </p>
+        )}
       </div>
 
       {!hasStripeHold && (

@@ -64,6 +64,7 @@ type BuchungRow = {
   Restzahlung_Bezahlt_am: string | null;
   Restzahlung_Bezahlt_Eur: string | null;
   Kaution_Soll_Eur: string | null;
+  Ueberzahlung_Eur: string | null;
   Zahlungen_JSON: string | null;
   Checklist_State_JSON: string | null;
   Akzeptiert_am?: string | null;
@@ -431,6 +432,7 @@ Vertrag
         <KautionErstattenPanel
           buchungId={buchung.id}
           kautionSollEur={parseFloat(buchung.Kaution_Soll_Eur ?? "0")}
+          ueberzahlungEur={parseFloat(buchung.Ueberzahlung_Eur ?? "0") || 0}
           prueffristBis={buchung.Kaution_Prueffrist_bis ?? null}
           hasStripeHold={!!buchung.Stripe_Kaution_PaymentIntent}
         />
