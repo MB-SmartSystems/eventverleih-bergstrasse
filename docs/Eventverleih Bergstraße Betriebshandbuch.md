@@ -138,6 +138,20 @@ Wichtiger Schritt, der im reinen Status-Bild fehlt — in Alltagssprache:
 
 ### Dauerhafte Geschäftsregeln (gelten projektweit)
 
+- **Stripe ist der Standard-Zahlweg, Bargeld ist die Ausnahme** (Manuel, 2026-07-23 — verbindlich).
+  Gilt für Anzahlung, Restzahlung **und Kaution** (Kaution als Pre-Authorization/Hold: es wird nichts
+  abgebucht, solange kein Schaden vorliegt). Fehlt ein Zahlungslink, wird er **erzeugt**, statt auf bar
+  auszuweichen.
+  Bar bleibt möglich — aber nur im Notfall, nach telefonischer Rücksprache oder wenn ein Kunde von sich
+  aus darauf besteht. Dann still ermöglichen. **In keinem Kundentext wird Bargeld von sich aus
+  angeboten**, auch nicht als freundliche Wahlmöglichkeit („bar oder online, wie Sie möchten") — genau
+  diese Gleichstellung ist das, was abgeschafft wurde. Grund: Manuel will kein Bargeld hantieren
+  (Wechselgeld, Verwahrung, Einzahlung, Zuordnung von Hand).
+  ⚠️ Diese Regel wurde schon einmal getroffen (Commit `6d04d99`, 2026-06-04) und ging verloren, weil sie
+  nur in der Commit-Nachricht stand: Auf `main` sagt der Termin-Reminder weiterhin „diese wird bar bei
+  der Übergabe erhoben", und am 2026-07-19 ging real eine `kaution_bar_hinweis`-Mail raus. Beim nächsten
+  Anfassen eines Zahlungstextes gegenprüfen, ob der Code die Regel wirklich abbildet.
+  Volle Entscheidung: Vault `Decisions/2026-07-23-stripe-standard-bar-ausnahme.md`.
 - **Kaution = durchlaufender Posten / Sicherheit, KEINE Einnahme.** Nie auf die Mietrechnung, nie abgezogen. Schäden separat über die Kaution, nicht über die Mietsumme.
 - **Refund-Methode folgt der Zahlungsmethode.** Stripe-bezahlt → Stripe-Refund (Button löst Auto-Mail aus). Bar/Überweisung → manuelle (Termin-)Überweisung, **nie** Stripe-Refund.
 - **Zahlungsgebühren nie an den Kunden weitergeben** (§270a BGB). Entfällt eine bezahlte Leistung → volle Differenz erstatten, ohne Gebühren-Abzug.

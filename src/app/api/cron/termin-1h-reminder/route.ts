@@ -28,6 +28,12 @@ interface BuchungRow {
   Preis_Lieferung: string | null;
   Preis_Abholung: string | null;
   Kunde_Link: Array<{ id: number; value: string }> | null;
+  Restzahlung_Soll_Eur: string | number | null;
+  Restzahlung_Bezahlt_am: string | null;
+  Kaution_Soll_Eur: string | number | null;
+  Kaution_Hinterlegt_am: string | null;
+  Stripe_Restzahlung_Link: string | null;
+  Stripe_Kaution_Link: string | null;
 }
 
 const WINDOW_MIN = 75; // Termine, die in den nächsten 75 Min beginnen
@@ -37,6 +43,47 @@ function minutesUntil(iso: string | null): number | null {
   const t = new Date(iso).getTime();
   if (isNaN(t)) return null;
   return Math.round((t - Date.now()) / 60_000);
+}
+
+function parseDec(v: string | number | null | undefined): number {
+  if (v === null || v === undefined) return 0;
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v));
+  return isNaN(n) ? 0 : n;
+}
+
+function eur(n: number): string {
+  return n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+/**
+ * Hinweis auf noch offene Beträge — NUR für die Übergabe und NUR, wenn in Baserow kein
+ * Zahlungseingang vermerkt ist (Restzahlung_Bezahlt_am / Kaution_Hinterlegt_am leer).
+ * Ist alles bezahlt, bleibt die Erinnerung unverändert die reine Terminmail.
+ *
+ * Stripe ist der Standard-Zahlweg (Geschäftsregel, siehe Projekt-CLAUDE.md „Zahlungs-Policy"
+ * + Betriebshandbuch + AGB §3). Bargeld wird hier bewusst NICHT angeboten — es bleibt im
+ * Ausnahmefall möglich, aber der Kunde wird nicht von sich aus darauf hingewiesen.
+ */
+function offeneBetraegeBlock(b: BuchungRow): string {
+  const restSoll = parseDec(b.Restzahlung_Soll_Eur);
+  const kautSoll = parseDec(b.Kaution_Soll_Eur);
+  const restOffen = restSoll > 0 && !b.Restzahlung_Bezahlt_am;
+  const kautOffen = kautSoll > 0 && !b.Kaution_Hinterlegt_am;
+  if (!restOffen && !kautOffen) return "";
+
+  const posten: string[] = [];
+  if (restOffen) posten.push(`Restzahlung ${eur(restSoll)} EUR`);
+  if (kautOffen) posten.push(`Kaution ${eur(kautSoll)} EUR`);
+
+  const links = [
+    restOffen && b.Stripe_Restzahlung_Link ? b.Stripe_Restzahlung_Link : null,
+    kautOffen && b.Stripe_Kaution_Link ? b.Stripe_Kaution_Link : null,
+  ].filter(Boolean);
+
+  const linkZeile = links.length ? `\nHier direkt erledigen:\n${links.join("\n")}\n` : "";
+
+  return `\nKurzer Hinweis: Offen ist noch ${posten.join(" und ")}. Am schnellsten erledigen Sie das vorab online.\n${linkZeile}`;
 }
 
 function berlinTime(iso: string): string {
@@ -105,10 +152,25 @@ export async function GET(req: NextRequest) {
         const name = `${kunde.Vorname ?? ""} ${kunde.Nachname ?? ""}`.trim();
         const ort = uebergabeOrt(b, c.which);
 
+        // Sicherheits-Pre-Check: Zahlungsstand frisch holen, bevor der Hinweis in die Mail geht —
+        // sonst mahnt sie einen Betrag an, der zwischen Listen-Abruf und Versand längst eingegangen
+        // ist (Muster aus restzahlung-reminder). Schlägt der Abruf fehl, wird der Hinweis
+        // weggelassen statt geraten.
+        let zahlungsHinweis = "";
+        if (c.which === "uebergabe") {
+          try {
+            const fresh = await getRow<BuchungRow>(TABLES.Buchungen, b.id);
+            zahlungsHinweis = offeneBetraegeBlock(fresh);
+          } catch (e) {
+            console.error("[termin-1h-reminder] pre-check getRow fehlgeschlagen:", e);
+          }
+        }
+
         const body =
           `Hallo ${name},\n\n` +
-          `kurze Erinnerung: Unser ${c.label}-Termin ist gleich — um ${berlinTime(c.iso)}.\n${ort}.\n\n` +
-          `Bis gleich!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
+          `kurze Erinnerung: Unser ${c.label}-Termin ist gleich — um ${berlinTime(c.iso)}.\n${ort}.\n` +
+          zahlungsHinweis +
+          `\nBis gleich!\n\nViele Grüße\nManuel Büttner — Eventverleih Bergstraße\nTel/WhatsApp +49 156 79521124`;
 
         try {
           await createRow(TABLES.MailQueue, {
