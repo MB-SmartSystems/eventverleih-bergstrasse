@@ -26,7 +26,7 @@ import StripeLinksPanel from "./StripeLinksPanel";
 import PayPalLinksPanel from "./PayPalLinksPanel";
 import { buildPayUrl, defaultAmountFor, type BetragsFelder } from "@/lib/paypal/pay-link";
 import KautionMailPanel from "./KautionMailPanel";
-import EntfernenPanel from "./EntfernenPanel";
+import BestellListe from "./BestellListe";
 import UebergabeTypPanel from "./UebergabeTypPanel";
 import { loadEveSettings, calculateStornoErstattung } from "@/lib/eventverleih/settings";
 import { bezahltEur } from "@/lib/eventverleih/zahlung";
@@ -120,6 +120,7 @@ type RechnungRow = {
   Status: { value: string } | null;
   Betrag_Gesamt: string | null;
   Rechnungsdatum: string | null;
+  Beleg_Mail_am: string | null;
   Buchung_Link: Array<{ id: number }>;
 };
 
@@ -439,77 +440,27 @@ Vertrag
         buchungId={buchung.id}
         hasPrice={parseFloat(buchung.Preis_Artikel ?? "0") > 0}
         alreadyHasRechnung={rechnungen.length > 0}
+        belegMailAm={rechnungen[0]?.Beleg_Mail_am ?? null}
       />
 
       {/* 3. Bestellung */}
-      <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
-        <h2 className="text-lg font-semibold text-warm-text mb-3">Bestellung ({positionen.length})</h2>
-        {positionen.length === 0 ? (
-          <p className="text-sm text-warm-muted">Keine Artikel-Positionen.</p>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-xs text-warm-muted border-b border-warm-border">
-                <th className="py-2">Artikel</th>
-                <th className="text-right">Anzahl</th>
-                <th className="text-right">Einzel</th>
-                <th className="text-right">Gesamt</th>
-              </tr>
-            </thead>
-            <tbody>
-              {positionen.map((p) => {
-                const aid = p.Artikel_Link?.[0]?.id;
-                const name = aid ? artikelNameById.get(aid) ?? `Artikel ${aid}` : "—";
-                return (
-                <tr key={p.id} className="border-b border-warm-border/50 last:border-0">
-                  <td className="py-2 text-warm-text">{name}</td>
-                  <td className="text-right text-warm-text">{p.Anzahl}</td>
-                  <td className="text-right text-warm-muted">{fmtEur(p.Einzelpreis_Eur)}</td>
-                  <td className="text-right text-warm-text font-medium">{fmtEur(p.Position_Gesamt_Eur)}</td>
-                </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
-        {/* Gebuchte Services — direkt unter der Artikelliste */}
-        {(() => {
-          const services = [
-            { label: "Lieferung", val: parseFloat(buchung.Preis_Lieferung || "0") || 0 },
-            { label: "Abholung", val: parseFloat(buchung.Preis_Abholung || "0") || 0 },
-            { label: "Aufbau-Service", val: parseFloat(buchung.Preis_Aufbau || "0") || 0 },
-          ].filter((s) => s.val > 0);
-          if (services.length === 0) return null;
-          return (
-            <div className="mt-4 pt-3 border-t border-warm-border">
-              <p className="text-xs uppercase tracking-wide text-warm-muted mb-2">Zusätzlich gebucht</p>
-              <table className="w-full text-sm">
-                <tbody>
-                  {services.map((s) => (
-                    <tr key={s.label} className="border-b border-warm-border/50 last:border-0">
-                      <td className="py-2 text-warm-text">{s.label}</td>
-                      <td className="text-right text-warm-text font-medium">{fmtEur(s.val.toFixed(2))}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          );
-        })()}
-        <EntfernenPanel
-          buchungId={buchung.id}
-          positionen={positionen.map((p) => ({
-            id: p.id,
-            name: (p.Artikel_Link?.[0]?.id ? artikelNameById.get(p.Artikel_Link[0].id) : null) ?? "Artikel",
-          }))}
-          services={[
-            { key: "lieferung", label: "Lieferung", eur: parseFloat(buchung.Preis_Lieferung || "0") || 0 },
-            { key: "abholung", label: "Abholung", eur: parseFloat(buchung.Preis_Abholung || "0") || 0 },
-            { key: "aufbau", label: "Aufbau-Service", eur: parseFloat(buchung.Preis_Aufbau || "0") || 0 },
-            { key: "abbau", label: "Abbau-Service", eur: parseFloat(buchung.Preis_Abbau || "0") || 0 },
-          ].filter((s) => s.eur > 0)}
-        />
-      </section>
+      <BestellListe
+        buchungId={buchung.id}
+        positionen={positionen.map((p) => ({
+          id: p.id,
+          name: (p.Artikel_Link?.[0]?.id ? artikelNameById.get(p.Artikel_Link[0].id) : null) ?? "Artikel",
+          anzahl: p.Anzahl,
+          einzelpreis: p.Einzelpreis_Eur,
+          gesamt: p.Position_Gesamt_Eur,
+        }))}
+        services={[
+          { key: "lieferung", label: "Lieferung", eur: parseFloat(buchung.Preis_Lieferung || "0") || 0 },
+          { key: "abholung", label: "Abholung", eur: parseFloat(buchung.Preis_Abholung || "0") || 0 },
+          { key: "aufbau", label: "Aufbau-Service", eur: parseFloat(buchung.Preis_Aufbau || "0") || 0 },
+          { key: "abbau", label: "Abbau-Service", eur: parseFloat(buchung.Preis_Abbau || "0") || 0 },
+        ].filter((s) => s.eur > 0)}
+        rechnungsnummer={rechnungen[0]?.Rechnungsnummer ?? null}
+      />
 
       {/* 4. Zahlungen — Übersicht + Erfassen zusammen */}
       <section className="p-5 rounded-xl bg-warm-surface border border-warm-border">
@@ -683,7 +634,19 @@ Vertrag
             key: "abgerechnet",
             phase: "Abrechnung",
             label: "Rechnung erstellt + Mail raus",
-            checked: status === "Abgerechnet",
+            // Hängt an der Existenz der Rechnung, nicht am Buchungsstatus: der Punkt sagt
+            // "erstellt und Mail raus", nicht "Vorgang vollständig geschlossen".
+            checked: rechnungen.length > 0,
+            meta: rechnungen[0]
+              ? [
+                  rechnungen[0].Rechnungsnummer,
+                  rechnungen[0].Rechnungsdatum
+                    ? new Date(rechnungen[0].Rechnungsdatum).toLocaleDateString("de-DE")
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              : undefined,
           },
         ];
 
