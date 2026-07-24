@@ -3,6 +3,21 @@
 Lesbare Ebene über dem Git-Log: was ist durch, was läuft, wo geht es weiter. Neuester Eintrag oben,
 angehängt statt überschrieben. Detailverlauf steht im `git log`, Stolpersteine in `docs/learnings.md`.
 
+## 2026-07-24 (Cockpit-Ablauf-Anpassungen — 14 Grill-Punkte, live)
+- **Fertig:** 14 gegrillte Punkte gebaut, reviewt und deployt (`1c05b4f`…`57f48a3`, live verifiziert an der
+  AGB-Seite). Buchungsliste sortiert Arbeits-Ansichten aufsteigend (nächstes Event oben); Beleg-Button erst
+  nach Rückgabe+Miete+Kaution-Abrechnung (ausgegraut mit Begründung); Anlege-Modal „Speichern" vs. „Direkt
+  freigeben"; Überzahlung ab Erfassung sichtbar + ganze Buchungszeile klickbar. Mailtexte: Zahlweg-Rangfolge
+  Stripe→PayPal→Überweisung→Bar (Komplett zuerst), Bar-Pflichthinweise (kein Wechselgeld / Überzahlung mit
+  Kaution zurück), Anzahlungs-Reminder 4→2 Stufen, T-3 wird reine Übergabe-Info, Absage wärmer, Rückruf
+  gedreht („ich melde mich"), Übergabe/Rückgabe logistik-abhängig (Abholung ≠ „zurückbringen"),
+  Geviertstrich-Prüfer body-only + Signatur robust. AGB §3 + CLAUDE.md-Kaskade an die Bar-Policy (A2)
+  nachgezogen. Kein Mailversand ausgelöst.
+- **Läuft noch:** Stripe-Vorabzahlung als „festes Design" + Auto-Import (Manuel vertagt) — WIP
+  `eventverleih-stripe-vorab-import`. Bestehend: Stripe/PayPal-Webhooks importieren Zahlungen schon automatisch.
+- **Nächster Schritt:** Codex-Endverdikt nachholen (Quota war leer); `AUTO_MAIL_BEI_MANUELLER_FREIGABE` auf
+  `true`, wenn die Direkt-Freigabe auch die Angebotsmail schicken soll; Stripe-Vorab-Scope grillen.
+
 ## 2026-07-23 (Session zahlung-aufteilen)
 - **Fertig:** Zahlungs-/Text-Paket auf Branch `zahlung-aufteilen` (6 neue Commits, lokal, `a6696c7`…`d398262`).
   Storno-Mail: eigener Satz bei 100 % Gebühr (Erstattung = nur Überzahlung), Erstattungsweg nach Zahlungsart
